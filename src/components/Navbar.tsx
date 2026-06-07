@@ -24,6 +24,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
     { href: '/documents', label: 'Documents' },
+    { href: '/contact', label: 'Contact' },
   ]
 
   const liensLeader = [
@@ -39,6 +40,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/pci', label: 'Gestion PCI' },
     { href: '/admin/evenements', label: 'Gestion événements' },
     { href: '/admin/documents', label: 'Documents' },
+    { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },
   ]
 
