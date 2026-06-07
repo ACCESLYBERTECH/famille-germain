@@ -23,6 +23,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const liensCommuns = [
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
+    { href: '/documents', label: 'Documents' },
   ]
 
   const liensLeader = [
@@ -37,6 +38,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/evenements', label: 'Événements' },
     { href: '/admin/pci', label: 'Gestion PCI' },
     { href: '/admin/evenements', label: 'Gestion événements' },
+    { href: '/documents', label: 'Documents' },
     { href: '/scan', label: 'Scanner' },
   ]
 
