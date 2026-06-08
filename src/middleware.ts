@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Routes publiques — accessibles sans connexion
-  const publicRoutes = ['/connexion', '/inscription']
+  const publicRoutes = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // Si pas connecté et route protégée → rediriger vers connexion
@@ -16,7 +16,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Si connecté et tente d'accéder à connexion/inscription → rediriger
-  if (user && isPublicRoute) {
+  // Mais laisser passer mot-de-passe-oublie et reinitialiser même si connecté
+  const redirectSiConnecte = ['/connexion', '/inscription']
+  if (user && redirectSiConnecte.some(route => pathname.startsWith(route))) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
