@@ -23,17 +23,15 @@ export default async function PlatinesEtPlusPage() {
 
   if (compte?.role !== 'leader' && compte?.role !== 'admin') redirect('/')
 
-  // Récupérer tous les IDs du groupe via la fonction récursive
   const { data: groupeIds } = await supabaseAdmin
     .rpc('get_groupe_ids', { leader_uuid: user.id })
 
   const ids = (groupeIds ?? []).map((r: { compte_id: string }) => r.compte_id)
 
-  // Récupérer les profils du groupe (PCI + leaders)
   const { data: membres } = ids.length > 0
     ? await supabaseAdmin
         .from('comptes')
-        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, numero_amway, periode_sf_fin, statut, role, leader_id')
+        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, numero_amway, periode_sf_fin, statut, role, leader_id, groupe')
         .in('id', ids)
         .order('nom_1', { ascending: true })
     : { data: [] }
@@ -41,7 +39,6 @@ export default async function PlatinesEtPlusPage() {
   const pcis = (membres ?? []).filter((m: any) => m.role === 'pci' || m.role === 'leader')
   const leadersGroupe = (membres ?? []).filter((m: any) => m.role === 'leader')
 
-  // Récupérer les billets du groupe
   const { data: billets } = ids.length > 0
     ? await supabaseAdmin
         .from('billets')

@@ -76,6 +76,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
       leader_id: pci.leader_id ?? '',
       periode_sf_debut: pci.periode_sf_debut ? pci.periode_sf_debut.substring(0, 10) : '',
       periode_sf_fin: pci.periode_sf_fin ? pci.periode_sf_fin.substring(0, 10) : '',
+      groupe: pci.groupe ?? '',
     })
   }
 
@@ -92,6 +93,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         leader_id: form.leader_id || null,
         periode_sf_debut: form.periode_sf_debut || null,
         periode_sf_fin: form.periode_sf_fin || null,
+        groupe: form.groupe || null,
       }),
     })
 
@@ -185,7 +187,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
-                      {leaderDuPCI && <p className="text-xs mt-1" style={{ color: '#2E86C1' }}>Leader : {leaderDuPCI.prenom_1} {leaderDuPCI.nom_1}</p>}
+                      {leaderDuPCI && <p className="text-xs mt-0.5" style={{ color: '#2E86C1' }}>Leader : {leaderDuPCI.prenom_1} {leaderDuPCI.nom_1}</p>}
+                      {(pci as any).groupe && <p className="text-xs mt-0.5 font-medium" style={{ color: '#C9A84C' }}>Groupe : {(pci as any).groupe}</p>}
                       <p className="text-xs mt-1" style={{ color: '#4CAF7D' }}>
                         Sans frais jusqu'au {pci.periode_sf_fin ? new Date(pci.periode_sf_fin).toLocaleDateString('fr-CA') : 'N/A'}
                       </p>
@@ -321,6 +324,13 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                     <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Groupe */}
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Groupe (tag libre)</label>
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: BRISSON, ÉQUIPE-NORD..." value={form.groupe} onChange={e => update('groupe', e.target.value)} />
               </div>
 
               {/* Période sans frais */}

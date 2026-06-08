@@ -17,6 +17,7 @@ interface PCI {
   statut: string
   role: string
   leader_id: string | null
+  groupe: string | null
 }
 
 interface Billet {
@@ -50,20 +51,20 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
   const [recherche, setRecherche] = useState('')
   const [filtreEvenement, setFiltreEvenement] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
+  const [filtreGroupe, setFiltreGroupe] = useState('')
   const [triBillets, setTriBillets] = useState<TriBillets>('nom')
   const [triProfils, setTriProfils] = useState<TriProfils>('nom')
   const [profilOuvert, setProfilOuvert] = useState<PCI | null>(null)
+  const [groupeEdit, setGroupeEdit] = useState('')
+  const [sauvegroupeChargement, setSauveGroupeChargement] = useState(false)
+  const [groupeSauvegarde, setGroupeSauvegarde] = useState(false)
 
-  // Liste unique des événements
   const evenements = useMemo(() => {
     const noms = new Map<string, string>()
-    billets.forEach(b => {
-      if (b.evenements?.nom) noms.set(b.evenements.nom, b.evenements.nom)
-    })
+    billets.forEach(b => { if (b.evenements?.nom) noms.set(b.evenements.nom, b.evenements.nom) })
     return Array.from(noms.values()).sort()
   }, [billets])
 
-  // Totaux par événement
   const totauxParEvenement = useMemo(() => {
     const totaux: Record<string, number> = {}
     billets.forEach(b => {
@@ -73,20 +74,22 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
     return totaux
   }, [billets])
 
-  // Nom du leader d'un PCI
   function nomLeader(leaderId: string | null): string | null {
     if (!leaderId) return null
     const l = leadersGroupe.find(l => l.id === leaderId)
     return l ? `${l.prenom_1} ${l.nom_1}` : null
   }
 
-  // PCI filtrés par leader (pour filtrer les billets aussi)
   const idsPCIFiltresParLeader = useMemo(() => {
     if (!filtreLeader) return null
     return new Set(pcis.filter(p => p.leader_id === filtreLeader).map(p => p.id))
   }, [pcis, filtreLeader])
 
-  // Billets filtrés et triés
+  const idsPCIFiltresParGroupe = useMemo(() => {
+    if (!filtreGroupe || filtreGroupe.length < 1) return null
+    return new Set(pcis.filter(p => p.groupe?.toLowerCase().includes(filtreGroupe.toLowerCase())).map(p => p.id))
+  }, [pcis, filtreGroupe])
+
   const billetsFiltres = useMemo(() => {
     let result = billets.filter(b => {
       const matchRecherche = recherche.length < 2 ? true :
@@ -96,7 +99,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
           p.numero_amway.toLowerCase().includes(recherche.toLowerCase())))
       const matchEvenement = filtreEvenement === '' ? true : b.evenements?.nom === filtreEvenement
       const matchLeader = !idsPCIFiltresParLeader ? true : idsPCIFiltresParLeader.has(b.compte_id)
-      return matchRecherche && matchEvenement && matchLeader
+      const matchGroupe = !idsPCIFiltresParGroupe ? true : idsPCIFiltresParGroupe.has(b.compte_id)
+      return matchRecherche && matchEvenement && matchLeader && matchGroupe
     })
 
     result = [...result].sort((a, b) => {
@@ -107,9 +111,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
     })
 
     return result
-  }, [billets, recherche, filtreEvenement, idsPCIFiltresParLeader, triBillets, pcis])
+  }, [billets, recherche, filtreEvenement, idsPCIFiltresParLeader, idsPCIFiltresParGroupe, triBillets, pcis])
 
-  // Profils filtrés et triés
   const pcisFiltres = useMemo(() => {
     let result = pcis.filter(p => {
       const matchRecherche = recherche.length < 2 ? true :
@@ -117,7 +120,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
         p.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
         p.numero_amway.toLowerCase().includes(recherche.toLowerCase())
       const matchLeader = filtreLeader === '' ? true : p.leader_id === filtreLeader
-      return matchRecherche && matchLeader
+      const matchGroupe = !filtreGroupe ? true : p.groupe?.toLowerCase().includes(filtreGroupe.toLowerCase())
+      return matchRecherche && matchLeader && matchGroupe
     })
 
     result = [...result].sort((a, b) => {
@@ -128,7 +132,31 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
     })
 
     return result
-  }, [pcis, recherche, filtreLeader, triProfils])
+  }, [pcis, recherche, filtreLeader, filtreGroupe, triProfils])
+
+  async function sauvegarderGroupe() {
+    if (!profilOuvert) return
+    setSauveGroupeChargement(true)
+
+    await fetch('/api/leader/modifier-groupe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: profilOuvert.id, groupe: groupeEdit }),
+    })
+
+    setSauveGroupeChargement(false)
+    setGroupeSauvegarde(true)
+    setTimeout(() => setGroupeSauvegarde(false), 2000)
+
+    // Mettre à jour localement
+    profilOuvert.groupe = groupeEdit || null
+  }
+
+  function ouvrirProfil(pci: PCI) {
+    setProfilOuvert(pci)
+    setGroupeEdit(pci.groupe ?? '')
+    setGroupeSauvegarde(false)
+  }
 
   const statutBilletStyle = (statut: string) => {
     if (statut === 'vendu') return { backgroundColor: '#E3F2FD', color: '#2E86C1' }
@@ -196,33 +224,28 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
       </div>
 
       <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
-
         {/* Barre de filtres */}
         <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
           <input className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom ou numéro Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
 
           <div className="flex flex-wrap gap-2 items-center">
-            {/* Filtre événement */}
             {evenements.length > 0 && (
               <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
                 <option value="">Tous les événements</option>
-                {evenements.map(ev => (
-                  <option key={ev} value={ev}>{ev}</option>
-                ))}
+                {evenements.map(ev => <option key={ev} value={ev}>{ev}</option>)}
               </select>
             )}
 
-            {/* Filtre leader */}
             {leadersGroupe.length > 0 && (
               <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
                 <option value="">Tous les leaders</option>
-                {leadersGroupe.map(l => (
-                  <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>
-                ))}
+                {leadersGroupe.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
               </select>
             )}
 
-            {/* Tri */}
+            {/* Filtre groupe */}
+            <input className="border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Filtrer par groupe..." value={filtreGroupe} onChange={e => setFiltreGroupe(e.target.value)} />
+
             {onglet === 'billets' && (
               <div className="flex gap-1 ml-auto">
                 <span className="text-xs self-center mr-1" style={{ color: '#999999' }}>Trier :</span>
@@ -264,21 +287,18 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={statutBilletStyle(billet.statut)}>
                           {statutBilletLabel(billet.statut)}
                         </span>
-                        {billet.est_sans_frais && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>
-                        )}
-                        {billet.prix_paye === 0 && !billet.est_sans_frais && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>
-                        )}
+                        {billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>}
+                        {billet.prix_paye === 0 && !billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>}
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom}</p>
-                      <div className="flex gap-3 mt-0.5">
+                      <div className="flex gap-3 mt-0.5 flex-wrap">
                         {pci && <p className="text-xs" style={{ color: '#999999' }}>#{pci.numero_amway}</p>}
                         {leader && <p className="text-xs" style={{ color: '#2E86C1' }}>Leader : {leader}</p>}
+                        {pci?.groupe && <p className="text-xs font-medium" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}</p>}
                       </div>
                     </div>
                     {pci && (
-                      <button onClick={() => setProfilOuvert(pci)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
+                      <button onClick={() => ouvrirProfil(pci)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
                         ℹ️ Profil
                       </button>
                     )}
@@ -304,6 +324,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
                         {pci.prenom_1} {pci.nom_1}
                         {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
                       </p>
+                      {pci.groupe && <p className="text-xs font-medium mt-0.5" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}</p>}
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
                       {leader && <p className="text-xs mt-0.5" style={{ color: '#2E86C1' }}>Leader : {leader}</p>}
@@ -311,7 +332,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
                         Sans frais jusqu'au {pci.periode_sf_fin ? new Date(pci.periode_sf_fin).toLocaleDateString('fr-CA') : 'N/A'}
                       </p>
                     </div>
-                    <button onClick={() => setProfilOuvert(pci)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
+                    <button onClick={() => ouvrirProfil(pci)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
                       ℹ️ Profil
                     </button>
                   </div>
@@ -365,7 +386,19 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
                   <span style={{ color: '#1A2535' }}>{billets.filter(b => b.compte_id === profilOuvert.id).length} billet(s)</span>
                 </div>
               </div>
+
+              {/* Champ groupe modifiable */}
+              <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Groupe</label>
+                <div className="flex gap-2">
+                  <input className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: BRISSON, ÉQUIPE-NORD..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
+                  <button onClick={sauvegarderGroupe} disabled={sauvegroupeChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: groupeSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
+                    {sauvegroupeChargement ? '...' : groupeSauvegarde ? '✓' : 'Sauver'}
+                  </button>
+                </div>
+              </div>
             </div>
+
             <button onClick={() => setProfilOuvert(null)} className="w-full mt-6 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#C9A84C' }}>
               Fermer
             </button>

@@ -14,31 +14,32 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: compte } = await supabase.from('comptes').select('role').eq('id', user.id).single()
-    if (compte?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    if (compte?.role !== 'leader' && compte?.role !== 'admin') {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
 
-    const { id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, adresse, ville, code_postal, province, pays, numero_amway, date_inscription_amway, role, leader_id, periode_sf_debut, periode_sf_fin, groupe } = await request.json()
+    const { id, groupe } = await request.json()
+
+    // Vérifier que le PCI appartient bien au groupe du leader
+    if (compte?.role === 'leader') {
+      const { data: groupeIds } = await supabaseAdmin
+        .rpc('get_groupe_ids', { leader_uuid: user.id })
+      const ids = (groupeIds ?? []).map((r: { compte_id: string }) => r.compte_id)
+      if (!ids.includes(id)) {
+        return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+      }
+    }
 
     const { error } = await supabaseAdmin
       .from('comptes')
-      .update({
-        prenom_1, nom_1,
-        prenom_2: prenom_2 || null,
-        nom_2: nom_2 || null,
-        courriel, telephone, adresse, ville, code_postal, province, pays,
-        numero_amway, date_inscription_amway,
-        role,
-        leader_id: leader_id || null,
-        periode_sf_debut: periode_sf_debut || null,
-        periode_sf_fin: periode_sf_fin || null,
-        groupe: groupe || null,
-      })
+      .update({ groupe: groupe || null })
       .eq('id', id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
-    console.error('Erreur modifier compte:', error)
+    console.error('Erreur modifier groupe:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
