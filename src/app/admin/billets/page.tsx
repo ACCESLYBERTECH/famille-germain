@@ -22,12 +22,25 @@ export default async function AdminBilletsPage() {
     .select('*, evenements(nom, ville, date_debut), comptes(prenom_1, nom_1, courriel)')
     .order('created_at', { ascending: false })
 
+  const { data: evenements } = await supabase
+    .from('evenements')
+    .select('id, nom, ville')
+    .eq('statut', 'actif')
+    .order('date_debut', { ascending: true })
+
+  const { data: pcis } = await supabase
+    .from('comptes')
+    .select('id, prenom_1, nom_1, courriel')
+    .eq('role', 'pci')
+    .eq('statut', 'actif')
+    .order('nom_1', { ascending: true })
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6" style={{ color: '#1A2535' }}>Gestion des billets</h1>
-        <GestionBillets billets={billets ?? []} />
+        <GestionBillets billets={billets ?? []} evenements={evenements ?? []} pcis={pcis ?? []} />
       </div>
     </div>
   )
