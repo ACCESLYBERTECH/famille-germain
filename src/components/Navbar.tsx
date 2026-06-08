@@ -39,6 +39,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/evenements', label: 'Événements' },
     { href: '/admin/pci', label: 'Gestion PCI' },
     { href: '/admin/evenements', label: 'Gestion événements' },
+    { href: '/admin/billets', label: 'Gestion billets' },
     { href: '/admin/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },
