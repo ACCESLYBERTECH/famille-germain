@@ -55,6 +55,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
   const [selectedEvenement, setSelectedEvenement] = useState('')
   const [envoiBillet, setEnvoiBillet] = useState(false)
   const [erreurBillet, setErreurBillet] = useState('')
+  const [modalRapport, setModalRapport] = useState(false)
+  const [rapportEvenement, setRapportEvenement] = useState('')
+  const [rapportDestinataire, setRapportDestinataire] = useState('')
+  const [envoiRapport, setEnvoiRapport] = useState(false)
+  const [erreurRapport, setErreurRapport] = useState('')
+  const [rapportEnvoye, setRapportEnvoye] = useState(false)
   const router = useRouter()
 
   const totauxParEvenement = useMemo(() => {
@@ -97,7 +103,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
 
   function exporterCSV() {
     const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix']
-
     const lignes = billetsFiltres.map(b => {
       const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
       const amway = b.comptes?.numero_amway ?? ''
@@ -121,6 +126,35 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
     lien.download = nomFichier
     lien.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function envoyerRapport() {
+    setErreurRapport('')
+    if (!rapportEvenement) { setErreurRapport('Veuillez sélectionner un événement.'); return }
+    if (!rapportDestinataire) { setErreurRapport('Veuillez entrer un courriel destinataire.'); return }
+    setEnvoiRapport(true)
+
+    const res = await fetch('/api/admin/rapport-excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evenement_id: rapportEvenement, destinataire: rapportDestinataire }),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setErreurRapport(data.error)
+      setEnvoiRapport(false)
+      return
+    }
+
+    setEnvoiRapport(false)
+    setRapportEnvoye(true)
+    setTimeout(() => {
+      setModalRapport(false)
+      setRapportEnvoye(false)
+      setRapportEvenement('')
+      setRapportDestinataire('')
+    }, 2000)
   }
 
   const resultatsRecherche = recherchePCI.length >= 2
@@ -230,9 +264,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
             ⬇️ CSV ({billetsFiltres.length})
+          </button>
+          <button onClick={() => { setModalRapport(true); setErreurRapport(''); setRapportEnvoye(false) }} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#1A2535' }}>
+            📧 Rapport Excel
           </button>
           <button onClick={ouvrirModal} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
             + Offrir un billet
@@ -361,6 +398,47 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
                 {envoiBillet ? 'Envoi...' : 'Offrir le billet'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal rapport Excel */}
+      {modalRapport && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-bold mb-4" style={{ color: '#1A2535' }}>Rapport Excel par email</h2>
+
+            {rapportEnvoye ? (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#4CAF7D' }}>
+                  <span className="text-white text-3xl">✓</span>
+                </div>
+                <p className="font-medium" style={{ color: '#1A2535' }}>Rapport envoyé avec succès!</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Événement</label>
+                  <select className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={rapportEvenement} onChange={e => setRapportEvenement(e.target.value)}>
+                    <option value="">Sélectionner un événement...</option>
+                    {evenements.map(ev => <option key={ev.id} value={ev.id}>{ev.nom}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Courriel destinataire</label>
+                  <input type="email" className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="exemple@courriel.com" value={rapportDestinataire} onChange={e => setRapportDestinataire(e.target.value)} />
+                </div>
+                {erreurRapport && <p className="text-sm" style={{ color: '#E57373' }}>{erreurRapport}</p>}
+                <div className="flex justify-end gap-3 mt-2">
+                  <button onClick={() => setModalRapport(false)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
+                    Annuler
+                  </button>
+                  <button onClick={envoyerRapport} disabled={envoiRapport} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1A2535' }}>
+                    {envoiRapport ? 'Envoi...' : 'Envoyer le rapport'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
