@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erreur: 'Non autorisé' }, { status: 401 })
     }
 
-    const { evenement_id, nom_pci, est_sans_frais } = await request.json()
+    const { evenement_id, nom_pci, est_sans_frais, quantite = 1 } = await request.json()
 
     // Charger l'événement et ses paliers
     const { data: evenement } = await supabase
@@ -37,34 +37,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ erreur: 'Compte inactif' }, { status: 403 })
     }
 
-    // Vérifier si déjà acheté
-    const { data: billetExistant } = await supabase
-      .from('billets')
-      .select('id')
-      .eq('evenement_id', evenement_id)
-      .eq('compte_id', user.id)
-      .eq('nom_pci', nom_pci)
-      .neq('statut', 'rembourse')
-      .single()
-
-    if (billetExistant) {
-      return NextResponse.json({ erreur: 'Vous avez déjà un billet pour cet événement.' }, { status: 400 })
-    }
-
-    // Si sans frais — créer le billet directement sans Stripe
+    // Si sans frais — créer les billets directement sans Stripe
     if (est_sans_frais) {
-      const token = crypto.randomUUID()
-      await supabase.from('billets').insert({
-        evenement_id,
-        compte_id: user.id,
-        nom_pci,
-        leader_id: compte.leader_id,
-        est_sans_frais: true,
-        prix_paye: 0,
-        qr_code_token: token,
-        statut: 'vendu',
-      })
-      return NextResponse.json({ sans_frais: true, token })
+      // Récupérer les noms depuis nom_pci (peut être "Jean & Marie" ou juste "Jean")
+      const noms = nom_pci.includes(' & ') ? nom_pci.split(' & ') : [nom_pci]
+
+      for (const nom of noms) {
+        // Vérifier doublon par nom
+        const { data: billetExistant } = await supabase
+          .from('billets')
+          .select('id')
+          .eq('evenement_id', evenement_id)
+          .eq('compte_id', user.id)
+          .eq('nom_pci', nom.trim())
+          .neq('statut', 'rembourse')
+          .single()
+
+        if (billetExistant) continue
+
+        const token = crypto.randomUUID()
+        await supabase.from('billets').insert({
+          evenement_id,
+          compte_id: user.id,
+          nom_pci: nom.trim(),
+          leader_id: compte.leader_id,
+          est_sans_frais: true,
+          prix_paye: 0,
+          qr_code_token: token,
+          statut: 'vendu',
+        })
+      }
+
+      return NextResponse.json({ sans_frais: true })
     }
 
     // Calculer le prix actuel
@@ -73,18 +77,19 @@ export async function POST(request: NextRequest) {
     const palierActuel = paliers.find((p: { date_fin: string }) => new Date(p.date_fin) > maintenant)
     const prix = palierActuel ? palierActuel.prix : paliers[paliers.length - 1]?.prix ?? 0
 
-    // Créer le PaymentIntent Stripe
+    // Créer le PaymentIntent Stripe avec quantité
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(prix * 100), // en cents
+      amount: Math.round(prix * quantite * 100),
       currency: 'cad',
       metadata: {
         evenement_id,
         compte_id: user.id,
         nom_pci,
+        quantite: quantite.toString(),
       },
     })
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       client_secret: paymentIntent.client_secret,
       prix,
     })
