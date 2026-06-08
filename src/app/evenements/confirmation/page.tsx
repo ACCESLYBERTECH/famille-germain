@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Stripe from 'stripe'
+import { envoyerConfirmationBillet } from '@/lib/email'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -40,6 +41,12 @@ export default async function ConfirmationPage({ searchParams }: Props) {
 
   let qrToken = billetExistant?.qr_code_token
 
+  const { data: evenement } = await supabase
+    .from('evenements')
+    .select('*')
+    .eq('id', evenement_id)
+    .single()
+
   if (!billetExistant) {
     const token = crypto.randomUUID()
     await supabase.from('billets').insert({
@@ -54,13 +61,20 @@ export default async function ConfirmationPage({ searchParams }: Props) {
       statut: 'vendu',
     })
     qrToken = token
-  }
 
-  const { data: evenement } = await supabase
-    .from('evenements')
-    .select('*')
-    .eq('id', evenement_id)
-    .single()
+    // Envoyer email de confirmation au PCI
+    if (compte?.courriel && evenement) {
+      await envoyerConfirmationBillet({
+        prenom: compte.prenom_1,
+        nom: compte.nom_1,
+        email: compte.courriel,
+        evenement: evenement.nom,
+        ville: evenement.ville ?? '',
+        date: new Date(evenement.date_debut).toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        prix: (intent.amount / 100).toFixed(2),
+      })
+    }
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>

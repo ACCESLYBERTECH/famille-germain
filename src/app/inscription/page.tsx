@@ -14,14 +14,10 @@ export default function InscriptionPage() {
   const supabase = createClient()
 
   const [form, setForm] = useState({
-    // Étape 1
     prenom_1: '', nom_1: '', courriel: '', mot_de_passe: '', telephone: '',
-    // Étape 2
     adresse: '', ville: '', code_postal: '', province: '', pays: 'Canada',
-    // Étape 3
     numero_amway: '', date_inscription_amway: '', leader_id: '',
     prenom_2: '', nom_2: '',
-    // Étape 4
     consentement_communications: false, consentement_conditions: false,
   })
 
@@ -99,6 +95,17 @@ export default function InscriptionPage() {
       return
     }
 
+    // Notifier l'admin qu'un nouveau PCI attend approbation
+    await fetch('/api/emails/notification-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'nouveau_pci',
+        prenomPCI: form.prenom_1,
+        nomPCI: form.nom_1,
+      }),
+    })
+
     router.push('/inscription/merci')
   }
 
@@ -114,24 +121,16 @@ export default function InscriptionPage() {
     <div className="min-h-screen py-10 px-4" style={{ backgroundColor: '#F5F3EE' }}>
       <div className="max-w-lg mx-auto">
 
-        {/* Titre */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold" style={{ color: '#1A2535' }}>Créer un compte</h1>
           <p className="text-sm mt-1" style={{ color: '#666666' }}>Famille Germain – Yager Group</p>
         </div>
 
-        {/* Indicateur d'étapes */}
         <div className="flex items-center justify-between mb-8">
           {ETAPES.map((nom, i) => (
             <div key={i} className="flex items-center">
               <div className="flex flex-col items-center">
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  style={{
-                    backgroundColor: etape > i + 1 ? '#4CAF7D' : etape === i + 1 ? '#C9A84C' : '#E0E0E0',
-                    color: etape >= i + 1 ? 'white' : '#666666'
-                  }}
-                >
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ backgroundColor: etape > i + 1 ? '#4CAF7D' : etape === i + 1 ? '#C9A84C' : '#E0E0E0', color: etape >= i + 1 ? 'white' : '#666666' }}>
                   {etape > i + 1 ? '✓' : i + 1}
                 </div>
                 <span className="text-xs mt-1 hidden sm:block" style={{ color: etape === i + 1 ? '#C9A84C' : '#666666' }}>
@@ -145,10 +144,8 @@ export default function InscriptionPage() {
           ))}
         </div>
 
-        {/* Carte formulaire */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
 
-          {/* ÉTAPE 1 — Compte */}
           {etape === 1 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-lg mb-4" style={{ color: '#1A2535' }}>Informations du compte</h2>
@@ -177,7 +174,6 @@ export default function InscriptionPage() {
             </div>
           )}
 
-          {/* ÉTAPE 2 — Coordonnées */}
           {etape === 2 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-lg mb-4" style={{ color: '#1A2535' }}>Coordonnées</h2>
@@ -224,7 +220,6 @@ export default function InscriptionPage() {
             </div>
           )}
 
-          {/* ÉTAPE 3 — Amway */}
           {etape === 3 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-lg mb-4" style={{ color: '#1A2535' }}>Informations Amway</h2>
@@ -241,8 +236,6 @@ export default function InscriptionPage() {
                 <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Optionnel pour l'instant" value={form.leader_id} onChange={e => update('leader_id', e.target.value)} />
                 <p className="text-xs mt-1" style={{ color: '#666666' }}>Un dropdown avec les leaders sera ajouté prochainement.</p>
               </div>
-
-              {/* Co-PCI optionnel */}
               <div className="border-t pt-4 mt-4" style={{ borderColor: '#E0E0E0' }}>
                 <p className="font-medium text-sm mb-3" style={{ color: '#1A2535' }}>Co-PCI (conjoint — optionnel)</p>
                 <div className="grid grid-cols-2 gap-4">
@@ -259,7 +252,6 @@ export default function InscriptionPage() {
             </div>
           )}
 
-          {/* ÉTAPE 4 — Confirmation */}
           {etape === 4 && (
             <div className="space-y-4">
               <h2 className="font-semibold text-lg mb-4" style={{ color: '#1A2535' }}>Confirmation</h2>
@@ -270,29 +262,21 @@ export default function InscriptionPage() {
                 <p><strong>Numéro Amway :</strong> {form.numero_amway}</p>
                 {form.prenom_2 && <p><strong>Co-PCI :</strong> {form.prenom_2} {form.nom_2}</p>}
               </div>
-
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" className="mt-1" checked={form.consentement_communications} onChange={e => update('consentement_communications', e.target.checked)} />
-                <span className="text-sm" style={{ color: '#1A2535' }}>
-                  J'accepte de recevoir des communications de Famille Germain – Yager Group.
-                </span>
+                <span className="text-sm" style={{ color: '#1A2535' }}>J'accepte de recevoir des communications de Famille Germain – Yager Group.</span>
               </label>
-
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" className="mt-1" checked={form.consentement_conditions} onChange={e => update('consentement_conditions', e.target.checked)} />
-                <span className="text-sm" style={{ color: '#1A2535' }}>
-                  J'ai lu et j'accepte les conditions d'utilisation de la plateforme.
-                </span>
+                <span className="text-sm" style={{ color: '#1A2535' }}>J'ai lu et j'accepte les conditions d'utilisation de la plateforme.</span>
               </label>
             </div>
           )}
 
-          {/* Erreur */}
           {erreur && (
             <p className="text-sm mt-4 text-center" style={{ color: '#E57373' }}>{erreur}</p>
           )}
 
-          {/* Boutons navigation */}
           <div className="flex justify-between mt-6">
             {etape > 1 ? (
               <button onClick={() => setEtape(e => e - 1)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
@@ -303,7 +287,6 @@ export default function InscriptionPage() {
                 Déjà un compte ?
               </a>
             )}
-
             {etape < 4 ? (
               <button onClick={handleSuivant} className="px-6 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#C9A84C' }}>
                 Suivant →
