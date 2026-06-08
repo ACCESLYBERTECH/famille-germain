@@ -147,9 +147,40 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
     setSauveGroupeChargement(false)
     setGroupeSauvegarde(true)
     setTimeout(() => setGroupeSauvegarde(false), 2000)
-
-    // Mettre à jour localement
     profilOuvert.groupe = groupeEdit || null
+  }
+
+  function exporterCSV() {
+    const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut']
+
+    const lignes = billetsFiltres.map(b => {
+      const pci = pcis.find(p => p.id === b.compte_id)
+      const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
+      const nom = b.nom_pci
+      const amway = pci?.numero_amway ?? ''
+      const groupe = pci?.groupe ?? ''
+      const leader = pci ? (nomLeader(pci.leader_id) ?? '') : ''
+      const evenement = b.evenements?.nom ?? ''
+      const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
+      return [date, nom, amway, groupe, leader, evenement, statut]
+    })
+
+    const contenu = [entetes, ...lignes]
+      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob(['\uFEFF' + contenu], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const lien = document.createElement('a')
+    lien.href = url
+    const nomFichier = filtreEvenement
+      ? `mon-groupe-${filtreEvenement.replace(/\s+/g, '-')}.csv`
+      : filtreGroupe
+      ? `mon-groupe-${filtreGroupe.replace(/\s+/g, '-')}.csv`
+      : 'mon-groupe.csv'
+    lien.download = nomFichier
+    lien.click()
+    URL.revokeObjectURL(url)
   }
 
   function ouvrirProfil(pci: PCI) {
@@ -213,6 +244,13 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
         </div>
       )}
 
+      {/* Bouton export CSV */}
+      <div className="flex justify-end mb-2">
+        <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
+          ⬇️ CSV ({billetsFiltres.length})
+        </button>
+      </div>
+
       {/* Onglets */}
       <div className="flex gap-2 mb-0">
         <button onClick={() => setOnglet('billets')} className={ongletClass(onglet === 'billets')} style={onglet === 'billets' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
@@ -243,7 +281,6 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
               </select>
             )}
 
-            {/* Filtre groupe */}
             <input className="border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Filtrer par groupe..." value={filtreGroupe} onChange={e => setFiltreGroupe(e.target.value)} />
 
             {onglet === 'billets' && (
