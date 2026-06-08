@@ -1,7 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import GestionBillets from './GestionBillets'
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export default async function AdminBilletsPage() {
   const supabase = await createClient()
@@ -17,18 +23,21 @@ export default async function AdminBilletsPage() {
 
   if (compte?.role !== 'admin') redirect('/')
 
-  const { data: billets } = await supabase
+  const { data: billets, error: billetsError } = await supabaseAdmin
     .from('billets')
-    .select('*, evenements(nom, ville, date_debut), comptes(prenom_1, nom_1, courriel)')
+    .select('*, evenements(nom, date_debut), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel)')
     .order('created_at', { ascending: false })
 
-  const { data: evenements } = await supabase
+  console.log('Billets:', billets)
+  console.log('Erreur billets:', billetsError)
+
+  const { data: evenements } = await supabaseAdmin
     .from('evenements')
-    .select('id, nom, ville')
+    .select('id, nom')
     .eq('statut', 'actif')
     .order('date_debut', { ascending: true })
 
-  const { data: pcis } = await supabase
+  const { data: pcis } = await supabaseAdmin
     .from('comptes')
     .select('id, prenom_1, nom_1, courriel')
     .eq('role', 'pci')

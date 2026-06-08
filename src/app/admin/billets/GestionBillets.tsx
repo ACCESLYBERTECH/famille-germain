@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
 
 interface Billet {
   id: string
@@ -12,14 +11,13 @@ interface Billet {
   est_sans_frais: boolean
   created_at: string
   stripe_payment_intent_id: string | null
-  evenements: { nom: string; ville: string; date_debut: string } | null
+  evenements: { nom: string; date_debut: string } | null
   comptes: { prenom_1: string; nom_1: string; courriel: string } | null
 }
 
 interface Evenement {
   id: string
   nom: string
-  ville: string
 }
 
 interface PCI {
@@ -39,14 +37,20 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
   const [chargement, setChargement] = useState<string | null>(null)
   const [filtre, setFiltre] = useState<'tous' | 'vendu' | 'utilise' | 'rembourse'>('tous')
   const [modalOuvert, setModalOuvert] = useState(false)
-  const [selectedPCI, setSelectedPCI] = useState('')
+  const [recherchePCI, setRecherchePCI] = useState('')
+  const [selectedPCI, setSelectedPCI] = useState<PCI | null>(null)
   const [selectedEvenement, setSelectedEvenement] = useState('')
   const [envoiBillet, setEnvoiBillet] = useState(false)
   const [erreurBillet, setErreurBillet] = useState('')
   const router = useRouter()
-  const supabase = createClient()
 
   const billetsFiltres = billets.filter(b => filtre === 'tous' ? true : b.statut === filtre)
+
+  const resultatsRecherche = recherchePCI.length >= 2
+    ? pcis.filter(p =>
+        `${p.prenom_1} ${p.nom_1} ${p.courriel}`.toLowerCase().includes(recherchePCI.toLowerCase())
+      ).slice(0, 6)
+    : []
 
   async function rembourser(billetId: string) {
     if (!confirm('Confirmer le remboursement de ce billet? Cette action est irréversible.')) return
@@ -74,22 +78,19 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
     }
     setEnvoiBillet(true)
 
-    const pci = pcis.find(p => p.id === selectedPCI)!
-    const token = crypto.randomUUID()
-
-    const { error } = await supabase.from('billets').insert({
-      evenement_id: selectedEvenement,
-      compte_id: selectedPCI,
-      nom_pci: `${pci.prenom_1} ${pci.nom_1}`,
-      est_sans_frais: false,
-      prix_paye: 0,
-      stripe_payment_intent_id: null,
-      qr_code_token: token,
-      statut: 'vendu',
+    const res = await fetch('/api/billets/offrir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        evenement_id: selectedEvenement,
+        compte_id: selectedPCI.id,
+        nom_pci: `${selectedPCI.prenom_1} ${selectedPCI.nom_1}`,
+      }),
     })
 
-    if (error) {
-      setErreurBillet(error.message)
+    if (!res.ok) {
+      const data = await res.json()
+      setErreurBillet(data.error)
       setEnvoiBillet(false)
       return
     }
@@ -99,19 +100,28 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prenom: pci.prenom_1,
-        nom: pci.nom_1,
-        email: pci.courriel,
+        prenom: selectedPCI.prenom_1,
+        nom: selectedPCI.nom_1,
+        email: selectedPCI.courriel,
         evenement: evenement.nom,
-        ville: evenement.ville,
+        ville: '',
       }),
     })
 
     setEnvoiBillet(false)
     setModalOuvert(false)
-    setSelectedPCI('')
+    setSelectedPCI(null)
+    setRecherchePCI('')
     setSelectedEvenement('')
     router.refresh()
+  }
+
+  function ouvrirModal() {
+    setModalOuvert(true)
+    setSelectedPCI(null)
+    setRecherchePCI('')
+    setSelectedEvenement('')
+    setErreurBillet('')
   }
 
   const statutStyle = (statut: string) => {
@@ -145,7 +155,7 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
             </button>
           ))}
         </div>
-        <button onClick={() => setModalOuvert(true)} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
+        <button onClick={ouvrirModal} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
           + Offrir un billet
         </button>
       </div>
@@ -170,7 +180,7 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>
                   )}
                 </div>
-                <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom} — {billet.evenements?.ville}</p>
+                <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom}</p>
                 <p className="text-sm" style={{ color: '#666666' }}>
                   {billet.evenements?.date_debut && new Date(billet.evenements.date_debut).toLocaleDateString('fr-CA')}
                 </p>
@@ -197,22 +207,49 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
             <h2 className="text-lg font-bold mb-4" style={{ color: '#1A2535' }}>Offrir un billet</h2>
 
             <div className="space-y-4">
+
+              {/* Recherche PCI */}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>PCI</label>
-                <select className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={selectedPCI} onChange={e => setSelectedPCI(e.target.value)}>
-                  <option value="">Sélectionner un PCI...</option>
-                  {pcis.map(pci => (
-                    <option key={pci.id} value={pci.id}>{pci.prenom_1} {pci.nom_1} — {pci.courriel}</option>
-                  ))}
-                </select>
+                {selectedPCI ? (
+                  <div className="flex items-center justify-between rounded-lg px-4 py-2.5 border" style={{ borderColor: '#C9A84C', backgroundColor: '#FFFDF5' }}>
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: '#1A2535' }}>{selectedPCI.prenom_1} {selectedPCI.nom_1}</p>
+                      <p className="text-xs" style={{ color: '#666666' }}>{selectedPCI.courriel}</p>
+                    </div>
+                    <button onClick={() => { setSelectedPCI(null); setRecherchePCI('') }} className="text-xs px-2 py-1 rounded" style={{ color: '#E57373' }}>
+                      ✕ Changer
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <input className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom ou courriel..." value={recherchePCI} onChange={e => setRecherchePCI(e.target.value)} autoFocus />
+                    {resultatsRecherche.length > 0 && (
+                      <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1" style={{ borderColor: '#E0E0E0' }}>
+                        {resultatsRecherche.map(pci => (
+                          <button key={pci.id} onClick={() => { setSelectedPCI(pci); setRecherchePCI('') }} className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b last:border-b-0 transition-colors" style={{ borderColor: '#F0F0F0' }}>
+                            <p className="text-sm font-medium" style={{ color: '#1A2535' }}>{pci.prenom_1} {pci.nom_1}</p>
+                            <p className="text-xs" style={{ color: '#666666' }}>{pci.courriel}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {recherchePCI.length >= 2 && resultatsRecherche.length === 0 && (
+                      <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 px-4 py-3" style={{ borderColor: '#E0E0E0' }}>
+                        <p className="text-sm" style={{ color: '#666666' }}>Aucun PCI trouvé</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Événement */}
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Événement</label>
                 <select className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={selectedEvenement} onChange={e => setSelectedEvenement(e.target.value)}>
                   <option value="">Sélectionner un événement...</option>
                   {evenements.map(ev => (
-                    <option key={ev.id} value={ev.id}>{ev.nom} — {ev.ville}</option>
+                    <option key={ev.id} value={ev.id}>{ev.nom}</option>
                   ))}
                 </select>
               </div>
@@ -221,7 +258,7 @@ export default function GestionBillets({ billets, evenements, pcis }: Props) {
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
-              <button onClick={() => { setModalOuvert(false); setErreurBillet('') }} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
+              <button onClick={() => setModalOuvert(false)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
                 Annuler
               </button>
               <button onClick={offirBillet} disabled={envoiBillet} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#4CAF7D' }}>
