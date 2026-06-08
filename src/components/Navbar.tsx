@@ -28,7 +28,11 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   ]
 
   const liensLeader = [
-    { href: '/leader/billets', label: 'Billets mon groupe' },
+    { href: '/evenements', label: 'Événements' },
+    { href: '/evenements/mes-billets', label: 'Mes billets' },
+    { href: '/leader/platines-et-plus', label: 'Platines et plus' },
+    { href: '/documents', label: 'Documents' },
+    { href: '/contact', label: 'Contact' },
   ]
 
   const liensPortier = [
@@ -47,7 +51,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
 
   const liens = role === 'admin' ? liensAdmin
     : role === 'portier' ? liensPortier
-    : role === 'leader' ? [...liensCommuns, ...liensLeader]
+    : role === 'leader' ? liensLeader
     : liensCommuns
 
   return (
