@@ -57,7 +57,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
   const [erreurBillet, setErreurBillet] = useState('')
   const router = useRouter()
 
-  // Totaux par événement
   const totauxParEvenement = useMemo(() => {
     const totaux: Record<string, number> = {}
     billets.forEach(b => {
@@ -67,14 +66,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
     return totaux
   }, [billets])
 
-  // Noms d'événements uniques
   const nomsEvenements = useMemo(() => {
     const noms = new Set<string>()
     billets.forEach(b => { if (b.evenements?.nom) noms.add(b.evenements.nom) })
     return Array.from(noms).sort()
   }, [billets])
 
-  // Billets filtrés et triés
   const billetsFiltres = useMemo(() => {
     let result = billets.filter(b => {
       const matchStatut = filtreStatut === 'tous' ? true : b.statut === filtreStatut
@@ -97,6 +94,34 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
 
     return result
   }, [billets, filtreStatut, filtreEvenement, filtreLeader, recherche, tri])
+
+  function exporterCSV() {
+    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix']
+
+    const lignes = billetsFiltres.map(b => {
+      const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
+      const amway = b.comptes?.numero_amway ?? ''
+      const nom = b.nom_pci
+      const courriel = b.comptes?.courriel ?? ''
+      const evenement = b.evenements?.nom ?? ''
+      const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
+      const prix = b.est_sans_frais ? 'Sans frais' : b.prix_paye === 0 ? 'Billet offert' : `${b.prix_paye.toFixed(2)} $`
+      return [date, amway, nom, courriel, evenement, statut, prix]
+    })
+
+    const contenu = [entetes, ...lignes]
+      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob(['\uFEFF' + contenu], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const lien = document.createElement('a')
+    lien.href = url
+    const nomFichier = filtreEvenement ? `billets-${filtreEvenement.replace(/\s+/g, '-')}.csv` : 'billets-tous.csv'
+    lien.download = nomFichier
+    lien.click()
+    URL.revokeObjectURL(url)
+  }
 
   const resultatsRecherche = recherchePCI.length >= 2
     ? pcis.filter(p => `${p.prenom_1} ${p.nom_1} ${p.courriel}`.toLowerCase().includes(recherchePCI.toLowerCase())).slice(0, 6)
@@ -205,23 +230,26 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
             </button>
           ))}
         </div>
-        <button onClick={ouvrirModal} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
-          + Offrir un billet
-        </button>
+        <div className="flex gap-2">
+          <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
+            ⬇️ CSV ({billetsFiltres.length})
+          </button>
+          <button onClick={ouvrirModal} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
+            + Offrir un billet
+          </button>
+        </div>
       </div>
 
       {/* Filtres secondaires */}
       <div className="bg-white rounded-t-2xl shadow px-4 pt-4 pb-3 border-b" style={{ borderColor: '#E0E0E0' }}>
         <div className="flex flex-wrap gap-3 items-center mb-3">
           <input className="flex-1 min-w-48 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom, courriel ou # Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
-
           {nomsEvenements.length > 0 && (
             <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
               <option value="">Tous les événements</option>
               {nomsEvenements.map(ev => <option key={ev} value={ev}>{ev}</option>)}
             </select>
           )}
-
           {leaders.length > 0 && (
             <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
               <option value="">Tous les leaders</option>
@@ -229,7 +257,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
             </select>
           )}
         </div>
-
         <div className="flex gap-1 items-center">
           <span className="text-xs mr-1" style={{ color: '#999999' }}>Trier :</span>
           {(['nom', 'evenement', 'statut', 'numero_amway'] as TriType[]).map(t => (
