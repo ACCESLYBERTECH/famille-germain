@@ -74,6 +74,19 @@ export default async function ConfirmationPage({ searchParams }: Props) {
         prix: (intent.amount / 100).toFixed(2),
       })
     }
+
+    // Notifier l'admin du nouvel achat
+    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/emails/notification-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'nouveau_billet',
+        prenomPCI: compte?.prenom_1,
+        nomPCI: compte?.nom_1,
+        evenement: evenement?.nom,
+        ville: '',
+      }),
+    })
   }
 
   return (
