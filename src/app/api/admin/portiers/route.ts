@@ -26,10 +26,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Champs requis manquants' }, { status: 400 })
       }
 
-      // Générer le faux courriel
       const courriel = `${identifiant.toLowerCase().replace(/\s+/g, '-')}@acceslybertech.com`
 
-      // Créer le compte Auth Supabase
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: courriel,
         password: mot_de_passe,
@@ -40,8 +38,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: authError?.message ?? 'Erreur création compte' }, { status: 500 })
       }
 
-      // Créer le compte dans la table comptes
-      await supabaseAdmin.from('comptes').insert({
+      const { error: compteError } = await supabaseAdmin.from('comptes').insert({
         id: authData.user.id,
         courriel,
         prenom_1: nom_affichage,
@@ -50,7 +47,11 @@ export async function POST(request: Request) {
         statut: 'actif',
       })
 
-      // Créer l'entrée dans portiers_comptes
+      if (compteError) {
+        console.error('Erreur insertion comptes:', compteError)
+        return NextResponse.json({ error: compteError.message }, { status: 500 })
+      }
+
       const { error: portierError } = await supabaseAdmin.from('portiers_comptes').insert({
         compte_id: authData.user.id,
         identifiant: identifiant.toUpperCase(),
@@ -78,13 +79,11 @@ export async function POST(request: Request) {
 
       await supabaseAdmin.from('portiers_comptes').update(updates).eq('id', id)
 
-      // Mettre à jour le statut dans comptes
       const { data: portier } = await supabaseAdmin.from('portiers_comptes').select('compte_id').eq('id', id).single()
       if (portier) {
         await supabaseAdmin.from('comptes').update({ statut: actif ? 'actif' : 'inactif' }).eq('id', portier.compte_id)
       }
 
-      // Changer le mot de passe si fourni
       if (mot_de_passe && portier) {
         await supabaseAdmin.auth.admin.updateUserById(portier.compte_id, { password: mot_de_passe })
       }
