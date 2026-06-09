@@ -312,7 +312,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.role} onChange={e => update('role', e.target.value)}>
                   <option value="pci">PCI</option>
                   <option value="leader">Leader</option>
-                  <option value="portier">Portier</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
