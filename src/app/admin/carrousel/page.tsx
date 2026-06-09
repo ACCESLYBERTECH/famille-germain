@@ -7,6 +7,7 @@ interface CarrouselImage {
   id: string
   url: string
   ordre: number
+  lien: string | null
   cree_at: string
 }
 
@@ -15,6 +16,7 @@ export default function AdminCarrousel() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [editLien, setEditLien] = useState<{ id: string; lien: string } | null>(null)
   const dragItem = useRef<number | null>(null)
   const dragOver = useRef<number | null>(null)
   const supabase = createClient()
@@ -57,15 +59,14 @@ export default function AdminCarrousel() {
     }
 
     const { data: urlData } = supabase.storage.from('carrousel').getPublicUrl(fileName)
-
     const nouvelOrdre = images.length > 0 ? Math.max(...images.map(i => i.ordre)) + 1 : 0
 
     const { error: insertError } = await supabase
       .from('carrousel_images')
-      .insert({ url: urlData.publicUrl, ordre: nouvelOrdre })
+      .insert({ url: urlData.publicUrl, ordre: nouvelOrdre, lien: null })
 
     if (insertError) {
-      setMessage({ type: 'error', text: 'Erreur lors de l\'enregistrement' })
+      setMessage({ type: 'error', text: "Erreur lors de l'enregistrement" })
     } else {
       setMessage({ type: 'success', text: 'Image ajoutée avec succès!' })
       chargerImages()
@@ -86,6 +87,19 @@ export default function AdminCarrousel() {
     const { error } = await supabase.from('carrousel_images').delete().eq('id', id)
     if (!error) {
       setMessage({ type: 'success', text: 'Image supprimée' })
+      chargerImages()
+    }
+  }
+
+  async function sauvegarderLien(id: string, lien: string) {
+    const { error } = await supabase
+      .from('carrousel_images')
+      .update({ lien: lien.trim() || null })
+      .eq('id', id)
+
+    if (!error) {
+      setMessage({ type: 'success', text: 'Lien sauvegardé!' })
+      setEditLien(null)
       chargerImages()
     }
   }
@@ -121,7 +135,7 @@ export default function AdminCarrousel() {
   }
 
   return (
-    <div className="min-h-screen p-8" style={{ backgroundColor: '#F5F3EE' }}>
+    <div className="p-8">
       <div className="max-w-4xl mx-auto">
 
         {/* En-tête */}
@@ -173,7 +187,7 @@ export default function AdminCarrousel() {
               <h2 className="text-lg font-semibold" style={{ color: '#1A2535' }}>
                 Images ({images.length})
               </h2>
-              <p className="text-sm text-gray-400">Glissez-déposez pour changer l'ordre</p>
+              <p className="text-sm text-gray-400">Glissez-déposez pour changer l'ordre · Ajoutez un lien optionnel sur chaque image</p>
             </div>
             {saving && <span className="text-sm text-gray-400">Sauvegarde...</span>}
           </div>
@@ -181,7 +195,7 @@ export default function AdminCarrousel() {
           {images.length === 0 ? (
             <p className="text-center text-gray-400 py-12">Aucune image pour l'instant</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {images.map((img, index) => (
                 <div
                   key={img.id}
@@ -190,33 +204,71 @@ export default function AdminCarrousel() {
                   onDragEnter={() => dragEnter(index)}
                   onDragEnd={dragEnd}
                   onDragOver={(e) => e.preventDefault()}
-                  className="flex items-center gap-4 p-3 border border-gray-100 rounded-xl cursor-grab active:cursor-grabbing hover:border-yellow-300 transition-colors bg-gray-50"
+                  className="border border-gray-100 rounded-xl bg-gray-50 overflow-hidden"
                 >
-                  {/* Poignée */}
-                  <div className="text-gray-300 select-none text-lg">⠿</div>
+                  <div className="flex items-center gap-4 p-3">
+                    <div className="text-gray-300 select-none text-lg cursor-grab">⠿</div>
+                    <span className="text-sm font-bold w-6 text-center" style={{ color: '#C9A84C' }}>{index + 1}</span>
+                    <img src={img.url} alt={`Image ${index + 1}`} className="w-24 h-14 object-cover rounded-lg flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-400 truncate">{img.url}</p>
+                      {img.lien ? (
+                        <p className="text-xs mt-1 truncate font-medium" style={{ color: '#2E86C1' }}>
+                          🔗 {img.lien}
+                        </p>
+                      ) : (
+                        <p className="text-xs mt-1 text-gray-300">Aucun lien</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => setEditLien({ id: img.id, lien: img.lien ?? '' })}
+                        className="text-xs font-medium px-3 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                        style={{ color: '#2E86C1' }}
+                      >
+                        🔗 Lien
+                      </button>
+                      <button
+                        onClick={() => supprimerImage(img.id, img.url)}
+                        className="text-xs font-medium px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
+                        style={{ color: '#E57373' }}
+                      >
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
 
-                  {/* Numéro */}
-                  <span className="text-sm font-bold w-6 text-center" style={{ color: '#C9A84C' }}>
-                    {index + 1}
-                  </span>
-
-                  {/* Aperçu */}
-                  <img
-                    src={img.url}
-                    alt={`Image ${index + 1}`}
-                    className="w-24 h-14 object-cover rounded-lg"
-                  />
-
-                  {/* URL tronquée */}
-                  <span className="flex-1 text-xs text-gray-400 truncate">{img.url}</span>
-
-                  {/* Supprimer */}
-                  <button
-                    onClick={() => supprimerImage(img.id, img.url)}
-                    className="text-red-400 hover:text-red-600 transition-colors text-sm font-medium px-3 py-1 rounded-lg hover:bg-red-50"
-                  >
-                    Supprimer
-                  </button>
+                  {editLien?.id === img.id && (
+                    <div className="px-4 pb-4 pt-1 border-t border-gray-100">
+                      <p className="text-xs font-medium mb-2" style={{ color: '#1A2535' }}>
+                        Lien au clic — interne (ex: <code>/evenements</code>) ou externe (ex: <code>https://...</code>)
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+                          style={{ borderColor: '#E0E0E0' }}
+                          placeholder="Laisser vide pour aucun lien"
+                          value={editLien.lien}
+                          onChange={e => setEditLien({ id: img.id, lien: e.target.value })}
+                          onKeyDown={e => e.key === 'Enter' && sauvegarderLien(img.id, editLien.lien)}
+                        />
+                        <button
+                          onClick={() => sauvegarderLien(img.id, editLien.lien)}
+                          className="px-4 py-2 rounded-lg text-sm font-medium text-white"
+                          style={{ backgroundColor: '#4CAF7D' }}
+                        >
+                          Sauvegarder
+                        </button>
+                        <button
+                          onClick={() => setEditLien(null)}
+                          className="px-4 py-2 rounded-lg text-sm font-medium"
+                          style={{ color: '#666666', backgroundColor: '#F5F3EE' }}
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

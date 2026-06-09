@@ -1,15 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const ETAPES = ['Compte', 'Coordonnées', 'Amway', 'Confirmation']
 
+interface Leader {
+  id: string
+  prenom_1: string
+  nom_1: string
+  prenom_2: string | null
+  nom_2: string | null
+}
+
 export default function InscriptionPage() {
   const [etape, setEtape] = useState(1)
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
+  const [leaders, setLeaders] = useState<Leader[]>([])
   const router = useRouter()
   const supabase = createClient()
 
@@ -20,6 +29,12 @@ export default function InscriptionPage() {
     prenom_2: '', nom_2: '',
     consentement_communications: false, consentement_conditions: false,
   })
+
+  useEffect(() => {
+    fetch('/api/public/leaders')
+      .then(r => r.json())
+      .then(data => setLeaders(data ?? []))
+  }, [])
 
   function update(champ: string, valeur: string | boolean) {
     setForm(f => ({ ...f, [champ]: valeur }))
@@ -43,6 +58,9 @@ export default function InscriptionPage() {
     if (etape === 3) {
       if (!form.numero_amway || !form.date_inscription_amway) {
         setErreur('Veuillez remplir tous les champs.'); return false
+      }
+      if (!form.leader_id) {
+        setErreur('Veuillez sélectionner votre leader.'); return false
       }
     }
     if (etape === 4) {
@@ -95,7 +113,6 @@ export default function InscriptionPage() {
       return
     }
 
-    // Notifier l'admin qu'un nouveau PCI attend approbation
     await fetch('/api/emails/notification-admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -113,6 +130,13 @@ export default function InscriptionPage() {
     if (!validerEtape()) return
     setEtape(e => e + 1)
   }
+
+  function nomLeader(l: Leader) {
+    if (l.prenom_2 && l.nom_2) return `${l.prenom_1} ${l.nom_1} & ${l.prenom_2} ${l.nom_2}`
+    return `${l.prenom_1} ${l.nom_1}`
+  }
+
+  const leaderSelectionne = leaders.find(l => l.id === form.leader_id)
 
   const inputClass = "w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
   const labelClass = "block text-sm font-medium mb-1"
@@ -232,9 +256,13 @@ export default function InscriptionPage() {
                 <input type="date" className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.date_inscription_amway} onChange={e => update('date_inscription_amway', e.target.value)} />
               </div>
               <div>
-                <label className={labelClass} style={{ color: '#1A2535' }}>Votre leader</label>
-                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Optionnel pour l'instant" value={form.leader_id} onChange={e => update('leader_id', e.target.value)} />
-                <p className="text-xs mt-1" style={{ color: '#666666' }}>Un dropdown avec les leaders sera ajouté prochainement.</p>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Votre leader *</label>
+                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.leader_id} onChange={e => update('leader_id', e.target.value)}>
+                  <option value="">Sélectionner votre leader...</option>
+                  {leaders.map(l => (
+                    <option key={l.id} value={l.id}>{nomLeader(l)}</option>
+                  ))}
+                </select>
               </div>
               <div className="border-t pt-4 mt-4" style={{ borderColor: '#E0E0E0' }}>
                 <p className="font-medium text-sm mb-3" style={{ color: '#1A2535' }}>Co-PCI (conjoint — optionnel)</p>
@@ -261,6 +289,7 @@ export default function InscriptionPage() {
                 <p><strong>Ville :</strong> {form.ville}, {form.province}</p>
                 <p><strong>Numéro Amway :</strong> {form.numero_amway}</p>
                 {form.prenom_2 && <p><strong>Co-PCI :</strong> {form.prenom_2} {form.nom_2}</p>}
+                {leaderSelectionne && <p><strong>Leader :</strong> {nomLeader(leaderSelectionne)}</p>}
               </div>
               <label className="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" className="mt-1" checked={form.consentement_communications} onChange={e => update('consentement_communications', e.target.checked)} />

@@ -40,28 +40,31 @@ export default async function AccueilPage() {
   }
 
   // Charger la photo du leader assigné
-  let photoLeader: { url: string; nom: string } | null = null
+  let photoLeader: { url: string; nom: string; estCouple?: boolean } | null = null
+
   if (compte?.leader_id) {
     const { data: leader } = await supabaseAdmin
       .from('comptes')
-      .select('prenom_1, nom_1, photo_url')
+      .select('prenom_1, nom_1, prenom_2, nom_2, photo_url')
       .eq('id', compte.leader_id)
       .single()
 
     if (leader?.photo_url) {
-      photoLeader = {
-        url: leader.photo_url,
-        nom: `${leader.prenom_1} ${leader.nom_1}`,
-      }
+      const nomComplet = leader.prenom_2 && leader.nom_2
+        ? `${leader.prenom_1} ${leader.nom_1} & ${leader.prenom_2} ${leader.nom_2}`
+        : `${leader.prenom_1} ${leader.nom_1}`
+      const estCouple = !!(leader.prenom_2 && leader.nom_2)
+      photoLeader = { url: leader.photo_url, nom: nomComplet, estCouple }
     }
   }
 
   // Si c'est un leader, afficher sa propre photo
   if (!photoLeader && compte?.role === 'leader' && compte?.photo_url) {
-    photoLeader = {
-      url: compte.photo_url,
-      nom: `${compte.prenom_1} ${compte.nom_1}`,
-    }
+    const nomComplet = compte.prenom_2 && compte.nom_2
+      ? `${compte.prenom_1} ${compte.nom_1} & ${compte.prenom_2} ${compte.nom_2}`
+      : `${compte.prenom_1} ${compte.nom_1}`
+    const estCouple = !!(compte.prenom_2 && compte.nom_2)
+    photoLeader = { url: compte.photo_url, nom: nomComplet, estCouple }
   }
 
   // Charger les images du carrousel
