@@ -22,7 +22,7 @@ export default async function Home() {
 
   console.log('ROLE:', compte?.role, 'STATUT:', compte?.statut)
 
-  if (compte?.role === 'pci' || compte?.role === 'leader') redirect('/evenements')
+  if (compte?.role === 'pci' || compte?.role === 'leader') redirect('/accueil')
   if (compte?.role === 'portier') redirect('/scan')
 
   // Stats principales

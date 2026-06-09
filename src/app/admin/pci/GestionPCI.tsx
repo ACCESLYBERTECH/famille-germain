@@ -17,6 +17,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   const [modalModif, setModalModif] = useState<Compte | null>(null)
   const [sauvegarde, setSauvegarde] = useState(false)
   const [form, setForm] = useState<any>({})
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -58,6 +60,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
   function ouvrirModif(pci: Compte) {
     setModalModif(pci)
+    setPhotoPreview((pci as any).photo_url ?? null)
     setForm({
       prenom_1: pci.prenom_1 ?? '',
       nom_1: pci.nom_1 ?? '',
@@ -77,7 +80,47 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
       periode_sf_debut: pci.periode_sf_debut ? pci.periode_sf_debut.substring(0, 10) : '',
       periode_sf_fin: pci.periode_sf_fin ? pci.periode_sf_fin.substring(0, 10) : '',
       groupe: pci.groupe ?? '',
+      photo_url: (pci as any).photo_url ?? '',
     })
+  }
+
+  async function uploadPhotoLeader(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !modalModif) return
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Fichier trop volumineux (max 2MB)')
+      return
+    }
+
+    setUploadingPhoto(true)
+
+    const ext = file.name.split('.').pop()
+    const fileName = `leader-${modalModif.id}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('leaders-photos')
+      .upload(fileName, file, { upsert: true })
+
+    if (uploadError) {
+      alert('Erreur lors du téléversement')
+      setUploadingPhoto(false)
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from('leaders-photos').getPublicUrl(fileName)
+    const url = `${urlData.publicUrl}?t=${Date.now()}`
+
+    update('photo_url', url)
+    setPhotoPreview(url)
+    setUploadingPhoto(false)
+    e.target.value = ''
+  }
+
+  async function supprimerPhotoLeader() {
+    if (!confirm('Supprimer la photo de ce leader?')) return
+    update('photo_url', '')
+    setPhotoPreview(null)
   }
 
   async function sauvegarderModif() {
@@ -94,6 +137,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         periode_sf_debut: form.periode_sf_debut || null,
         periode_sf_fin: form.periode_sf_fin || null,
         groupe: form.groupe || null,
+        photo_url: form.photo_url || null,
       }),
     })
 
@@ -324,6 +368,41 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                   ))}
                 </select>
               </div>
+
+              {/* Photo leader — visible seulement si rôle = leader */}
+              {form.role === 'leader' && (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Photo du leader</p>
+                  <p className="text-xs text-gray-400">Format carré recommandé, min 400×400px, JPG/PNG, max 2MB</p>
+
+                  {photoPreview ? (
+                    <div className="flex items-center gap-4">
+                      <img src={photoPreview} alt="Photo leader" className="w-20 h-20 rounded-full object-cover border-2" style={{ borderColor: '#C9A84C' }} />
+                      <div className="flex flex-col gap-2">
+                        <label className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer text-white" style={{ backgroundColor: '#2E86C1' }}>
+                          {uploadingPhoto ? 'Téléversement...' : 'Changer la photo'}
+                          <input type="file" accept="image/*" className="hidden" onChange={uploadPhotoLeader} disabled={uploadingPhoto} />
+                        </label>
+                        <button onClick={supprimerPhotoLeader} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#FEE2E2', color: '#E57373' }}>
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-xl cursor-pointer hover:bg-yellow-50 transition-colors" style={{ borderColor: '#C9A84C' }}>
+                      {uploadingPhoto ? (
+                        <p className="text-sm text-gray-500">Téléversement...</p>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium" style={{ color: '#C9A84C' }}>Cliquer pour ajouter une photo</p>
+                          <p className="text-xs text-gray-400 mt-1">JPG, PNG — max 2MB</p>
+                        </>
+                      )}
+                      <input type="file" accept="image/*" className="hidden" onChange={uploadPhotoLeader} disabled={uploadingPhoto} />
+                    </label>
+                  )}
+                </>
+              )}
 
               {/* Groupe */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
