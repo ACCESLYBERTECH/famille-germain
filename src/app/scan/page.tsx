@@ -1,7 +1,13 @@
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import ScanInterface from './ScanInterface'
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export default async function ScanPage() {
   const supabase = await createClient()
@@ -17,24 +23,23 @@ export default async function ScanPage() {
 
   if (!compte || !['portier', 'admin'].includes(compte.role)) redirect('/')
 
-  // Charger l'assignation du portier
   let evenement = null
   let ville = null
 
   if (compte.role === 'portier') {
-    const { data: portier } = await supabase
-      .from('portiers')
+    const { data: portier } = await supabaseAdmin
+      .from('portiers_comptes')
       .select('*, evenement:evenements(*), ville:evenement_villes(*)')
       .eq('compte_id', user.id)
       .single()
 
-    if (!portier) {
+    if (!portier || !portier.actif) {
       return (
         <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
           <Navbar prenom={compte.prenom_1} role={compte.role} />
           <div className="max-w-md mx-auto pt-20 px-4 text-center">
             <div className="bg-white rounded-2xl shadow p-8">
-              <p className="font-medium" style={{ color: '#1A2535' }}>Aucun événement assigné.</p>
+              <p className="font-medium" style={{ color: '#1A2535' }}>Compte désactivé ou aucun événement assigné.</p>
               <p className="text-sm mt-2" style={{ color: '#666666' }}>Contactez un administrateur.</p>
             </div>
           </div>
@@ -45,10 +50,9 @@ export default async function ScanPage() {
     ville = portier.ville
   }
 
-  // Pour admin — charger tous les événements actifs
   let evenements = null
   if (compte.role === 'admin') {
-    const { data } = await supabase
+    const { data } = await supabaseAdmin
       .from('evenements')
       .select('*, villes:evenement_villes(*)')
       .eq('statut', 'actif')

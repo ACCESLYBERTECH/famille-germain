@@ -2,14 +2,12 @@
 
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
 
 export default function ConnexionPage() {
   const [identifiant, setIdentifiant] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
   const [erreur, setErreur] = useState('')
   const [chargement, setChargement] = useState(false)
-  const router = useRouter()
   const supabase = createClient()
 
   async function handleConnexion() {
@@ -18,7 +16,6 @@ export default function ConnexionPage() {
 
     let courriel = identifiant.trim()
 
-    // Si pas de @, c'est peut-être un identifiant portier
     if (!courriel.includes('@')) {
       const res = await fetch('/api/auth/resoudre-identifiant', {
         method: 'POST',
@@ -37,10 +34,12 @@ export default function ConnexionPage() {
       courriel = data.courriel
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email: courriel,
       password: motDePasse,
     })
+
+    console.log('AUTH RESULT:', JSON.stringify({ error, user: data?.user?.email }))
 
     if (error) {
       setErreur('Identifiant ou mot de passe incorrect.')
@@ -48,8 +47,8 @@ export default function ConnexionPage() {
       return
     }
 
-    router.push('/')
-    router.refresh()
+    await new Promise(r => setTimeout(r, 500))
+    window.location.href = '/'
   }
 
   return (

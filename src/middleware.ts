@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Routes publiques — accessibles sans connexion
-  const publicRoutes = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe']
+  const publicRoutes = ['/connexion', '/inscription', '/mot-de-passe-oublie', '/reinitialiser-mot-de-passe', '/api/auth']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
 
   // Si pas connecté et route protégée → rediriger vers connexion

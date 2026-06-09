@@ -20,6 +20,8 @@ export default async function Home() {
     .eq('id', user.id)
     .single()
 
+  console.log('ROLE:', compte?.role, 'STATUT:', compte?.statut)
+
   if (compte?.role === 'pci' || compte?.role === 'leader') redirect('/evenements')
   if (compte?.role === 'portier') redirect('/scan')
 
