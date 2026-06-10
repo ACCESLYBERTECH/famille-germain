@@ -41,12 +41,13 @@ interface Props {
   pcis: PCI[]
   billets: Billet[]
   leadersGroupe: Leader[]
+  leaderConnecteId: string
 }
 
 type TriBillets = 'nom' | 'evenement' | 'statut'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
-export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) {
+export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId }: Props) {
   const [onglet, setOnglet] = useState<'billets' | 'profils'>('billets')
   const [recherche, setRecherche] = useState('')
   const [filtreEvenement, setFiltreEvenement] = useState('')
@@ -80,9 +81,14 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
     return l ? `${l.prenom_1} ${l.nom_1}` : null
   }
 
+  // Pour le filtre par leader : inclure les billets du leader lui-même
+  // quand on filtre par ce leader
   const idsPCIFiltresParLeader = useMemo(() => {
     if (!filtreLeader) return null
-    return new Set(pcis.filter(p => p.leader_id === filtreLeader).map(p => p.id))
+    const idsMembres = new Set(pcis.filter(p => p.leader_id === filtreLeader).map(p => p.id))
+    // Si on filtre par un leader du groupe, inclure aussi ses propres billets
+    idsMembres.add(filtreLeader)
+    return idsMembres
   }, [pcis, filtreLeader])
 
   const idsPCIFiltresParGroupe = useMemo(() => {
@@ -92,6 +98,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
 
   const billetsFiltres = useMemo(() => {
     let result = billets.filter(b => {
+      const pci = pcis.find(p => p.id === b.compte_id)
       const matchRecherche = recherche.length < 2 ? true :
         b.nom_pci.toLowerCase().includes(recherche.toLowerCase()) ||
         !!pcis.find(p => p.id === b.compte_id &&
@@ -424,7 +431,6 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe }: Props) 
                 </div>
               </div>
 
-              {/* Champ groupe modifiable */}
               <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Groupe</label>
                 <div className="flex gap-2">

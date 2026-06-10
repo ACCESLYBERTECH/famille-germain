@@ -26,24 +26,32 @@ export default async function PlatinesEtPlusPage() {
   const { data: groupeIds } = await supabaseAdmin
     .rpc('get_groupe_ids', { leader_uuid: user.id })
 
-  const ids = (groupeIds ?? []).map((r: { compte_id: string }) => r.compte_id)
+  const idsGroupe = (groupeIds ?? []).map((r: { compte_id: string }) => r.compte_id)
 
-  const { data: membres } = ids.length > 0
+  // IDs pour les billets = groupe + le leader lui-même
+  const idsPourBillets = [...new Set([user.id, ...idsGroupe])]
+
+  const { data: membres } = idsGroupe.length > 0
     ? await supabaseAdmin
         .from('comptes')
         .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, numero_amway, periode_sf_fin, statut, role, leader_id, groupe')
-        .in('id', ids)
+        .in('id', idsGroupe)
         .order('nom_1', { ascending: true })
     : { data: [] }
 
-  const pcis = (membres ?? []).filter((m: any) => m.role === 'pci' || m.role === 'leader')
+  // Charger aussi les profils des leaders du groupe (pour le filtre par leader)
   const leadersGroupe = (membres ?? []).filter((m: any) => m.role === 'leader')
 
-  const { data: billets } = ids.length > 0
+  // Charger les profils complets de tous les leaders du groupe pour le filtre
+  // (nécessaire pour que les billets des leaders eux-mêmes soient filtrables)
+  const tousLesMembres = membres ?? []
+  const pcis = tousLesMembres.filter((m: any) => m.role === 'pci' || m.role === 'leader')
+
+  const { data: billets } = idsPourBillets.length > 0
     ? await supabaseAdmin
         .from('billets')
         .select('*, evenements(nom, date_debut)')
-        .in('compte_id', ids)
+        .in('compte_id', idsPourBillets)
         .order('created_at', { ascending: false })
     : { data: [] }
 
@@ -53,7 +61,12 @@ export default async function PlatinesEtPlusPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2" style={{ color: '#1A2535' }}>Platines et plus</h1>
         <p className="text-sm mb-6" style={{ color: '#666666' }}>Billets et profils de votre groupe</p>
-        <PlatinesEtPlus pcis={pcis ?? []} billets={billets ?? []} leadersGroupe={leadersGroupe ?? []} />
+        <PlatinesEtPlus
+          pcis={pcis}
+          billets={billets ?? []}
+          leadersGroupe={leadersGroupe}
+          leaderConnecteId={user.id}
+        />
       </div>
     </div>
   )
