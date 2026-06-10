@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { Compte } from '@/lib/types'
@@ -19,6 +19,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   const [form, setForm] = useState<any>({})
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [recherche, setRecherche] = useState('')
+  const [filtreLeader, setFiltreLeader] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -28,14 +30,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
   async function approuver(id: string) {
     setChargement(id)
-
     const pci = pciEnAttente.find(p => p.id === id)
-
-    // Utiliser la date d'inscription Amway comme début de la période sans frais
-    const debut = pci?.date_inscription_amway
-      ? new Date(pci.date_inscription_amway)
-      : new Date()
-
+    const debut = pci?.date_inscription_amway ? new Date(pci.date_inscription_amway) : new Date()
     const fin = new Date(debut)
     fin.setFullYear(fin.getFullYear() + 1)
 
@@ -93,30 +89,14 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   async function uploadPhotoLeader(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !modalModif) return
-
-    if (file.size > 2 * 1024 * 1024) {
-      alert('Fichier trop volumineux (max 2MB)')
-      return
-    }
-
+    if (file.size > 2 * 1024 * 1024) { alert('Fichier trop volumineux (max 2MB)'); return }
     setUploadingPhoto(true)
-
     const ext = file.name.split('.').pop()
     const fileName = `leader-${modalModif.id}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('leaders-photos')
-      .upload(fileName, file, { upsert: true })
-
-    if (uploadError) {
-      alert('Erreur lors du téléversement')
-      setUploadingPhoto(false)
-      return
-    }
-
+    const { error: uploadError } = await supabase.storage.from('leaders-photos').upload(fileName, file, { upsert: true })
+    if (uploadError) { alert('Erreur lors du téléversement'); setUploadingPhoto(false); return }
     const { data: urlData } = supabase.storage.from('leaders-photos').getPublicUrl(fileName)
     const url = `${urlData.publicUrl}?t=${Date.now()}`
-
     update('photo_url', url)
     setPhotoPreview(url)
     setUploadingPhoto(false)
@@ -132,13 +112,11 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   async function sauvegarderModif() {
     if (!modalModif) return
     setSauvegarde(true)
-
     await fetch('/api/admin/modifier-compte', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: modalModif.id,
-        ...form,
+        id: modalModif.id, ...form,
         leader_id: form.leader_id || null,
         periode_sf_debut: form.periode_sf_debut || null,
         periode_sf_fin: form.periode_sf_fin || null,
@@ -146,11 +124,27 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         photo_url: form.photo_url || null,
       }),
     })
-
     setSauvegarde(false)
     setModalModif(null)
     router.refresh()
   }
+
+  const pciActifsFiltres = useMemo(() => {
+    return pciActifs.filter(pci => {
+      const matchRecherche = recherche.length < 2 ? true :
+        `${pci.prenom_1} ${pci.nom_1}`.toLowerCase().includes(recherche.toLowerCase()) ||
+        (pci.prenom_2 && `${pci.prenom_2} ${pci.nom_2}`.toLowerCase().includes(recherche.toLowerCase())) ||
+        pci.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
+        pci.numero_amway.toLowerCase().includes(recherche.toLowerCase())
+
+      const matchLeader =
+        filtreLeader === '' ? true :
+        filtreLeader === 'aucun' ? !pci.leader_id :
+        pci.leader_id === filtreLeader
+
+      return matchRecherche && matchLeader
+    })
+  }, [pciActifs, recherche, filtreLeader])
 
   const ongletClass = (actif: boolean) =>
     `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${actif ? 'text-white' : 'text-gray-500 hover:text-gray-700'}`
@@ -165,6 +159,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   const inputClass = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
   const labelClass = "block text-xs font-medium mb-1"
 
+  const orphelins = pciActifs.filter(p => !p.leader_id).length
+
   return (
     <div>
       {/* Onglets */}
@@ -172,9 +168,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         <button onClick={() => setOnglet('attente')} className={ongletClass(onglet === 'attente')} style={onglet === 'attente' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
           En attente
           {pciEnAttente.length > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E57373', color: 'white' }}>
-              {pciEnAttente.length}
-            </span>
+            <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E57373', color: 'white' }}>{pciEnAttente.length}</span>
           )}
         </button>
         <button onClick={() => setOnglet('actifs')} className={ongletClass(onglet === 'actifs')} style={onglet === 'actifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
@@ -182,8 +176,53 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         </button>
       </div>
 
-      {/* Contenu */}
       <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
+
+        {/* Barre de recherche — visible seulement sur l'onglet actifs */}
+        {onglet === 'actifs' && (
+          <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
+            <input
+              className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+              style={{ borderColor: '#E0E0E0' }}
+              placeholder="Rechercher par nom, courriel ou # Amway..."
+              value={recherche}
+              onChange={e => setRecherche(e.target.value)}
+            />
+            <div className="flex flex-wrap gap-2 items-center">
+              <select
+                className="border rounded-lg px-3 py-1.5 text-sm outline-none"
+                style={{ borderColor: '#E0E0E0' }}
+                value={filtreLeader}
+                onChange={e => setFiltreLeader(e.target.value)}
+              >
+                <option value="">Tous les leaders</option>
+                <option value="aucun">⚠️ Aucun leader assigné ({orphelins})</option>
+                {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
+              </select>
+              {(recherche || filtreLeader) && (
+                <button
+                  onClick={() => { setRecherche(''); setFiltreLeader('') }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-medium"
+                  style={{ backgroundColor: '#F5F3EE', color: '#666666' }}
+                >
+                  ✕ Effacer les filtres
+                </button>
+              )}
+              <span className="ml-auto text-xs" style={{ color: '#999999' }}>
+                {pciActifsFiltres.length} résultat{pciActifsFiltres.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            {orphelins > 0 && !filtreLeader && (
+              <button
+                onClick={() => setFiltreLeader('aucun')}
+                className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg"
+                style={{ backgroundColor: '#FFF3E0', color: '#E57373', border: '1px solid #FFCC80' }}
+              >
+                ⚠️ {orphelins} PCI sans leader assigné — Cliquer pour voir
+              </button>
+            )}
+          </div>
+        )}
 
         {/* EN ATTENTE */}
         {onglet === 'attente' && (
@@ -202,9 +241,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                     <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
                     <p className="text-xs mt-1" style={{ color: '#999999' }}>Inscrit le {new Date(pci.created_at).toLocaleDateString('fr-CA')}</p>
                     {pci.date_inscription_amway && (
-                      <p className="text-xs mt-0.5" style={{ color: '#999999' }}>
-                        Inscription Amway : {new Date(pci.date_inscription_amway).toLocaleDateString('fr-CA')}
-                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: '#999999' }}>Inscription Amway : {new Date(pci.date_inscription_amway).toLocaleDateString('fr-CA')}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -224,10 +261,10 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         {/* ACTIFS */}
         {onglet === 'actifs' && (
           <div>
-            {pciActifs.length === 0 ? (
-              <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun PCI actif</div>
+            {pciActifsFiltres.length === 0 ? (
+              <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun PCI trouvé</div>
             ) : (
-              pciActifs.map(pci => {
+              pciActifsFiltres.map(pci => {
                 const { label, bg, color } = roleLabel(pci.role)
                 const leaderDuPCI = leaders.find(l => l.id === pci.leader_id)
                 return (
@@ -239,6 +276,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                           {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
                         </p>
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: bg, color }}>{label}</span>
+                        {!pci.leader_id && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>⚠️ Sans leader</span>}
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
@@ -270,7 +308,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
             <div className="px-6 py-4 space-y-4">
 
-              {/* Identité */}
               <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>Identité</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -291,7 +328,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </div>
               </div>
 
-              {/* Contact */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Contact</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Courriel</label>
@@ -302,7 +338,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.telephone} onChange={e => update('telephone', e.target.value)} />
               </div>
 
-              {/* Adresse */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Adresse</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Adresse</label>
@@ -347,7 +382,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </div>
               </div>
 
-              {/* Amway */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Amway</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -360,7 +394,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </div>
               </div>
 
-              {/* Rôle et leader */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Rôle et hiérarchie</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Rôle</label>
@@ -380,12 +413,10 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </select>
               </div>
 
-              {/* Photo leader — visible seulement si rôle = leader */}
               {form.role === 'leader' && (
                 <>
                   <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Photo du leader</p>
                   <p className="text-xs text-gray-400">Format carré recommandé, min 400×400px, JPG/PNG, max 2MB</p>
-
                   {photoPreview ? (
                     <div className="flex items-center gap-4">
                       <img src={photoPreview} alt="Photo leader" className="w-20 h-20 rounded-full object-cover border-2" style={{ borderColor: '#C9A84C' }} />
@@ -394,9 +425,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                           {uploadingPhoto ? 'Téléversement...' : 'Changer la photo'}
                           <input type="file" accept="image/*" className="hidden" onChange={uploadPhotoLeader} disabled={uploadingPhoto} />
                         </label>
-                        <button onClick={supprimerPhotoLeader} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#FEE2E2', color: '#E57373' }}>
-                          Supprimer
-                        </button>
+                        <button onClick={supprimerPhotoLeader} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#FEE2E2', color: '#E57373' }}>Supprimer</button>
                       </div>
                     </div>
                   ) : (
@@ -415,14 +444,12 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </>
               )}
 
-              {/* Groupe */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Groupe (tag libre)</label>
                 <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: BRISSON, ÉQUIPE-NORD..." value={form.groupe} onChange={e => update('groupe', e.target.value)} />
               </div>
 
-              {/* Période sans frais */}
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Période sans frais</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -438,9 +465,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
             </div>
 
             <div className="sticky bottom-0 bg-white px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: '#E0E0E0' }}>
-              <button onClick={() => setModalModif(null)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
-                Annuler
-              </button>
+              <button onClick={() => setModalModif(null)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>Annuler</button>
               <button onClick={sauvegarderModif} disabled={sauvegarde} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
                 {sauvegarde ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>
