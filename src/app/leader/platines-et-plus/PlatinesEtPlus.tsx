@@ -44,7 +44,7 @@ interface Props {
   leaderConnecteId: string
 }
 
-type TriBillets = 'nom' | 'evenement' | 'statut'
+type TriBillets = 'nom' | 'evenement' | 'statut' | 'date'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
 export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId }: Props) {
@@ -81,12 +81,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     return l ? `${l.prenom_1} ${l.nom_1}` : null
   }
 
-  // Pour le filtre par leader : inclure les billets du leader lui-même
-  // quand on filtre par ce leader
   const idsPCIFiltresParLeader = useMemo(() => {
     if (!filtreLeader) return null
     const idsMembres = new Set(pcis.filter(p => p.leader_id === filtreLeader).map(p => p.id))
-    // Si on filtre par un leader du groupe, inclure aussi ses propres billets
     idsMembres.add(filtreLeader)
     return idsMembres
   }, [pcis, filtreLeader])
@@ -98,7 +95,6 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
   const billetsFiltres = useMemo(() => {
     let result = billets.filter(b => {
-      const pci = pcis.find(p => p.id === b.compte_id)
       const matchRecherche = recherche.length < 2 ? true :
         b.nom_pci.toLowerCase().includes(recherche.toLowerCase()) ||
         !!pcis.find(p => p.id === b.compte_id &&
@@ -114,6 +110,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       if (triBillets === 'nom') return a.nom_pci.localeCompare(b.nom_pci)
       if (triBillets === 'evenement') return (a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')
       if (triBillets === 'statut') return a.statut.localeCompare(b.statut)
+      if (triBillets === 'date') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       return 0
     })
 
@@ -293,9 +290,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
             {onglet === 'billets' && (
               <div className="flex gap-1 ml-auto">
                 <span className="text-xs self-center mr-1" style={{ color: '#999999' }}>Trier :</span>
-                {(['nom', 'evenement', 'statut'] as TriBillets[]).map(t => (
+                {(['nom', 'evenement', 'statut', 'date'] as TriBillets[]).map(t => (
                   <button key={t} onClick={() => setTriBillets(t)} className={triClass(triBillets === t)} style={triBillets === t ? { backgroundColor: '#1A2535' } : { backgroundColor: '#E0E0E0' }}>
-                    {t === 'nom' ? 'Nom' : t === 'evenement' ? 'Événement' : 'Statut'}
+                    {t === 'nom' ? 'Nom' : t === 'evenement' ? 'Événement' : t === 'statut' ? 'Statut' : 'Date achat'}
                   </button>
                 ))}
               </div>
@@ -339,6 +336,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                         {pci && <p className="text-xs" style={{ color: '#999999' }}>#{pci.numero_amway}</p>}
                         {leader && <p className="text-xs" style={{ color: '#2E86C1' }}>Leader : {leader}</p>}
                         {pci?.groupe && <p className="text-xs font-medium" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}</p>}
+                        <p className="text-xs" style={{ color: '#999999' }}>Acheté le {new Date(billet.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })}</p>
                       </div>
                     </div>
                     {pci && (

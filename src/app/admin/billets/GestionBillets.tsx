@@ -40,7 +40,7 @@ interface Props {
   leaders: Leader[]
 }
 
-type TriType = 'nom' | 'evenement' | 'statut' | 'numero_amway'
+type TriType = 'nom' | 'evenement' | 'statut' | 'numero_amway' | 'date'
 
 export default function GestionBillets({ billets, evenements, pcis, leaders }: Props) {
   const [chargement, setChargement] = useState<string | null>(null)
@@ -95,6 +95,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
       if (tri === 'evenement') return (a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')
       if (tri === 'statut') return a.statut.localeCompare(b.statut)
       if (tri === 'numero_amway') return (a.comptes?.numero_amway ?? '').localeCompare(b.comptes?.numero_amway ?? '')
+      if (tri === 'date') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       return 0
     })
 
@@ -296,9 +297,9 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
         </div>
         <div className="flex gap-1 items-center">
           <span className="text-xs mr-1" style={{ color: '#999999' }}>Trier :</span>
-          {(['nom', 'evenement', 'statut', 'numero_amway'] as TriType[]).map(t => (
+          {(['nom', 'evenement', 'statut', 'numero_amway', 'date'] as TriType[]).map(t => (
             <button key={t} onClick={() => setTri(t)} className={triClass(tri === t)} style={tri === t ? { backgroundColor: '#1A2535' } : { backgroundColor: '#E0E0E0' }}>
-              {t === 'nom' ? 'Nom' : t === 'evenement' ? 'Événement' : t === 'statut' ? 'Statut' : '# Amway'}
+              {t === 'nom' ? 'Nom' : t === 'evenement' ? 'Événement' : t === 'statut' ? 'Statut' : t === 'numero_amway' ? '# Amway' : 'Date achat'}
             </button>
           ))}
           <span className="ml-auto text-xs" style={{ color: '#999999' }}>{billetsFiltres.length} résultat{billetsFiltres.length !== 1 ? 's' : ''}</span>
@@ -329,9 +330,14 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
                     {billet.comptes?.numero_amway && <p className="text-xs" style={{ color: '#999999' }}>#{billet.comptes.numero_amway}</p>}
                     {leaderNom && <p className="text-xs" style={{ color: '#2E86C1' }}>Leader : {leaderNom.prenom_1} {leaderNom.nom_1}</p>}
                   </div>
-                  <p className="text-xs mt-0.5" style={{ color: '#999999' }}>
-                    {billet.prix_paye === 0 && !billet.est_sans_frais ? 'Billet offert' : billet.est_sans_frais ? 'Sans frais' : `${billet.prix_paye?.toFixed(2)} $`}
-                  </p>
+                  <div className="flex gap-3 mt-0.5 flex-wrap">
+                    <p className="text-xs" style={{ color: '#999999' }}>
+                      {billet.prix_paye === 0 && !billet.est_sans_frais ? 'Billet offert' : billet.est_sans_frais ? 'Sans frais' : `${billet.prix_paye?.toFixed(2)} $`}
+                    </p>
+                    <p className="text-xs" style={{ color: '#999999' }}>
+                      Acheté le {new Date(billet.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {billet.statut === 'vendu' && billet.stripe_payment_intent_id && (
@@ -407,7 +413,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
         <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
             <h2 className="text-lg font-bold mb-4" style={{ color: '#1A2535' }}>Rapport Excel par email</h2>
-
             {rapportEnvoye ? (
               <div className="text-center py-6">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#4CAF7D' }}>
@@ -430,9 +435,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
                 </div>
                 {erreurRapport && <p className="text-sm" style={{ color: '#E57373' }}>{erreurRapport}</p>}
                 <div className="flex justify-end gap-3 mt-2">
-                  <button onClick={() => setModalRapport(false)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
-                    Annuler
-                  </button>
+                  <button onClick={() => setModalRapport(false)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>Annuler</button>
                   <button onClick={envoyerRapport} disabled={envoiRapport} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1A2535' }}>
                     {envoiRapport ? 'Envoi...' : 'Envoyer le rapport'}
                   </button>
