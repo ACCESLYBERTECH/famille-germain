@@ -53,7 +53,6 @@ export default function Navbar({ prenom, role }: NavbarProps) {
 
   const liensAdminPrincipaux = [
     { href: '/evenements', label: 'Événements' },
-    { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },
   ]
@@ -63,6 +62,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/evenements', label: '📅 Gestion événements' },
     { href: '/admin/billets', label: '🎫 Gestion billets' },
     { href: '/admin/portiers', label: '🔑 Portiers' },
+    { href: '/admin/documents', label: '📄 Documents' },
     { href: '/admin/carrousel', label: '🖼️ Carrousel' },
   ]
 
