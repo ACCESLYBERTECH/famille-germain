@@ -28,7 +28,14 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
   async function approuver(id: string) {
     setChargement(id)
-    const debut = new Date()
+
+    const pci = pciEnAttente.find(p => p.id === id)
+
+    // Utiliser la date d'inscription Amway comme début de la période sans frais
+    const debut = pci?.date_inscription_amway
+      ? new Date(pci.date_inscription_amway)
+      : new Date()
+
     const fin = new Date(debut)
     fin.setFullYear(fin.getFullYear() + 1)
 
@@ -38,7 +45,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
       periode_sf_fin: fin.toISOString(),
     }).eq('id', id)
 
-    const pci = pciEnAttente.find(p => p.id === id)
     if (pci) {
       await fetch('/api/emails/bienvenue-pci', {
         method: 'POST',
@@ -195,6 +201,11 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                     <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                     <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
                     <p className="text-xs mt-1" style={{ color: '#999999' }}>Inscrit le {new Date(pci.created_at).toLocaleDateString('fr-CA')}</p>
+                    {pci.date_inscription_amway && (
+                      <p className="text-xs mt-0.5" style={{ color: '#999999' }}>
+                        Inscription Amway : {new Date(pci.date_inscription_amway).toLocaleDateString('fr-CA')}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => approuver(pci.id)} disabled={chargement === pci.id} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#4CAF7D' }}>

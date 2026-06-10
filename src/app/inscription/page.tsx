@@ -14,11 +14,31 @@ interface Leader {
   nom_2: string | null
 }
 
+const PROVINCES_CANADA = [
+  'Alberta', 'Colombie-Britannique', 'Île-du-Prince-Édouard', 'Manitoba',
+  'Nouveau-Brunswick', 'Nouvelle-Écosse', 'Ontario', 'Québec',
+  'Saskatchewan', 'Terre-Neuve-et-Labrador',
+]
+
+const ETATS_USA = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado',
+  'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho',
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana',
+  'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota',
+  'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+  'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon',
+  'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota',
+  'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+]
+
 export default function InscriptionPage() {
   const [etape, setEtape] = useState(1)
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
   const [leaders, setLeaders] = useState<Leader[]>([])
+  const [modalConditions, setModalConditions] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -27,7 +47,9 @@ export default function InscriptionPage() {
     adresse: '', ville: '', code_postal: '', province: '', pays: 'Canada',
     numero_amway: '', date_inscription_amway: '', leader_id: '',
     prenom_2: '', nom_2: '',
-    consentement_communications: false, consentement_conditions: false,
+    consentement_communications: false,
+    consentement_conditions: false,
+    consentement_exactitude: false,
   })
 
   useEffect(() => {
@@ -35,6 +57,10 @@ export default function InscriptionPage() {
       .then(r => r.json())
       .then(data => setLeaders(data ?? []))
   }, [])
+
+  function updatePays(pays: string) {
+    setForm(f => ({ ...f, pays, province: '' }))
+  }
 
   function update(champ: string, valeur: string | boolean) {
     setForm(f => ({ ...f, [champ]: valeur }))
@@ -64,8 +90,8 @@ export default function InscriptionPage() {
       }
     }
     if (etape === 4) {
-      if (!form.consentement_communications || !form.consentement_conditions) {
-        setErreur('Veuillez accepter les deux consentements.'); return false
+      if (!form.consentement_communications || !form.consentement_conditions || !form.consentement_exactitude) {
+        setErreur('Veuillez accepter les trois consentements.'); return false
       }
     }
     return true
@@ -140,6 +166,34 @@ export default function InscriptionPage() {
 
   const inputClass = "w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
   const labelClass = "block text-sm font-medium mb-1"
+
+  function renderProvinceField() {
+    if (form.pays === 'Canada') {
+      return (
+        <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.province} onChange={e => update('province', e.target.value)}>
+          <option value="">Sélectionner une province...</option>
+          {PROVINCES_CANADA.map(p => <option key={p}>{p}</option>)}
+        </select>
+      )
+    }
+    if (form.pays === 'États-Unis') {
+      return (
+        <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.province} onChange={e => update('province', e.target.value)}>
+          <option value="">Sélectionner un état...</option>
+          {ETATS_USA.map(e => <option key={e}>{e}</option>)}
+        </select>
+      )
+    }
+    return (
+      <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Province / Région / État" value={form.province} onChange={e => update('province', e.target.value)} />
+    )
+  }
+
+  function labelProvince() {
+    if (form.pays === 'États-Unis') return 'État *'
+    if (form.pays === 'Canada') return 'Province *'
+    return 'Province / Région *'
+  }
 
   return (
     <div className="min-h-screen py-10 px-4" style={{ backgroundColor: '#F5F3EE' }}>
@@ -216,30 +270,19 @@ export default function InscriptionPage() {
                 </div>
               </div>
               <div>
-                <label className={labelClass} style={{ color: '#1A2535' }}>Province *</label>
-                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.province} onChange={e => update('province', e.target.value)}>
-                  <option value="">Sélectionner...</option>
-                  <option>Québec</option>
-                  <option>Ontario</option>
-                  <option>Colombie-Britannique</option>
-                  <option>Alberta</option>
-                  <option>Manitoba</option>
-                  <option>Saskatchewan</option>
-                  <option>Nouvelle-Écosse</option>
-                  <option>Nouveau-Brunswick</option>
-                  <option>Terre-Neuve-et-Labrador</option>
-                  <option>Île-du-Prince-Édouard</option>
-                </select>
-              </div>
-              <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Pays</label>
-                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.pays} onChange={e => update('pays', e.target.value)}>
+                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.pays} onChange={e => updatePays(e.target.value)}>
                   <option>Canada</option>
                   <option>États-Unis</option>
                   <option>France</option>
                   <option>Belgique</option>
                   <option>Suisse</option>
+                  <option>Autre</option>
                 </select>
+              </div>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>{labelProvince()}</label>
+                {renderProvinceField()}
               </div>
             </div>
           )}
@@ -285,20 +328,43 @@ export default function InscriptionPage() {
               <h2 className="font-semibold text-lg mb-4" style={{ color: '#1A2535' }}>Confirmation</h2>
               <div className="rounded-lg p-4 text-sm space-y-2" style={{ backgroundColor: '#F5F3EE' }}>
                 <p><strong>Nom :</strong> {form.prenom_1} {form.nom_1}</p>
-                <p><strong>Courriel :</strong> {form.courriel}</p>
-                <p><strong>Ville :</strong> {form.ville}, {form.province}</p>
-                <p><strong>Numéro Amway :</strong> {form.numero_amway}</p>
                 {form.prenom_2 && <p><strong>Co-PCI :</strong> {form.prenom_2} {form.nom_2}</p>}
+                <p><strong>Courriel :</strong> {form.courriel}</p>
+                <p><strong>Téléphone :</strong> {form.telephone}</p>
+                <p><strong>Adresse :</strong> {form.adresse}</p>
+                <p><strong>Ville :</strong> {form.ville}, {form.province}, {form.pays}</p>
+                <p><strong>Code postal :</strong> {form.code_postal}</p>
+                <p><strong>Numéro Amway :</strong> {form.numero_amway}</p>
+                <p><strong>Date d'inscription Amway :</strong> {form.date_inscription_amway ? new Date(form.date_inscription_amway).toLocaleDateString('fr-CA') : ''}</p>
                 {leaderSelectionne && <p><strong>Leader :</strong> {nomLeader(leaderSelectionne)}</p>}
               </div>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-1" checked={form.consentement_communications} onChange={e => update('consentement_communications', e.target.checked)} />
-                <span className="text-sm" style={{ color: '#1A2535' }}>J'accepte de recevoir des communications de Famille Germain – Yager Group.</span>
-              </label>
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input type="checkbox" className="mt-1" checked={form.consentement_conditions} onChange={e => update('consentement_conditions', e.target.checked)} />
-                <span className="text-sm" style={{ color: '#1A2535' }}>J'ai lu et j'accepte les conditions d'utilisation de la plateforme.</span>
-              </label>
+
+              <div className="space-y-3 pt-2">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" className="mt-1 flex-shrink-0" checked={form.consentement_communications} onChange={e => update('consentement_communications', e.target.checked)} />
+                  <span className="text-sm" style={{ color: '#1A2535' }}>
+                    J'accepte de recevoir des communications de Famille Germain – Yager Group.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" className="mt-1 flex-shrink-0" checked={form.consentement_conditions} onChange={e => update('consentement_conditions', e.target.checked)} />
+                  <span className="text-sm" style={{ color: '#1A2535' }}>
+                    J'ai lu et j'accepte les{' '}
+                    <button type="button" onClick={() => setModalConditions(true)} className="underline font-medium" style={{ color: '#C9A84C' }}>
+                      conditions d'utilisation
+                    </button>
+                    {' '}de la plateforme.
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input type="checkbox" className="mt-1 flex-shrink-0" checked={form.consentement_exactitude} onChange={e => update('consentement_exactitude', e.target.checked)} />
+                  <span className="text-sm" style={{ color: '#1A2535' }}>
+                    Je confirme que je suis un PCI affilié à Amway, que mon inscription Amway est complétée et que toutes les informations fournies sont exactes et véridiques.
+                  </span>
+                </label>
+              </div>
             </div>
           )}
 
@@ -329,6 +395,102 @@ export default function InscriptionPage() {
 
         </div>
       </div>
+
+      {/* Modale conditions d'utilisation */}
+      {modalConditions && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+
+            {/* En-tête fixe */}
+            <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#E0E0E0' }}>
+              <h2 className="text-lg font-bold" style={{ color: '#1A2535' }}>Conditions d'utilisation</h2>
+              <button onClick={() => setModalConditions(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">✕</button>
+            </div>
+
+            {/* Contenu défilable */}
+            <div className="overflow-y-auto px-6 py-4 flex-1 text-sm leading-relaxed space-y-6" style={{ color: '#1A2535' }}>
+
+              <p className="text-xs" style={{ color: '#999999' }}>Plateforme Famille Germain – Yager Group · Dernière mise à jour : juin 2026</p>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>1. Admissibilité et affiliation Amway</h3>
+                <p>En créant un compte sur la plateforme ACCESLYBERTECH, vous confirmez que vous êtes un Propriétaire de Commerce Indépendant (PCI) dûment affilié à Amway Canada Corporation ou à une filiale reconnue d'Amway dans votre pays de résidence.</p>
+                <p className="mt-2">Vous confirmez également que votre inscription auprès d'Amway est complétée, active et en règle au moment de votre demande d'adhésion à cette plateforme. Toute modification à votre statut Amway doit être signalée à l'administrateur de la plateforme dans les meilleurs délais.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>2. Exactitude des informations</h3>
+                <p>Vous certifiez que toutes les informations fournies lors de votre inscription — incluant votre nom, prénom, adresse, numéro de PCI Amway, date d'inscription Amway, coordonnées et toute autre information demandée — sont exactes, complètes et véridiques au moment de leur soumission.</p>
+                <p className="mt-2">Vous vous engagez à maintenir vos informations à jour et à notifier l'administrateur de tout changement significatif. La plateforme se réserve le droit de suspendre ou de révoquer tout compte dont les informations s'avèrent inexactes, incomplètes ou frauduleuses.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>3. Accès et sécurité du compte</h3>
+                <p>Votre compte est strictement personnel et non transférable. Vous êtes responsable de maintenir la confidentialité de vos identifiants de connexion. Toute activité effectuée depuis votre compte est réputée avoir été effectuée par vous.</p>
+                <p className="mt-2">En cas de compromission de votre compte ou d'utilisation non autorisée, vous devez en informer immédiatement l'administrateur de la plateforme. ACCESLYBERTECH ne saurait être tenu responsable des dommages résultant d'un accès non autorisé dû à une négligence de votre part.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>4. Utilisation de la plateforme</h3>
+                <p>La plateforme ACCESLYBERTECH est réservée exclusivement aux PCIs membres du réseau Famille Germain – Yager Group. Elle est destinée à la gestion d'événements, à la communication interne et à la consultation de documents liés à vos activités Amway.</p>
+                <p className="mt-2">Il vous est strictement interdit de :</p>
+                <ul className="list-disc ml-5 mt-2 space-y-1">
+                  <li>Partager votre accès avec des tiers non autorisés</li>
+                  <li>Utiliser la plateforme à des fins commerciales autres que celles liées à vos activités Amway</li>
+                  <li>Reproduire, distribuer ou exploiter le contenu de la plateforme sans autorisation écrite</li>
+                  <li>Tenter d'accéder à des sections réservées à d'autres rôles ou utilisateurs</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>5. Billets et événements</h3>
+                <p>L'achat de billets via la plateforme est soumis aux conditions tarifaires en vigueur au moment de la transaction. Les tarifs peuvent varier selon votre statut (sans frais, tarif régulier, paliers de prix) et selon la date d'achat.</p>
+                <p className="mt-2">Les remboursements sont traités conformément à la politique de remboursement d'ACCESLYBERTECH. Un billet remboursé ne peut pas être réutilisé. Les billets sont nominatifs et non transférables.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>6. Protection des renseignements personnels</h3>
+                <p>Les informations personnelles collectées lors de votre inscription sont utilisées exclusivement pour la gestion de votre compte, la communication d'événements et les activités liées au réseau Famille Germain – Yager Group.</p>
+                <p className="mt-2">Vos données ne seront pas vendues, louées ou partagées avec des tiers à des fins commerciales. Elles sont stockées de manière sécurisée conformément aux lois applicables en matière de protection des renseignements personnels au Canada (Loi 25) et dans votre juridiction de résidence.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>7. Communications</h3>
+                <p>En acceptant ces conditions, vous consentez à recevoir des communications électroniques de la part de la plateforme ACCESLYBERTECH, incluant des confirmations de billets, des annonces d'événements et des notifications administratives.</p>
+                <p className="mt-2">Vous pouvez retirer votre consentement aux communications marketing en tout temps en contactant l'administrateur de la plateforme.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>8. Modification et résiliation</h3>
+                <p>ACCESLYBERTECH se réserve le droit de modifier ces conditions d'utilisation en tout temps. Les modifications seront communiquées via la plateforme. La poursuite de l'utilisation de la plateforme après notification vaut acceptation des nouvelles conditions.</p>
+                <p className="mt-2">ACCESLYBERTECH se réserve le droit de suspendre ou de résilier tout compte qui contreviendrait aux présentes conditions, sans préavis et sans obligation de remboursement pour les services déjà rendus.</p>
+              </section>
+
+              <section>
+                <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>9. Droit applicable</h3>
+                <p>Les présentes conditions d'utilisation sont régies par les lois de la province de Québec et les lois fédérales du Canada applicables. Tout litige sera soumis à la juridiction exclusive des tribunaux compétents du Québec.</p>
+              </section>
+
+              <p className="text-xs text-center pt-2" style={{ color: '#999999' }}>
+                © 2026 ACCESLYBERTECH INC. — Tous droits réservés
+              </p>
+            </div>
+
+            {/* Pied fixe */}
+            <div className="px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#E0E0E0' }}>
+              <button
+                onClick={() => { setModalConditions(false); update('consentement_conditions', true) }}
+                className="w-full py-2.5 rounded-lg text-sm font-medium text-white"
+                style={{ backgroundColor: '#C9A84C' }}
+              >
+                J'ai lu et j'accepte les conditions d'utilisation ✓
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

@@ -27,12 +27,14 @@ export default async function AdminPCIPage() {
     .from('comptes')
     .select('*')
     .eq('statut', 'en_attente')
+    .neq('role', 'portier')
     .order('created_at', { ascending: true })
 
   const { data: pciActifs } = await supabaseAdmin
     .from('comptes')
     .select('*')
-    .in('statut', ['actif'])
+    .eq('statut', 'actif')
+    .neq('role', 'portier')
     .order('created_at', { ascending: false })
 
   const { data: leaders } = await supabaseAdmin
