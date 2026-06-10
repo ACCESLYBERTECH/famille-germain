@@ -82,7 +82,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const liensMobile = role === 'admin' ? liensAdminMobile : role === 'portier' ? liensPortier : role === 'leader' ? liensLeader : liensCommuns
 
   return (
-    <nav className="w-full px-6 py-3" style={{ backgroundColor: '#1A2535' }}>
+    <nav className="w-full px-6 py-3 sticky top-0 z-40" style={{ backgroundColor: '#1A2535' }}>
       <div className="flex items-center justify-between relative">
 
         <a href="/" className="flex items-center gap-3">
