@@ -27,8 +27,6 @@ export default async function PlatinesEtPlusPage() {
     .rpc('get_groupe_ids', { leader_uuid: user.id })
 
   const idsGroupe = (groupeIds ?? []).map((r: { compte_id: string }) => r.compte_id)
-
-  // IDs pour les billets = groupe + le leader lui-même
   const idsPourBillets = [...new Set([user.id, ...idsGroupe])]
 
   const { data: membres } = idsGroupe.length > 0
@@ -39,20 +37,25 @@ export default async function PlatinesEtPlusPage() {
         .order('nom_1', { ascending: true })
     : { data: [] }
 
-  // Charger aussi les profils des leaders du groupe (pour le filtre par leader)
   const leadersGroupe = (membres ?? []).filter((m: any) => m.role === 'leader')
-
-  // Charger les profils complets de tous les leaders du groupe pour le filtre
-  // (nécessaire pour que les billets des leaders eux-mêmes soient filtrables)
-  const tousLesMembres = membres ?? []
-  const pcis = tousLesMembres.filter((m: any) => m.role === 'pci' || m.role === 'leader')
+  const pcis = (membres ?? []).filter((m: any) => m.role === 'pci' || m.role === 'leader')
 
   const { data: billets } = idsPourBillets.length > 0
     ? await supabaseAdmin
         .from('billets')
-        .select('*, evenements(nom, date_debut)')
+        .select('*, evenements(nom, date_debut, a_banquet)')
         .in('compte_id', idsPourBillets)
         .order('created_at', { ascending: false })
+    : { data: [] }
+
+  // Charger les banquets achetés pour les billets du groupe
+  const billetIds = (billets ?? []).map((b: any) => b.id)
+  const { data: banquetsAchetes } = billetIds.length > 0
+    ? await supabaseAdmin
+        .from('billets_banquets')
+        .select('billet_id, banquet_id, nom_pci')
+        .in('billet_id', billetIds)
+        .neq('statut', 'rembourse')
     : { data: [] }
 
   return (
@@ -66,6 +69,7 @@ export default async function PlatinesEtPlusPage() {
           billets={billets ?? []}
           leadersGroupe={leadersGroupe}
           leaderConnecteId={user.id}
+          banquetsAchetes={banquetsAchetes ?? []}
         />
       </div>
     </div>

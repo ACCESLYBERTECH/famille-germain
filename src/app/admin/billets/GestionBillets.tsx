@@ -11,7 +11,7 @@ interface Billet {
   est_sans_frais: boolean
   created_at: string
   stripe_payment_intent_id: string | null
-  evenements: { nom: string; date_debut: string } | null
+  evenements: { nom: string; date_debut: string; a_banquet: boolean } | null
   comptes: { prenom_1: string; nom_1: string; courriel: string; numero_amway: string; leader_id: string | null } | null
 }
 
@@ -33,16 +33,23 @@ interface Leader {
   nom_1: string
 }
 
+interface BanquetAchete {
+  billet_id: string
+  banquet_id: string
+  nom_pci: string
+}
+
 interface Props {
   billets: Billet[]
   evenements: Evenement[]
   pcis: PCI[]
   leaders: Leader[]
+  banquetsAchetes: BanquetAchete[]
 }
 
 type TriType = 'nom' | 'evenement' | 'statut' | 'numero_amway' | 'date'
 
-export default function GestionBillets({ billets, evenements, pcis, leaders }: Props) {
+export default function GestionBillets({ billets, evenements, pcis, leaders, banquetsAchetes }: Props) {
   const [chargement, setChargement] = useState<string | null>(null)
   const [filtreStatut, setFiltreStatut] = useState<'tous' | 'vendu' | 'utilise' | 'rembourse'>('tous')
   const [filtreEvenement, setFiltreEvenement] = useState('')
@@ -103,7 +110,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
   }, [billets, filtreStatut, filtreEvenement, filtreLeader, recherche, tri])
 
   function exporterCSV() {
-    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix']
+    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix', 'Banquet']
     const lignes = billetsFiltres.map(b => {
       const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
       const amway = b.comptes?.numero_amway ?? ''
@@ -112,7 +119,10 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
       const evenement = b.evenements?.nom ?? ''
       const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
       const prix = b.est_sans_frais ? 'Sans frais' : b.prix_paye === 0 ? 'Billet offert' : `${b.prix_paye.toFixed(2)} $`
-      return [date, amway, nom, courriel, evenement, statut, prix]
+      const banquet = b.est_sans_frais && b.evenements?.a_banquet
+        ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
+        : ''
+      return [date, amway, nom, courriel, evenement, statut, prix, banquet]
     })
 
     const contenu = [entetes, ...lignes]
@@ -315,6 +325,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
             const leaderNom = billet.comptes?.leader_id
               ? leaders.find(l => l.id === billet.comptes?.leader_id)
               : null
+            const aBanquetAchete = banquetsAchetes.some(b => b.billet_id === billet.id)
             return (
               <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
                 <div className="flex-1">
@@ -323,6 +334,11 @@ export default function GestionBillets({ billets, evenements, pcis, leaders }: P
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={statutStyle(billet.statut)}>{statutLabel(billet.statut)}</span>
                     {billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>}
                     {billet.prix_paye === 0 && !billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>}
+                    {billet.est_sans_frais && billet.evenements?.a_banquet && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: aBanquetAchete ? '#E8F5E9' : '#FFF3E0', color: aBanquetAchete ? '#4CAF7D' : '#E57373' }}>
+                        {aBanquetAchete ? '🍽️ Avec banquet' : '🍽️ Sans banquet'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom}</p>
                   <div className="flex gap-3 mt-0.5 flex-wrap">

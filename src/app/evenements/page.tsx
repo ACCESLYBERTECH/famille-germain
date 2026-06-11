@@ -33,13 +33,14 @@ export default async function EvenementsPage() {
     )
   }
 
-  // Charger les événements actifs
+  // Charger les événements actifs avec banquets
   const { data: evenements } = await supabase
     .from('evenements')
     .select(`
       *,
       paliers:evenement_paliers(*),
-      villes:evenement_villes(*)
+      villes:evenement_villes(*),
+      banquet:banquets(*)
     `)
     .eq('statut', 'actif')
     .order('date_debut', { ascending: true })
@@ -50,6 +51,20 @@ export default async function EvenementsPage() {
     return true
   })
 
+  // Billets déjà achetés par le PCI (pour savoir si banquet disponible)
+  const { data: billetsPCI } = await supabase
+    .from('billets')
+    .select('id, evenement_id, nom_pci, est_sans_frais')
+    .eq('compte_id', user.id)
+    .neq('statut', 'rembourse')
+
+  // Banquets déjà achetés par le PCI
+  const { data: banquetsAchetes } = await supabase
+    .from('billets_banquets')
+    .select('banquet_id, nom_pci, billet_id')
+    .eq('compte_id', user.id)
+    .neq('statut', 'rembourse')
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
@@ -57,9 +72,11 @@ export default async function EvenementsPage() {
         <h1 className="text-2xl font-bold mb-6" style={{ color: '#1A2535' }}>
           Événements
         </h1>
-        <ListeEvenements 
-          evenements={evenementsFiltres} 
+        <ListeEvenements
+          evenements={evenementsFiltres}
           compte={compte}
+          billetsPCI={billetsPCI ?? []}
+          banquetsAchetes={banquetsAchetes ?? []}
         />
       </div>
     </div>

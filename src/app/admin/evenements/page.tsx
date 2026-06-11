@@ -22,7 +22,8 @@ export default async function AdminEvenementsPage() {
     .select(`
       *,
       paliers:evenement_paliers(*),
-      villes:evenement_villes(*)
+      villes:evenement_villes(*),
+      banquet:banquets(*)
     `)
     .order('date_debut', { ascending: false })
 

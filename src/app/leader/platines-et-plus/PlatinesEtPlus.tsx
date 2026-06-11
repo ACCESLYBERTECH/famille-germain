@@ -28,7 +28,7 @@ interface Billet {
   prix_paye: number
   est_sans_frais: boolean
   created_at: string
-  evenements: { nom: string; date_debut: string } | null
+  evenements: { nom: string; date_debut: string; a_banquet: boolean } | null
 }
 
 interface Leader {
@@ -37,17 +37,24 @@ interface Leader {
   nom_1: string
 }
 
+interface BanquetAchete {
+  billet_id: string
+  banquet_id: string
+  nom_pci: string
+}
+
 interface Props {
   pcis: PCI[]
   billets: Billet[]
   leadersGroupe: Leader[]
   leaderConnecteId: string
+  banquetsAchetes: BanquetAchete[]
 }
 
 type TriBillets = 'nom' | 'evenement' | 'statut' | 'date'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
-export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId }: Props) {
+export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes }: Props) {
   const [onglet, setOnglet] = useState<'billets' | 'profils'>('billets')
   const [recherche, setRecherche] = useState('')
   const [filtreEvenement, setFiltreEvenement] = useState('')
@@ -155,7 +162,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   }
 
   function exporterCSV() {
-    const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut']
+    const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut', 'Banquet']
 
     const lignes = billetsFiltres.map(b => {
       const pci = pcis.find(p => p.id === b.compte_id)
@@ -166,7 +173,10 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       const leader = pci ? (nomLeader(pci.leader_id) ?? '') : ''
       const evenement = b.evenements?.nom ?? ''
       const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
-      return [date, nom, amway, groupe, leader, evenement, statut]
+      const banquet = b.est_sans_frais && b.evenements?.a_banquet
+        ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
+        : ''
+      return [date, nom, amway, groupe, leader, evenement, statut, banquet]
     })
 
     const contenu = [entetes, ...lignes]
@@ -320,6 +330,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
               billetsFiltres.map(billet => {
                 const pci = pcis.find(p => p.id === billet.compte_id)
                 const leader = pci ? nomLeader(pci.leader_id) : null
+                const aBanquetAchete = banquetsAchetes.some(b => b.billet_id === billet.id)
                 return (
                   <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
                     <div className="flex-1">
@@ -330,6 +341,11 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                         </span>
                         {billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>}
                         {billet.prix_paye === 0 && !billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>}
+                        {billet.est_sans_frais && billet.evenements?.a_banquet && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: aBanquetAchete ? '#E8F5E9' : '#FFF3E0', color: aBanquetAchete ? '#4CAF7D' : '#E57373' }}>
+                            {aBanquetAchete ? '🍽️ Avec banquet' : '🍽️ Sans banquet'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom}</p>
                       <div className="flex gap-3 mt-0.5 flex-wrap">

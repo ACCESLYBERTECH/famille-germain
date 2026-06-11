@@ -13,6 +13,7 @@ interface Props {
 
 type ResultatScan = {
   type: 'succes' | 'erreur' | 'deja_scanne' | 'annule'
+  couleurResultat?: string
   message: string
   sousTitre?: string
   couleur: string
@@ -32,7 +33,6 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
   const evenementActif = evenement ?? evenements?.find(e => e.id === evenementChoisi)
   const villeActive = ville ?? evenementActif?.villes?.find((v: any) => v.id === villeChoisie)
 
-  // Charger stats par ville (admin seulement)
   useEffect(() => {
     if (compte.role !== 'admin') return
     if (!evenementActif?.id) return
@@ -51,8 +51,6 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
     if (!billets) return
 
     const stats: Record<string, { nom: string; count: number }> = {}
-
-    // Initialiser toutes les villes à 0
     evenementActif.villes?.forEach((v: any) => {
       stats[v.id] = { nom: v.nom_ville, count: 0 }
     })
@@ -68,6 +66,17 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
 
     const result = Object.values(stats).filter(s => s.nom !== 'Non assigné' || s.count > 0)
     setStatsVilles(result)
+  }
+
+  function getCouleurResultat(couleurResultat?: string, resultatType?: string): string {
+    if (resultatType === 'deja_scanne') return '#FF9800'
+    if (resultatType === 'erreur') return '#E57373'
+    switch (couleurResultat) {
+      case 'regulier': return '#2E86C1'      // 🔵 Bleu — billet régulier
+      case 'succes': return '#4CAF7D'         // 🟢 Vert — sans frais avec banquet
+      case 'sans_banquet': return '#C9A84C'   // 🟡 Or — sans frais sans banquet
+      default: return '#4CAF7D'
+    }
   }
 
   async function scanner(tokenScan: string) {
@@ -88,18 +97,16 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
 
     const data = await res.json()
 
-    const couleurs: Record<string, string> = {
-      succes: '#4CAF7D',
-      deja_scanne: '#FF9800',
-      invalide: '#E57373',
-      annule: '#E57373',
-    }
+    const typeResultat = data.resultat === 'succes' ? 'succes'
+      : data.resultat === 'deja_scanne' ? 'deja_scanne'
+      : 'erreur'
 
     setResultat({
-      type: data.resultat === 'succes' ? 'succes' : data.resultat === 'deja_scanne' ? 'deja_scanne' : 'erreur',
+      type: typeResultat,
+      couleurResultat: data.couleurResultat,
       message: data.message,
       sousTitre: data.sousTitre,
-      couleur: couleurs[data.resultat] ?? '#E57373',
+      couleur: getCouleurResultat(data.couleurResultat, typeResultat),
     })
 
     setToken('')
@@ -161,6 +168,27 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
         </div>
       )}
 
+      {/* Légende des couleurs — si événement avec banquet */}
+      {evenementActif?.a_banquet && (
+        <div className="bg-white rounded-2xl shadow p-4">
+          <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Légende des bracelets</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#2E86C1' }}></div>
+              <span className="text-sm" style={{ color: '#1A2535' }}>Billet régulier (banquet inclus)</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#4CAF7D' }}></div>
+              <span className="text-sm" style={{ color: '#1A2535' }}>Sans frais — avec banquet</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#C9A84C' }}></div>
+              <span className="text-sm" style={{ color: '#1A2535' }}>Sans frais — sans banquet</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats par ville (admin seulement) */}
       {compte.role === 'admin' && statsVilles.length > 0 && (
         <div className="bg-white rounded-2xl shadow p-4">
@@ -187,8 +215,8 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
       {/* Résultat du scan */}
       {resultat && (
         <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: resultat.couleur }}>
-          <p className="text-white font-bold text-lg">{resultat.message}</p>
-          {resultat.sousTitre && <p className="text-white text-sm mt-1 opacity-90">{resultat.sousTitre}</p>}
+          <p className="text-white font-bold text-2xl">{resultat.message}</p>
+          {resultat.sousTitre && <p className="text-white text-base mt-2 opacity-90 font-medium">{resultat.sousTitre}</p>}
         </div>
       )}
 

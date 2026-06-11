@@ -20,10 +20,10 @@ export async function POST(request: Request) {
 
     const { token, evenement_id, ville_id } = await request.json()
 
-    // Récupérer le billet
+    // Récupérer le billet avec l'événement
     const { data: billet } = await supabaseAdmin
       .from('billets')
-      .select('*, evenements(nom, a_banquet)')
+      .select('*, evenements(nom, a_banquet, banquet:banquets(id))')
       .eq('qr_code_token', token.trim())
       .single()
 
@@ -44,6 +44,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ resultat: 'invalide', message: '❌ BILLET INVALIDE', sousTitre: 'Mauvais événement.' })
     }
 
+    // Vérifier si l'événement a un banquet et si ce PCI l'a acheté
+    const abanquet = billet.evenements?.a_banquet
+    let banquetAchete = false
+
+    if (abanquet && billet.est_sans_frais) {
+      const banquetEvenement = billet.evenements?.banquet?.[0]
+      if (banquetEvenement) {
+        const { data: achatBanquet } = await supabaseAdmin
+          .from('billets_banquets')
+          .select('id')
+          .eq('billet_id', billet.id)
+          .eq('banquet_id', banquetEvenement.id)
+          .neq('statut', 'rembourse')
+          .single()
+        banquetAchete = !!achatBanquet
+      }
+    }
+
     // Marquer comme utilisé avec ville et portier
     await supabaseAdmin.from('billets').update({
       statut: 'utilise',
@@ -52,20 +70,34 @@ export async function POST(request: Request) {
       scanne_par_id: user.id,
     }).eq('id', billet.id)
 
-    // Construire le message de succès
-    const abanquet = billet.evenements?.a_banquet
+    // Construire le message selon les 3 cas
     let message = ''
-    if (billet.est_sans_frais && abanquet && billet.banquet_achete) {
-      message = '✅ BILLET SANS FRAIS — AVEC BANQUET'
-    } else if (billet.est_sans_frais && abanquet) {
-      message = '✅ BILLET SANS FRAIS — SANS BANQUET'
-    } else if (billet.est_sans_frais) {
-      message = '✅ BILLET SANS FRAIS'
+    let couleurResultat = 'succes'
+
+    if (!billet.est_sans_frais) {
+      // 🔵 Billet régulier payant — banquet inclus
+      message = '🔵 BILLET RÉGULIER'
+      couleurResultat = 'regulier'
+    } else if (billet.est_sans_frais && abanquet && banquetAchete) {
+      // 🟢 Sans frais avec banquet
+      message = '🟢 SANS FRAIS — AVEC BANQUET'
+      couleurResultat = 'succes'
+    } else if (billet.est_sans_frais && abanquet && !banquetAchete) {
+      // 🟡 Sans frais sans banquet
+      message = '🟡 SANS FRAIS — SANS BANQUET'
+      couleurResultat = 'sans_banquet'
     } else {
-      message = '✅ BILLET RÉGULIER'
+      // Sans frais, événement sans banquet
+      message = '✅ BILLET SANS FRAIS'
+      couleurResultat = 'succes'
     }
 
-    return NextResponse.json({ resultat: 'succes', message, sousTitre: billet.nom_pci })
+    return NextResponse.json({
+      resultat: 'succes',
+      couleurResultat,
+      message,
+      sousTitre: billet.nom_pci,
+    })
 
   } catch (error: any) {
     console.error('Erreur scan:', error)

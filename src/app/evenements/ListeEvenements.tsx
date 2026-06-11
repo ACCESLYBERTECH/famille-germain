@@ -3,9 +3,24 @@
 import { useState } from 'react'
 import type { Compte, Evenement, EvenementPalier } from '@/lib/types'
 
+interface BilletPCI {
+  id: string
+  evenement_id: string
+  nom_pci: string
+  est_sans_frais: boolean
+}
+
+interface BanquetAchete {
+  banquet_id: string
+  nom_pci: string
+  billet_id: string
+}
+
 interface Props {
   evenements: Evenement[]
   compte: Compte
+  billetsPCI: BilletPCI[]
+  banquetsAchetes: BanquetAchete[]
 }
 
 function getPrixActuel(paliers: EvenementPalier[]): { prix: number; prochainPalier?: EvenementPalier } {
@@ -72,7 +87,12 @@ function joursRestantsSF(dateStr: string): number {
 
 const LONGUEUR_MAX = 200
 
-function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
+function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
+  ev: Evenement
+  compte: Compte
+  billetsPCI: BilletPCI[]
+  banquetsAchetes: BanquetAchete[]
+}) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const sf = estSansFrais(compte, ev)
   const { prix, prochainPalier } = getPrixActuel(ev.paliers ?? [])
@@ -80,6 +100,15 @@ function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
   const memeJourEv = memeJour(ev.date_debut, ev.date_fin)
   const jours = joursAvantEvenement(ev.date_debut)
   const descriptionLongue = (ev.description ?? '').length > LONGUEUR_MAX
+
+  // Banquet associé à cet événement
+  const banquet = (ev as any).banquet?.[0] ?? null
+
+  // Billets sans frais de ce PCI pour cet événement
+  const billetsSFPourCetEv = billetsPCI.filter(b => b.evenement_id === ev.id && b.est_sans_frais)
+
+  // Pour chaque billet SF, vérifier si le banquet est acheté
+  const banquetDisponible = ev.a_banquet && banquet && billetsSFPourCetEv.length > 0
 
   return (
     <div className="rounded-2xl shadow-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
@@ -98,6 +127,9 @@ function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
           )}
           {!ev.a_billets && (
             <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#4CAF7D' }}>Informatif</span>
+          )}
+          {ev.a_banquet && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ backgroundColor: 'rgba(201,168,76,0.3)', color: '#C9A84C' }}>🍽️ Banquet</span>
           )}
         </div>
 
@@ -118,7 +150,7 @@ function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
       {/* Corps */}
       <div className="bg-white px-6 py-4">
 
-        {/* Prix / Sans frais + Bouton */}
+        {/* Prix / Sans frais + Bouton billet */}
         {ev.a_billets && (
           <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
             <div>
@@ -139,6 +171,37 @@ function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
             <a href={urlAchat} className="px-8 py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90" style={{ backgroundColor: sf ? '#4CAF7D' : '#C9A84C' }}>
               {sf ? '🎟️ Obtenir mon billet' : '🎟️ Acheter un billet'}
             </a>
+          </div>
+        )}
+
+        {/* Section banquet — visible seulement si l'événement a un banquet ET le PCI a un billet SF */}
+        {banquetDisponible && (
+          <div className="mb-4 pb-4 rounded-xl p-4" style={{ backgroundColor: '#FFFBF0', border: '1px solid #F0E0A0' }}>
+            <p className="text-sm font-bold mb-3" style={{ color: '#1A2535' }}>🍽️ {banquet.nom}</p>
+            <div className="space-y-2">
+              {billetsSFPourCetEv.map(billet => {
+                const banquetAchete = banquetsAchetes.find(b => b.billet_id === billet.id)
+                return (
+                  <div key={billet.id} className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>
+                      {banquetAchete ? (
+                        <span className="text-xs font-bold" style={{ color: '#4CAF7D' }}>✓ Banquet confirmé</span>
+                      ) : (
+                        <span className="text-xs" style={{ color: '#999' }}>{banquet.prix.toFixed(2)} $ + taxes et frais</span>
+                      )}
+                    </div>
+                    {banquetAchete ? (
+                      <span className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>✓ Acheté</span>
+                    ) : (
+                      <a href={`/evenements/achat-banquet?banquet_id=${banquet.id}&billet_id=${billet.id}`} className="px-4 py-2 rounded-lg text-white text-xs font-bold transition-opacity hover:opacity-90" style={{ backgroundColor: '#C9A84C' }}>
+                        🍽️ Acheter le banquet
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -187,7 +250,7 @@ function CarteEvenement({ ev, compte }: { ev: Evenement; compte: Compte }) {
   )
 }
 
-export default function ListeEvenements({ evenements, compte }: Props) {
+export default function ListeEvenements({ evenements, compte, billetsPCI, banquetsAchetes }: Props) {
   if (evenements.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow p-8 text-center" style={{ color: '#666666' }}>
@@ -229,7 +292,7 @@ export default function ListeEvenements({ evenements, compte }: Props) {
 
       <div className="grid gap-6">
         {evenements.map(ev => (
-          <CarteEvenement key={ev.id} ev={ev} compte={compte} />
+          <CarteEvenement key={ev.id} ev={ev} compte={compte} billetsPCI={billetsPCI} banquetsAchetes={banquetsAchetes} />
         ))}
       </div>
     </div>
