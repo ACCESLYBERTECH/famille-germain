@@ -15,12 +15,21 @@ interface Props {
   nomsDejaPris: string[]
 }
 
-function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais, prix }: {
+interface DetailPrix {
+  sousTotal: number
+  tps: number
+  tvq: number
+  fraisStripe: number
+  prixTotal: number
+}
+
+function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais, prix, detailPrix }: {
   evenement: Evenement
   compte: Compte
   nomsSelectionnes: string[]
   estSansFrais: boolean
   prix: number
+  detailPrix: DetailPrix
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -52,7 +61,7 @@ function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais,
       <PaymentElement />
       {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
       <button onClick={handlePayer} disabled={chargement || !stripe} className="w-full py-3 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
-        {chargement ? 'Traitement...' : `Payer ${(prix * nomsSelectionnes.length).toFixed(2)} $`}
+        {chargement ? 'Traitement...' : `Payer ${detailPrix.prixTotal.toFixed(2)} $`}
       </button>
     </div>
   )
@@ -65,6 +74,7 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
   const [etape, setEtape] = useState<'selection' | 'paiement' | 'confirme'>('selection')
+  const [detailPrix, setDetailPrix] = useState<DetailPrix>({ sousTotal: 0, tps: 0, tvq: 0, fraisStripe: 0, prixTotal: 0 })
 
   const stripePromise = loadStripe(stripePublicKey)
 
@@ -111,12 +121,18 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
       return
     }
 
+    setDetailPrix({
+      sousTotal: data.prix * nomsSelectionnes.length,
+      tps: data.tps,
+      tvq: data.tvq,
+      fraisStripe: data.frais_stripe,
+      prixTotal: data.prix_total,
+    })
+
     setClientSecret(data.client_secret)
     setEtape('paiement')
     setChargement(false)
   }
-
-  const totalPrice = estSansFrais ? 0 : prix * nomsSelectionnes.length
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -152,26 +168,48 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
             </div>
           </div>
 
-          {/* Prix */}
-          <div className="border-t pt-4" style={{ borderColor: '#E0E0E0' }}>
-            <div className="flex justify-between items-center">
-              <span className="text-sm" style={{ color: '#666666' }}>
-                Billet{nomsSelectionnes.length > 1 ? 's' : ''} — {evenement.nom}
-              </span>
-              {estSansFrais ? (
+          {/* Détail du prix */}
+          <div className="border-t pt-4 space-y-2" style={{ borderColor: '#E0E0E0' }}>
+            {estSansFrais ? (
+              <div className="flex justify-between items-center">
+                <span className="text-sm" style={{ color: '#666666' }}>Billet{nomsSelectionnes.length > 1 ? 's' : ''}</span>
                 <span className="font-bold" style={{ color: '#4CAF7D' }}>Sans frais</span>
-              ) : (
-                <span className="font-bold" style={{ color: '#1A2535' }}>
-                  {nomsSelectionnes.length > 0 ? `${totalPrice.toFixed(2)} $` : `${prix.toFixed(2)} $ / billet`}
-                </span>
-              )}
-            </div>
+              </div>
+            ) : nomsSelectionnes.length > 0 ? (
+              <>
+                <div className="flex justify-between text-sm" style={{ color: '#666666' }}>
+                  <span>Sous-total ({nomsSelectionnes.length} billet{nomsSelectionnes.length > 1 ? 's' : ''} × {prix.toFixed(2)} $)</span>
+                  <span>{(prix * nomsSelectionnes.length).toFixed(2)} $</span>
+                </div>
+                <div className="flex justify-between text-sm" style={{ color: '#666666' }}>
+                  <span>TPS (5%)</span>
+                  <span>{(prix * nomsSelectionnes.length * 0.05).toFixed(2)} $</span>
+                </div>
+                <div className="flex justify-between text-sm" style={{ color: '#666666' }}>
+                  <span>TVQ (9.975%)</span>
+                  <span>{(prix * nomsSelectionnes.length * 0.09975).toFixed(2)} $</span>
+                </div>
+                <div className="flex justify-between text-sm" style={{ color: '#666666' }}>
+                  <span>Frais de traitement</span>
+                  <span>calculés au prochain écran</span>
+                </div>
+                <div className="flex justify-between font-bold border-t pt-2" style={{ borderColor: '#E0E0E0', color: '#1A2535' }}>
+                  <span>Total estimé</span>
+                  <span>{(prix * nomsSelectionnes.length * 1.14975).toFixed(2)} $+</span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between text-sm" style={{ color: '#666666' }}>
+                <span>Prix par billet</span>
+                <span>{prix.toFixed(2)} $ + taxes</span>
+              </div>
+            )}
           </div>
 
           {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
 
           <button onClick={handleContinuer} disabled={chargement || nomsSelectionnes.length === 0} className="w-full py-3 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
-            {chargement ? 'Chargement...' : estSansFrais ? 'Confirmer — Sans frais' : `Continuer vers le paiement →`}
+            {chargement ? 'Chargement...' : estSansFrais ? 'Confirmer — Sans frais' : 'Continuer vers le paiement →'}
           </button>
         </div>
       )}
@@ -179,11 +217,36 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
       {/* ÉTAPE 2 — Paiement Stripe */}
       {etape === 'paiement' && clientSecret && (
         <div className="space-y-4">
-          <p className="text-sm font-medium mb-4" style={{ color: '#1A2535' }}>
+          <p className="text-sm font-medium" style={{ color: '#1A2535' }}>
             Billet{nomsSelectionnes.length > 1 ? 's' : ''} pour : <strong>{nomsSelectionnes.join(' & ')}</strong>
           </p>
+
+          {/* Détail final du prix */}
+          <div className="rounded-lg p-4 space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>
+            <div className="flex justify-between" style={{ color: '#666666' }}>
+              <span>Sous-total ({nomsSelectionnes.length} billet{nomsSelectionnes.length > 1 ? 's' : ''})</span>
+              <span>{detailPrix.sousTotal.toFixed(2)} $</span>
+            </div>
+            <div className="flex justify-between" style={{ color: '#666666' }}>
+              <span>TPS (5%)</span>
+              <span>{detailPrix.tps.toFixed(2)} $</span>
+            </div>
+            <div className="flex justify-between" style={{ color: '#666666' }}>
+              <span>TVQ (9.975%)</span>
+              <span>{detailPrix.tvq.toFixed(2)} $</span>
+            </div>
+            <div className="flex justify-between" style={{ color: '#666666' }}>
+              <span>Frais de traitement</span>
+              <span>{detailPrix.fraisStripe.toFixed(2)} $</span>
+            </div>
+            <div className="flex justify-between font-bold border-t pt-2" style={{ borderColor: '#C9A84C', color: '#1A2535' }}>
+              <span>Total</span>
+              <span>{detailPrix.prixTotal.toFixed(2)} $</span>
+            </div>
+          </div>
+
           <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <FormulairePaiement evenement={evenement} compte={compte} nomsSelectionnes={nomsSelectionnes} estSansFrais={estSansFrais} prix={prix} />
+            <FormulairePaiement evenement={evenement} compte={compte} nomsSelectionnes={nomsSelectionnes} estSansFrais={estSansFrais} prix={prix} detailPrix={detailPrix} />
           </Elements>
         </div>
       )}
