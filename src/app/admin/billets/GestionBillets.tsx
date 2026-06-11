@@ -49,7 +49,7 @@ interface Props {
 
 type TriType = 'nom' | 'evenement' | 'statut' | 'numero_amway' | 'date'
 
-export default function GestionBillets({ billets, evenements, pcis, leaders, banquetsAchetes }: Props) {
+export default function GestionBillets({ billets, evenements, pcis, leaders, banquetsAchetes = [] }: Props) {
   const [chargement, setChargement] = useState<string | null>(null)
   const [filtreStatut, setFiltreStatut] = useState<'tous' | 'vendu' | 'utilise' | 'rembourse'>('tous')
   const [filtreEvenement, setFiltreEvenement] = useState('')
