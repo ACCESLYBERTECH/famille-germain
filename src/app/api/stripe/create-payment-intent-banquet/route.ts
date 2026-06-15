@@ -30,9 +30,8 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ erreur: 'Non autorisé' }, { status: 401 })
 
-    const { banquet_id, billet_id } = await request.json()
+    const { banquet_id, billet_id, allergies } = await request.json()
 
-    // Charger le banquet
     const { data: banquet } = await supabaseAdmin
       .from('banquets')
       .select('*')
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
 
     if (!banquet) return NextResponse.json({ erreur: 'Banquet introuvable' }, { status: 404 })
 
-    // Vérifier que le billet appartient au PCI et est sans frais
     const { data: billet } = await supabaseAdmin
       .from('billets')
       .select('*')
@@ -52,7 +50,6 @@ export async function POST(request: NextRequest) {
 
     if (!billet) return NextResponse.json({ erreur: 'Billet invalide' }, { status: 403 })
 
-    // Vérifier pas de doublon
     const { data: banquetExistant } = await supabaseAdmin
       .from('billets_banquets')
       .select('id')
@@ -78,6 +75,7 @@ export async function POST(request: NextRequest) {
         tvq: tvq.toString(),
         frais_stripe: fraisStripe.toString(),
         prix_total: totalGrossUp.toString(),
+        allergies: allergies ?? '',
       },
     })
 

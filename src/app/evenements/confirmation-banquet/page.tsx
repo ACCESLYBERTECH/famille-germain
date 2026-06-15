@@ -49,7 +49,6 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
     .eq('id', billet_id)
     .single()
 
-  // Créer l'entrée dans billets_banquets si pas déjà créée
   const { data: banquetExistant } = await supabaseAdmin
     .from('billets_banquets')
     .select('id')
@@ -62,6 +61,7 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
   const tvq = parseFloat(meta.tvq ?? '0')
   const fraisStripe = parseFloat(meta.frais_stripe ?? '0')
   const prixTotal = parseFloat(meta.prix_total ?? '0')
+  const allergiesMeta = meta.allergies || null
 
   if (!banquetExistant) {
     const token = crypto.randomUUID()
@@ -75,6 +75,7 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
       tvq,
       frais_stripe: fraisStripe,
       prix_total: prixTotal,
+      allergies: allergiesMeta,
       stripe_payment_intent_id: payment_intent,
       qr_code_token: token,
       statut: 'vendu',
@@ -98,9 +99,13 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
             <p className="font-bold" style={{ color: '#1A2535' }}>{banquet?.nom}</p>
             <p className="text-sm" style={{ color: '#666666' }}>{banquet?.evenement?.nom}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Pour : <strong>{billet?.nom_pci}</strong></p>
+            {allergiesMeta && (
+              <p className="text-xs mt-1" style={{ color: '#C9A84C' }}>
+                🍽️ Allergies : {JSON.parse(allergiesMeta).join(', ')}
+              </p>
+            )}
           </div>
 
-          {/* Détail paiement */}
           <div className="rounded-lg p-4 mb-6 text-left space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>
             <p className="font-bold mb-2" style={{ color: '#1A2535' }}>Détail du paiement</p>
             <div className="flex justify-between" style={{ color: '#666666' }}>

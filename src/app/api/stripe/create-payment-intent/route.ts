@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) return NextResponse.json({ erreur: 'Non autorisé' }, { status: 401 })
 
-    const { evenement_id, nom_pci, est_sans_frais, quantite = 1 } = await request.json()
+    const { evenement_id, nom_pci, est_sans_frais, quantite = 1, allergies } = await request.json()
 
     const { data: evenement } = await supabase
       .from('evenements')
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
           tvq: 0,
           frais_stripe: 0,
           prix_total: 0,
+          allergies: null, // Sans frais — allergies demandées à l'achat du banquet
           qr_code_token: token,
           statut: 'vendu',
         })
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest) {
         tvq: tvq.toString(),
         frais_stripe: fraisStripe.toString(),
         prix_total: totalGrossUp.toString(),
+        allergies: allergies ?? '',
       },
     })
 

@@ -39,15 +39,16 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     .eq('id', evenement_id)
     .single()
 
-  // Récupérer les métadonnées de taxes depuis le PaymentIntent
+  // Récupérer les métadonnées
   const meta = intent.metadata ?? {}
   const prixBase = parseFloat(meta.prix_base ?? '0')
   const tpsMeta = parseFloat(meta.tps ?? '0')
   const tvqMeta = parseFloat(meta.tvq ?? '0')
   const fraisStripeMeta = parseFloat(meta.frais_stripe ?? '0')
   const prixTotalMeta = parseFloat(meta.prix_total ?? '0')
+  const allergiesMeta = meta.allergies || null
 
-  // Déterminer la liste des noms à créer
+  // Déterminer la liste des noms
   let nomsListe: string[] = []
   if (noms) {
     try { nomsListe = JSON.parse(decodeURIComponent(noms)) } catch { nomsListe = [] }
@@ -81,6 +82,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
       tvq: Math.round((tvqMeta / quantite) * 100) / 100,
       frais_stripe: Math.round((fraisStripeMeta / quantite) * 100) / 100,
       prix_total: Math.round((prixTotalMeta / quantite) * 100) / 100,
+      allergies: allergiesMeta,
       stripe_payment_intent_id: payment_intent,
       qr_code_token: token,
       statut: 'vendu',
@@ -112,11 +114,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     })
   }
 
-  // Détail affiché sur la page
   const sousTotalAffiche = prixBase * quantite
-  const tpsAffiche = tpsMeta
-  const tvqAffiche = tvqMeta
-  const fraisStripeAffiche = fraisStripeMeta
   const totalAffiche = prixTotalMeta || intent.amount / 100
 
   return (
@@ -134,7 +132,6 @@ export default async function ConfirmationPage({ searchParams }: Props) {
             {nomsListe.length > 1 ? 'Vos billets ont été créés avec succès.' : 'Votre billet a été créé avec succès.'}
           </p>
 
-          {/* Résumé événement et billets */}
           <div className="rounded-lg p-4 mb-4 text-left space-y-2" style={{ backgroundColor: '#F5F3EE' }}>
             <p className="font-bold" style={{ color: '#1A2535' }}>{evenement?.nom}</p>
             <p className="text-sm" style={{ color: '#666666' }}>
@@ -143,9 +140,14 @@ export default async function ConfirmationPage({ searchParams }: Props) {
             {nomsListe.map(nom => (
               <p key={nom} className="text-sm" style={{ color: '#666666' }}>Billet pour : <strong>{nom}</strong></p>
             ))}
+            {allergiesMeta && (
+              <p className="text-xs mt-1" style={{ color: '#C9A84C' }}>
+                🍽️ Allergies : {JSON.parse(allergiesMeta).join(', ')}
+              </p>
+            )}
           </div>
 
-          {/* Détail du montant payé */}
+          {/* Détail paiement */}
           <div className="rounded-lg p-4 mb-6 text-left space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>
             <p className="font-bold mb-2" style={{ color: '#1A2535' }}>Détail du paiement</p>
             <div className="flex justify-between" style={{ color: '#666666' }}>
@@ -154,15 +156,15 @@ export default async function ConfirmationPage({ searchParams }: Props) {
             </div>
             <div className="flex justify-between" style={{ color: '#666666' }}>
               <span>TPS (5%)</span>
-              <span>{tpsAffiche.toFixed(2)} $</span>
+              <span>{tpsMeta.toFixed(2)} $</span>
             </div>
             <div className="flex justify-between" style={{ color: '#666666' }}>
               <span>TVQ (9.975%)</span>
-              <span>{tvqAffiche.toFixed(2)} $</span>
+              <span>{tvqMeta.toFixed(2)} $</span>
             </div>
             <div className="flex justify-between" style={{ color: '#666666' }}>
               <span>Frais de traitement</span>
-              <span>{fraisStripeAffiche.toFixed(2)} $</span>
+              <span>{fraisStripeMeta.toFixed(2)} $</span>
             </div>
             <div className="flex justify-between font-bold border-t pt-2" style={{ borderColor: '#C9A84C', color: '#1A2535' }}>
               <span>Total payé</span>

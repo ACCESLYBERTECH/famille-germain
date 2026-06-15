@@ -23,6 +23,62 @@ interface DetailPrix {
   prixTotal: number
 }
 
+const ALLERGIES_OPTIONS = [
+  '🥜 Noix et arachides',
+  '🌾 Gluten (céréales)',
+  '🥛 Lactose (produits laitiers)',
+  '🥚 Œufs',
+  '🐟 Poisson',
+  '🦐 Crustacés et fruits de mer',
+  '🌿 Végétarien',
+  '🌱 Végétalien (vegan)',
+]
+
+function SectionAllergies({ allergies, setAllergies, autreAllergie, setAutreAllergie }: {
+  allergies: string[]
+  setAllergies: (a: string[]) => void
+  autreAllergie: string
+  setAutreAllergie: (v: string) => void
+}) {
+  function toggleAllergie(allergie: string) {
+    setAllergies(allergies.includes(allergie)
+      ? allergies.filter(a => a !== allergie)
+      : [...allergies, allergie]
+    )
+  }
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E0E0E0' }}>
+      <p className="text-sm font-bold" style={{ color: '#1A2535' }}>🍽️ Allergies et restrictions alimentaires</p>
+      <p className="text-xs" style={{ color: '#666666' }}>Sélectionnez tout ce qui s'applique (optionnel)</p>
+      <div className="grid grid-cols-1 gap-2">
+        {ALLERGIES_OPTIONS.map(option => (
+          <label key={option} className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={allergies.includes(option)}
+              onChange={() => toggleAllergie(option)}
+              className="rounded"
+            />
+            <span className="text-sm" style={{ color: '#1A2535' }}>{option}</span>
+          </label>
+        ))}
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#666666' }}>✏️ Autre allergie ou précision</label>
+        <input
+          type="text"
+          className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
+          style={{ borderColor: '#E0E0E0', backgroundColor: 'white' }}
+          placeholder="Ex: intolérance au soya, diabétique..."
+          value={autreAllergie}
+          onChange={e => setAutreAllergie(e.target.value)}
+        />
+      </div>
+    </div>
+  )
+}
+
 function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais, prix, detailPrix }: {
   evenement: Evenement
   compte: Compte
@@ -73,10 +129,15 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   const [clientSecret, setClientSecret] = useState('')
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
-  const [etape, setEtape] = useState<'selection' | 'paiement' | 'confirme'>('selection')
+  const [etape, setEtape] = useState<'selection' | 'allergies' | 'paiement' | 'confirme'>('selection')
   const [detailPrix, setDetailPrix] = useState<DetailPrix>({ sousTotal: 0, tps: 0, tvq: 0, fraisStripe: 0, prixTotal: 0 })
+  const [allergies, setAllergies] = useState<string[]>([])
+  const [autreAllergie, setAutreAllergie] = useState('')
 
   const stripePromise = loadStripe(stripePublicKey)
+
+  // Banquet associé à cet événement
+  const aBanquet = (evenement as any).a_banquet
 
   const nomsDisponibles = [
     `${compte.prenom_1} ${compte.nom_1}`,
@@ -89,10 +150,28 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
     )
   }
 
+  function allergiesJSON(): string | null {
+    const liste = [...allergies]
+    if (autreAllergie.trim()) liste.push(`Autre: ${autreAllergie.trim()}`)
+    return liste.length > 0 ? JSON.stringify(liste) : null
+  }
+
   async function handleContinuer() {
     if (nomsSelectionnes.length === 0) {
       setErreur('Veuillez sélectionner au moins un nom.'); return
     }
+    setErreur('')
+
+    // Si billet payant avec banquet → demander allergies d'abord
+    if (!estSansFrais && aBanquet) {
+      setEtape('allergies')
+      return
+    }
+
+    await procederAchat()
+  }
+
+  async function procederAchat() {
     setChargement(true)
     setErreur('')
 
@@ -104,6 +183,7 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
         nom_pci: nomsSelectionnes.join(' & '),
         est_sans_frais: estSansFrais,
         quantite: nomsSelectionnes.length,
+        allergies: allergiesJSON(),
       }),
     })
 
@@ -209,7 +289,36 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
           {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
 
           <button onClick={handleContinuer} disabled={chargement || nomsSelectionnes.length === 0} className="w-full py-3 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
-            {chargement ? 'Chargement...' : estSansFrais ? 'Confirmer — Sans frais' : 'Continuer vers le paiement →'}
+            {chargement ? 'Chargement...' : estSansFrais ? 'Confirmer — Sans frais' : 'Continuer →'}
+          </button>
+        </div>
+      )}
+
+      {/* ÉTAPE 1.5 — Allergies (billet payant avec banquet seulement) */}
+      {etape === 'allergies' && (
+        <div className="space-y-4">
+          <p className="text-sm font-medium" style={{ color: '#1A2535' }}>
+            Billet{nomsSelectionnes.length > 1 ? 's' : ''} pour : <strong>{nomsSelectionnes.join(' & ')}</strong>
+          </p>
+          <p className="text-xs" style={{ color: '#666666' }}>
+            Le banquet est inclus avec votre billet. Veuillez indiquer vos allergies ou restrictions alimentaires.
+          </p>
+
+          <SectionAllergies
+            allergies={allergies}
+            setAllergies={setAllergies}
+            autreAllergie={autreAllergie}
+            setAutreAllergie={setAutreAllergie}
+          />
+
+          {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
+
+          <button onClick={procederAchat} disabled={chargement} className="w-full py-3 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
+            {chargement ? 'Chargement...' : 'Continuer vers le paiement →'}
+          </button>
+
+          <button onClick={() => setEtape('selection')} className="w-full py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>
+            ← Retour
           </button>
         </div>
       )}
@@ -220,6 +329,14 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
           <p className="text-sm font-medium" style={{ color: '#1A2535' }}>
             Billet{nomsSelectionnes.length > 1 ? 's' : ''} pour : <strong>{nomsSelectionnes.join(' & ')}</strong>
           </p>
+
+          {/* Afficher allergies si saisies */}
+          {(allergies.length > 0 || autreAllergie) && (
+            <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
+              <p className="font-medium mb-1" style={{ color: '#1A2535' }}>🍽️ Allergies enregistrées :</p>
+              <p style={{ color: '#666666' }}>{[...allergies, autreAllergie ? `Autre: ${autreAllergie}` : ''].filter(Boolean).join(', ')}</p>
+            </div>
+          )}
 
           {/* Détail final du prix */}
           <div className="rounded-lg p-4 space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>

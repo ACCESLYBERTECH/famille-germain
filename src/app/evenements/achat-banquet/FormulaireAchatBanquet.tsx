@@ -43,11 +43,54 @@ interface Props {
   stripePublicKey: string
 }
 
-function FormulairePaiementBanquet({ detailPrix, banquet, billet, clientSecret }: {
+const ALLERGIES_OPTIONS = [
+  '🥜 Noix et arachides',
+  '🌾 Gluten (céréales)',
+  '🥛 Lactose (produits laitiers)',
+  '🥚 Œufs',
+  '🐟 Poisson',
+  '🦐 Crustacés et fruits de mer',
+  '🌿 Végétarien',
+  '🌱 Végétalien (vegan)',
+]
+
+function SectionAllergies({ allergies, setAllergies, autreAllergie, setAutreAllergie }: {
+  allergies: string[]
+  setAllergies: (a: string[]) => void
+  autreAllergie: string
+  setAutreAllergie: (v: string) => void
+}) {
+  function toggleAllergie(allergie: string) {
+    setAllergies(allergies.includes(allergie)
+      ? allergies.filter(a => a !== allergie)
+      : [...allergies, allergie]
+    )
+  }
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E0E0E0' }}>
+      <p className="text-sm font-bold" style={{ color: '#1A2535' }}>🍽️ Allergies et restrictions alimentaires</p>
+      <p className="text-xs" style={{ color: '#666666' }}>Sélectionnez tout ce qui s'applique (optionnel)</p>
+      <div className="grid grid-cols-1 gap-2">
+        {ALLERGIES_OPTIONS.map(option => (
+          <label key={option} className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={allergies.includes(option)} onChange={() => toggleAllergie(option)} className="rounded" />
+            <span className="text-sm" style={{ color: '#1A2535' }}>{option}</span>
+          </label>
+        ))}
+      </div>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#666666' }}>✏️ Autre allergie ou précision</label>
+        <input type="text" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0', backgroundColor: 'white' }} placeholder="Ex: intolérance au soya, diabétique..." value={autreAllergie} onChange={e => setAutreAllergie(e.target.value)} />
+      </div>
+    </div>
+  )
+}
+
+function FormulairePaiementBanquet({ detailPrix, banquet, billet }: {
   detailPrix: DetailPrix
   banquet: Banquet
   billet: Billet
-  clientSecret: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -88,15 +131,22 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
   const [clientSecret, setClientSecret] = useState('')
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
-  const [etape, setEtape] = useState<'confirmation' | 'paiement'>('confirmation')
+  const [etape, setEtape] = useState<'allergies' | 'paiement'>('allergies')
   const [detailPrix, setDetailPrix] = useState<DetailPrix>({ sousTotal: 0, tps: 0, tvq: 0, fraisStripe: 0, prixTotal: 0 })
+  const [allergies, setAllergies] = useState<string[]>([])
+  const [autreAllergie, setAutreAllergie] = useState('')
 
   const stripePromise = loadStripe(stripePublicKey)
 
-  // Calcul estimé côté client
   const sousTotal = banquet.prix
   const tpsEstimee = Math.round(sousTotal * 0.05 * 100) / 100
   const tvqEstimee = Math.round(sousTotal * 0.09975 * 100) / 100
+
+  function allergiesJSON(): string | null {
+    const liste = [...allergies]
+    if (autreAllergie.trim()) liste.push(`Autre: ${autreAllergie.trim()}`)
+    return liste.length > 0 ? JSON.stringify(liste) : null
+  }
 
   async function handleContinuer() {
     setChargement(true)
@@ -108,6 +158,7 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
       body: JSON.stringify({
         banquet_id: banquet.id,
         billet_id: billet.id,
+        allergies: allergiesJSON(),
       }),
     })
 
@@ -146,8 +197,8 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
         <p className="text-sm mt-2 font-medium" style={{ color: '#1A2535' }}>Billet pour : <strong>{billet.nom_pci}</strong></p>
       </div>
 
-      {/* ÉTAPE 1 — Confirmation */}
-      {etape === 'confirmation' && (
+      {/* ÉTAPE 1 — Allergies */}
+      {etape === 'allergies' && (
         <div className="space-y-4">
 
           {/* Avertissement non remboursable */}
@@ -157,6 +208,14 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
               <strong>Non remboursable</strong> — L'achat du banquet est final et ne peut pas être remboursé.
             </p>
           </div>
+
+          {/* Section allergies */}
+          <SectionAllergies
+            allergies={allergies}
+            setAllergies={setAllergies}
+            autreAllergie={autreAllergie}
+            setAutreAllergie={setAutreAllergie}
+          />
 
           {/* Détail estimé */}
           <div className="space-y-2 border-t pt-4" style={{ borderColor: '#F0F0F0' }}>
@@ -201,6 +260,14 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
             Banquet pour : <strong>{billet.nom_pci}</strong>
           </p>
 
+          {/* Afficher allergies si saisies */}
+          {(allergies.length > 0 || autreAllergie) && (
+            <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
+              <p className="font-medium mb-1" style={{ color: '#1A2535' }}>🍽️ Allergies enregistrées :</p>
+              <p style={{ color: '#666666' }}>{[...allergies, autreAllergie ? `Autre: ${autreAllergie}` : ''].filter(Boolean).join(', ')}</p>
+            </div>
+          )}
+
           {/* Détail final */}
           <div className="rounded-lg p-4 space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>
             <div className="flex justify-between" style={{ color: '#666666' }}>
@@ -226,7 +293,7 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
           </div>
 
           <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <FormulairePaiementBanquet detailPrix={detailPrix} banquet={banquet} billet={billet} clientSecret={clientSecret} />
+            <FormulairePaiementBanquet detailPrix={detailPrix} banquet={banquet} billet={billet} />
           </Elements>
         </div>
       )}
