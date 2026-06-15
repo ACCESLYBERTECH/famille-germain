@@ -27,12 +27,8 @@ export default async function AccueilPage() {
         <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
         <div className="max-w-2xl mx-auto pt-20 px-4 text-center">
           <div className="bg-white rounded-2xl shadow p-8">
-            <p className="text-lg font-medium mb-2" style={{ color: '#1A2535' }}>
-              Compte en attente d'approbation
-            </p>
-            <p className="text-sm" style={{ color: '#666666' }}>
-              Un administrateur va approuver votre compte sous peu. Vous recevrez un courriel de confirmation.
-            </p>
+            <p className="text-lg font-medium mb-2" style={{ color: '#1A2535' }}>Compte en attente d'approbation</p>
+            <p className="text-sm" style={{ color: '#666666' }}>Un administrateur va approuver votre compte sous peu. Vous recevrez un courriel de confirmation.</p>
           </div>
         </div>
       </div>
@@ -45,11 +41,12 @@ export default async function AccueilPage() {
   if (compte?.leader_id) {
     const { data: leader } = await supabaseAdmin
       .from('comptes')
-      .select('prenom_1, nom_1, prenom_2, nom_2, photo_url')
+      .select('prenom_1, nom_1, prenom_2, nom_2, photo_url, visible_inscription')
       .eq('id', compte.leader_id)
       .single()
 
-    if (leader?.photo_url) {
+    // N'afficher la photo que si le leader est visible
+    if (leader?.photo_url && leader?.visible_inscription !== false) {
       const nomComplet = leader.prenom_2 && leader.nom_2
         ? `${leader.prenom_1} ${leader.nom_1} & ${leader.prenom_2} ${leader.nom_2}`
         : `${leader.prenom_1} ${leader.nom_1}`
@@ -58,8 +55,8 @@ export default async function AccueilPage() {
     }
   }
 
-  // Si c'est un leader, afficher sa propre photo
-  if (!photoLeader && compte?.role === 'leader' && compte?.photo_url) {
+  // Si c'est un leader, afficher sa propre photo seulement s'il est visible
+  if (!photoLeader && compte?.role === 'leader' && compte?.photo_url && compte?.visible_inscription !== false) {
     const nomComplet = compte.prenom_2 && compte.nom_2
       ? `${compte.prenom_1} ${compte.nom_1} & ${compte.prenom_2} ${compte.nom_2}`
       : `${compte.prenom_1} ${compte.nom_1}`
@@ -77,21 +74,11 @@ export default async function AccueilPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
       <div className="max-w-4xl mx-auto px-4 py-8">
-
-        {/* Message de bienvenue */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: '#1A2535' }}>
-            Bonjour, {compte?.prenom_1}! 👋
-          </h1>
+          <h1 className="text-3xl font-bold" style={{ color: '#1A2535' }}>Bonjour, {compte?.prenom_1}! 👋</h1>
           <p className="text-gray-500 mt-1">Bienvenue sur la plateforme Famille Germain – Yager Group</p>
         </div>
-
-        <CarrouselAccueil
-          photoLeader={photoLeader}
-          images={carrouselImages ?? []}
-          prenom={compte?.prenom_1 ?? ''}
-        />
-
+        <CarrouselAccueil photoLeader={photoLeader} images={carrouselImages ?? []} prenom={compte?.prenom_1 ?? ''} />
       </div>
     </div>
   )

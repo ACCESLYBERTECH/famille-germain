@@ -24,7 +24,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   const router = useRouter()
   const supabase = createClient()
 
-  function update(champ: string, valeur: string) {
+  function update(champ: string, valeur: any) {
     setForm((f: any) => ({ ...f, [champ]: valeur }))
   }
 
@@ -83,6 +83,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
       periode_sf_fin: pci.periode_sf_fin ? pci.periode_sf_fin.substring(0, 10) : '',
       groupe: pci.groupe ?? '',
       photo_url: (pci as any).photo_url ?? '',
+      visible_inscription: (pci as any).visible_inscription !== false,
     })
   }
 
@@ -122,6 +123,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         periode_sf_fin: form.periode_sf_fin || null,
         groupe: form.groupe || null,
         photo_url: form.photo_url || null,
+        visible_inscription: form.visible_inscription,
       }),
     })
     setSauvegarde(false)
@@ -158,7 +160,6 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
   const inputClass = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
   const labelClass = "block text-xs font-medium mb-1"
-
   const orphelins = pciActifs.filter(p => !p.leader_id).length
 
   return (
@@ -178,46 +179,25 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
       <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
 
-        {/* Barre de recherche — visible seulement sur l'onglet actifs */}
+        {/* Barre de recherche */}
         {onglet === 'actifs' && (
           <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
-            <input
-              className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
-              style={{ borderColor: '#E0E0E0' }}
-              placeholder="Rechercher par nom, courriel ou # Amway..."
-              value={recherche}
-              onChange={e => setRecherche(e.target.value)}
-            />
+            <input className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom, courriel ou # Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
             <div className="flex flex-wrap gap-2 items-center">
-              <select
-                className="border rounded-lg px-3 py-1.5 text-sm outline-none"
-                style={{ borderColor: '#E0E0E0' }}
-                value={filtreLeader}
-                onChange={e => setFiltreLeader(e.target.value)}
-              >
+              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
                 <option value="">Tous les leaders</option>
                 <option value="aucun">⚠️ Aucun leader assigné ({orphelins})</option>
                 {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
               </select>
               {(recherche || filtreLeader) && (
-                <button
-                  onClick={() => { setRecherche(''); setFiltreLeader('') }}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium"
-                  style={{ backgroundColor: '#F5F3EE', color: '#666666' }}
-                >
+                <button onClick={() => { setRecherche(''); setFiltreLeader('') }} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#666666' }}>
                   ✕ Effacer les filtres
                 </button>
               )}
-              <span className="ml-auto text-xs" style={{ color: '#999999' }}>
-                {pciActifsFiltres.length} résultat{pciActifsFiltres.length !== 1 ? 's' : ''}
-              </span>
+              <span className="ml-auto text-xs" style={{ color: '#999999' }}>{pciActifsFiltres.length} résultat{pciActifsFiltres.length !== 1 ? 's' : ''}</span>
             </div>
             {orphelins > 0 && !filtreLeader && (
-              <button
-                onClick={() => setFiltreLeader('aucun')}
-                className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg"
-                style={{ backgroundColor: '#FFF3E0', color: '#E57373', border: '1px solid #FFCC80' }}
-              >
+              <button onClick={() => setFiltreLeader('aucun')} className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg" style={{ backgroundColor: '#FFF3E0', color: '#E57373', border: '1px solid #FFCC80' }}>
                 ⚠️ {orphelins} PCI sans leader assigné — Cliquer pour voir
               </button>
             )}
@@ -267,6 +247,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
               pciActifsFiltres.map(pci => {
                 const { label, bg, color } = roleLabel(pci.role)
                 const leaderDuPCI = leaders.find(l => l.id === pci.leader_id)
+                const estInvisible = pci.role === 'leader' && (pci as any).visible_inscription === false
                 return (
                   <div key={pci.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
                     <div className="flex-1">
@@ -277,6 +258,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                         </p>
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: bg, color }}>{label}</span>
                         {!pci.leader_id && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>⚠️ Sans leader</span>}
+                        {estInvisible && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>👁️ Invisible</span>}
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
@@ -413,6 +395,30 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 </select>
               </div>
 
+              {/* Visibilité — seulement si rôle = leader */}
+              {form.role === 'leader' && (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Visibilité à l'inscription</p>
+                  <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E0E0E0' }}>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input type="radio" name="visible_inscription" checked={form.visible_inscription !== false} onChange={() => update('visible_inscription', true)} className="mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: '#1A2535' }}>Régulier</p>
+                        <p className="text-xs" style={{ color: '#666666' }}>Apparaît dans le dropdown à l'inscription et dans le carrousel de la page d'accueil</p>
+                      </div>
+                    </label>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input type="radio" name="visible_inscription" checked={form.visible_inscription === false} onChange={() => update('visible_inscription', false)} className="mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: '#9C27B0' }}>Invisible</p>
+                        <p className="text-xs" style={{ color: '#666666' }}>Caché du dropdown à l'inscription et du carrousel — visible uniquement dans l'admin</p>
+                      </div>
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* Photo leader */}
               {form.role === 'leader' && (
                 <>
                   <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Photo du leader</p>

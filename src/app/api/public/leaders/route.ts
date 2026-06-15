@@ -12,9 +12,9 @@ export async function GET() {
     .select('id, prenom_1, nom_1, prenom_2, nom_2')
     .eq('role', 'leader')
     .eq('statut', 'actif')
+    .eq('visible_inscription', true)
     .order('nom_1', { ascending: true })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
   return NextResponse.json(data)
 }
