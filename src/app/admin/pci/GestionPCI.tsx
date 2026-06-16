@@ -11,6 +11,19 @@ interface Props {
   leaders: { id: string; prenom_1: string; nom_1: string }[]
 }
 
+const PROVINCES_CANADA = ['Québec', 'Ontario', 'Colombie-Britannique', 'Alberta', 'Manitoba', 'Saskatchewan', 'Nouvelle-Écosse', 'Nouveau-Brunswick', 'Terre-Neuve-et-Labrador', 'Île-du-Prince-Édouard']
+const PAYS_OPTIONS = ['Canada', 'États-Unis', 'France', 'Belgique', 'Suisse']
+
+const formVide = {
+  prenom_1: '', nom_1: '', prenom_2: '', nom_2: '',
+  courriel: '', telephone: '', adresse: '', ville: '',
+  code_postal: '', province: '', pays: 'Canada',
+  numero_amway: '', date_inscription_amway: '',
+  role: 'pci', leader_id: '',
+  periode_sf_debut: '', periode_sf_fin: '',
+  groupe: '', mot_de_passe: '',
+}
+
 export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) {
   const [onglet, setOnglet] = useState<'attente' | 'actifs'>('attente')
   const [chargement, setChargement] = useState<string | null>(null)
@@ -21,11 +34,53 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [recherche, setRecherche] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
+  const [modalAjout, setModalAjout] = useState(false)
+  const [formAjout, setFormAjout] = useState<any>(formVide)
+  const [ajoutChargement, setAjoutChargement] = useState(false)
+  const [ajoutErreur, setAjoutErreur] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
   function update(champ: string, valeur: any) {
     setForm((f: any) => ({ ...f, [champ]: valeur }))
+  }
+
+  function updateAjout(champ: string, valeur: string) {
+    setFormAjout((f: any) => ({ ...f, [champ]: valeur }))
+  }
+
+  function ouvrirModalAjout() {
+    setFormAjout(formVide)
+    setAjoutErreur('')
+    setModalAjout(true)
+  }
+
+  async function creerPCI() {
+    setAjoutErreur('')
+    if (!formAjout.prenom_1 || !formAjout.nom_1 || !formAjout.courriel || !formAjout.mot_de_passe) {
+      setAjoutErreur('Prénom, nom, courriel et mot de passe sont obligatoires.'); return
+    }
+    if (formAjout.mot_de_passe.length < 8) {
+      setAjoutErreur('Le mot de passe doit contenir au moins 8 caractères.'); return
+    }
+    setAjoutChargement(true)
+
+    const res = await fetch('/api/admin/creer-pci', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formAjout),
+    })
+
+    const data = await res.json()
+    if (!res.ok) {
+      setAjoutErreur(data.error ?? 'Erreur lors de la création.')
+      setAjoutChargement(false)
+      return
+    }
+
+    setAjoutChargement(false)
+    setModalAjout(false)
+    router.refresh()
   }
 
   async function approuver(id: string) {
@@ -164,16 +219,21 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
 
   return (
     <div>
-      {/* Onglets */}
-      <div className="flex gap-2 mb-0">
-        <button onClick={() => setOnglet('attente')} className={ongletClass(onglet === 'attente')} style={onglet === 'attente' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
-          En attente
-          {pciEnAttente.length > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E57373', color: 'white' }}>{pciEnAttente.length}</span>
-          )}
-        </button>
-        <button onClick={() => setOnglet('actifs')} className={ongletClass(onglet === 'actifs')} style={onglet === 'actifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
-          PCI actifs ({pciActifs.length})
+      {/* Bouton ajouter + onglets */}
+      <div className="flex items-center justify-between mb-0">
+        <div className="flex gap-2">
+          <button onClick={() => setOnglet('attente')} className={ongletClass(onglet === 'attente')} style={onglet === 'attente' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
+            En attente
+            {pciEnAttente.length > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E57373', color: 'white' }}>{pciEnAttente.length}</span>
+            )}
+          </button>
+          <button onClick={() => setOnglet('actifs')} className={ongletClass(onglet === 'actifs')} style={onglet === 'actifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
+            PCI actifs ({pciActifs.length})
+          </button>
+        </div>
+        <button onClick={ouvrirModalAjout} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
+          + Ajouter un PCI
         </button>
       </div>
 
@@ -279,6 +339,144 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         )}
       </div>
 
+      {/* Modal ajout PCI */}
+      {modalAjout && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white px-6 pt-6 pb-4 border-b flex justify-between items-center" style={{ borderColor: '#E0E0E0' }}>
+              <h2 className="text-lg font-bold" style={{ color: '#1A2535' }}>Ajouter un PCI</h2>
+              <button onClick={() => setModalAjout(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+
+            <div className="px-6 py-4 space-y-4">
+
+              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>Identité</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Prénom *</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.prenom_1} onChange={e => updateAjout('prenom_1', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Nom *</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.nom_1} onChange={e => updateAjout('nom_1', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#666666' }}>Prénom co-PCI</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.prenom_2} onChange={e => updateAjout('prenom_2', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#666666' }}>Nom co-PCI</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.nom_2} onChange={e => updateAjout('nom_2', e.target.value)} />
+                </div>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Contact</p>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Courriel *</label>
+                <input type="email" className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.courriel} onChange={e => updateAjout('courriel', e.target.value)} />
+              </div>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Mot de passe temporaire *</label>
+                <input type="text" className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Min. 8 caractères" value={formAjout.mot_de_passe} onChange={e => updateAjout('mot_de_passe', e.target.value)} />
+                <p className="text-xs mt-1" style={{ color: '#999999' }}>Le PCI pourra le changer après sa première connexion</p>
+              </div>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Téléphone</label>
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.telephone} onChange={e => updateAjout('telephone', e.target.value)} />
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Adresse</p>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Adresse</label>
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.adresse} onChange={e => updateAjout('adresse', e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Ville</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.ville} onChange={e => updateAjout('ville', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Code postal</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.code_postal} onChange={e => updateAjout('code_postal', e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Province</label>
+                  <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.province} onChange={e => updateAjout('province', e.target.value)}>
+                    <option value="">Sélectionner...</option>
+                    {PROVINCES_CANADA.map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Pays</label>
+                  <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.pays} onChange={e => updateAjout('pays', e.target.value)}>
+                    {PAYS_OPTIONS.map(p => <option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Amway</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Numéro Amway</label>
+                  <input className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.numero_amway} onChange={e => updateAjout('numero_amway', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Date inscription</label>
+                  <input type="date" className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.date_inscription_amway} onChange={e => updateAjout('date_inscription_amway', e.target.value)} />
+                </div>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Rôle et hiérarchie</p>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Rôle</label>
+                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.role} onChange={e => updateAjout('role', e.target.value)}>
+                  <option value="pci">PCI</option>
+                  <option value="leader">Leader</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Leader assigné</label>
+                <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.leader_id} onChange={e => updateAjout('leader_id', e.target.value)}>
+                  <option value="">Aucun leader</option>
+                  {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
+                </select>
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
+              <div>
+                <label className={labelClass} style={{ color: '#1A2535' }}>Groupe (tag libre)</label>
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: BRISSON, ÉQUIPE-NORD..." value={formAjout.groupe} onChange={e => updateAjout('groupe', e.target.value)} />
+              </div>
+
+              <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Période sans frais</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Début</label>
+                  <input type="date" className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.periode_sf_debut} onChange={e => updateAjout('periode_sf_debut', e.target.value)} />
+                </div>
+                <div>
+                  <label className={labelClass} style={{ color: '#1A2535' }}>Fin</label>
+                  <input type="date" className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.periode_sf_fin} onChange={e => updateAjout('periode_sf_fin', e.target.value)} />
+                </div>
+              </div>
+
+              {ajoutErreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{ajoutErreur}</p>}
+
+            </div>
+
+            <div className="sticky bottom-0 bg-white px-6 py-4 border-t flex justify-end gap-3" style={{ borderColor: '#E0E0E0' }}>
+              <button onClick={() => setModalAjout(false)} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ color: '#666666', backgroundColor: '#F5F3EE' }}>Annuler</button>
+              <button onClick={creerPCI} disabled={ajoutChargement} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#4CAF7D' }}>
+                {ajoutChargement ? 'Création...' : '+ Créer le PCI'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal modification complète */}
       {modalModif && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
@@ -340,26 +538,13 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                   <label className={labelClass} style={{ color: '#1A2535' }}>Province</label>
                   <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.province} onChange={e => update('province', e.target.value)}>
                     <option value="">Sélectionner...</option>
-                    <option>Québec</option>
-                    <option>Ontario</option>
-                    <option>Colombie-Britannique</option>
-                    <option>Alberta</option>
-                    <option>Manitoba</option>
-                    <option>Saskatchewan</option>
-                    <option>Nouvelle-Écosse</option>
-                    <option>Nouveau-Brunswick</option>
-                    <option>Terre-Neuve-et-Labrador</option>
-                    <option>Île-du-Prince-Édouard</option>
+                    {PROVINCES_CANADA.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className={labelClass} style={{ color: '#1A2535' }}>Pays</label>
                   <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.pays} onChange={e => update('pays', e.target.value)}>
-                    <option>Canada</option>
-                    <option>États-Unis</option>
-                    <option>France</option>
-                    <option>Belgique</option>
-                    <option>Suisse</option>
+                    {PAYS_OPTIONS.map(p => <option key={p}>{p}</option>)}
                   </select>
                 </div>
               </div>
