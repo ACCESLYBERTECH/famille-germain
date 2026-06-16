@@ -75,10 +75,13 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   }, [billets])
 
   const totauxParEvenement = useMemo(() => {
-    const totaux: Record<string, number> = {}
-    billets.forEach(b => {
+    const totaux: Record<string, { total: number; surPlace: number; virtuel: number }> = {}
+    billets.filter(b => b.statut !== 'rembourse').forEach(b => {
       const nom = b.evenements?.nom ?? 'Inconnu'
-      totaux[nom] = (totaux[nom] ?? 0) + 1
+      if (!totaux[nom]) totaux[nom] = { total: 0, surPlace: 0, virtuel: 0 }
+      totaux[nom].total++
+      if (b.mode_participation === 'virtuel') totaux[nom].virtuel++
+      else totaux[nom].surPlace++
     })
     return totaux
   }, [billets])
@@ -248,14 +251,23 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
           <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Billets par événement</p>
           <div className="space-y-2">
-            {evenements.map(ev => (
-              <div key={ev} className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: '#1A2535' }}>{ev}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
-                  {totauxParEvenement[ev]} billet{totauxParEvenement[ev] > 1 ? 's' : ''}
-                </span>
-              </div>
-            ))}
+            {evenements.map(ev => {
+              const stats = totauxParEvenement[ev] ?? { total: 0, surPlace: 0, virtuel: 0 }
+              return (
+                <div key={ev}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium" style={{ color: '#1A2535' }}>{ev}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
+                      {stats.total} billet{stats.total > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 ml-1">
+                    <span className="text-xs" style={{ color: '#4CAF7D' }}>🏛️ Sur place : <strong>{stats.surPlace}</strong></span>
+                    <span className="text-xs" style={{ color: '#2E86C1' }}>💻 Virtuel : <strong>{stats.virtuel}</strong></span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
