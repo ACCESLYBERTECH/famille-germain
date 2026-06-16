@@ -28,6 +28,7 @@ interface Billet {
   prix_paye: number
   est_sans_frais: boolean
   created_at: string
+  mode_participation: string | null
   evenements: { nom: string; date_debut: string; a_banquet: boolean } | null
 }
 
@@ -162,7 +163,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   }
 
   function exporterCSV() {
-    const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut', 'Banquet']
+    const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut', 'Mode', 'Banquet']
 
     const lignes = billetsFiltres.map(b => {
       const pci = pcis.find(p => p.id === b.compte_id)
@@ -176,7 +177,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       const banquet = b.est_sans_frais && b.evenements?.a_banquet
         ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
         : ''
-      return [date, nom, amway, groupe, leader, evenement, statut, banquet]
+      const mode = billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
+      return [date, nom, amway, groupe, leader, evenement, statut, mode, banquet]
     })
 
     const contenu = [entetes, ...lignes]
@@ -341,6 +343,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                         </span>
                         {billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>}
                         {billet.prix_paye === 0 && !billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>}
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: billet.mode_participation === 'virtuel' ? '#E3F2FD' : '#E8F5E9', color: billet.mode_participation === 'virtuel' ? '#2E86C1' : '#4CAF7D' }}>
+                          {billet.mode_participation === 'virtuel' ? '💻 Virtuel' : '🏛️ Sur place'}
+                        </span>
                         {billet.est_sans_frais && billet.evenements?.a_banquet && (
                           <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: aBanquetAchete ? '#E8F5E9' : '#FFF3E0', color: aBanquetAchete ? '#4CAF7D' : '#E57373' }}>
                             {aBanquetAchete ? '🍽️ Avec banquet' : '🍽️ Sans banquet'}

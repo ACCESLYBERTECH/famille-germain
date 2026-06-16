@@ -12,11 +12,12 @@ interface Props {
     nom_pci?: string
     noms?: string
     payment_intent?: string
+    modes?: string
   }>
 }
 
 export default async function ConfirmationPage({ searchParams }: Props) {
-  const { evenement_id, nom_pci, noms, payment_intent } = await searchParams
+  const { evenement_id, nom_pci, noms, payment_intent, modes } = await searchParams
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -39,7 +40,6 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     .eq('id', evenement_id)
     .single()
 
-  // Récupérer les métadonnées
   const meta = intent.metadata ?? {}
   const prixBase = parseFloat(meta.prix_base ?? '0')
   const tpsMeta = parseFloat(meta.tps ?? '0')
@@ -48,7 +48,14 @@ export default async function ConfirmationPage({ searchParams }: Props) {
   const prixTotalMeta = parseFloat(meta.prix_total ?? '0')
   const allergiesMeta = meta.allergies || null
 
-  // Déterminer la liste des noms
+  // Modes depuis les searchParams (plus fiable que les metadata pour les caractères spéciaux)
+  let modesParticipation: Record<string, string> = {}
+  if (modes) {
+    try { modesParticipation = JSON.parse(decodeURIComponent(modes)) } catch { modesParticipation = {} }
+  } else if (meta.modes_participation) {
+    try { modesParticipation = JSON.parse(meta.modes_participation) } catch { modesParticipation = {} }
+  }
+
   let nomsListe: string[] = []
   if (noms) {
     try { nomsListe = JSON.parse(decodeURIComponent(noms)) } catch { nomsListe = [] }
@@ -57,7 +64,6 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     nomsListe = [decodeURIComponent(nom_pci)]
   }
 
-  // Créer un billet par personne si pas déjà créés
   const { data: billetsExistants } = await supabase
     .from('billets')
     .select('id, nom_pci')
@@ -70,6 +76,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     if (nomsDejaCrees.includes(nom)) continue
 
     const token = crypto.randomUUID()
+    const modeNom = modesParticipation[nom] ?? 'sur_place'
 
     await supabase.from('billets').insert({
       evenement_id,
@@ -83,13 +90,13 @@ export default async function ConfirmationPage({ searchParams }: Props) {
       frais_stripe: Math.round((fraisStripeMeta / quantite) * 100) / 100,
       prix_total: Math.round((prixTotalMeta / quantite) * 100) / 100,
       allergies: allergiesMeta,
+      mode_participation: modeNom,
       stripe_payment_intent_id: payment_intent,
       qr_code_token: token,
       statut: 'vendu',
     })
   }
 
-  // Envoyer email de confirmation
   if (compte?.courriel && evenement && nomsDejaCrees.length === 0) {
     await envoyerConfirmationBillet({
       prenom: compte.prenom_1,
@@ -138,7 +145,12 @@ export default async function ConfirmationPage({ searchParams }: Props) {
               {evenement && new Date(evenement.date_debut).toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             {nomsListe.map(nom => (
-              <p key={nom} className="text-sm" style={{ color: '#666666' }}>Billet pour : <strong>{nom}</strong></p>
+              <div key={nom} className="flex items-center justify-between">
+                <p className="text-sm" style={{ color: '#666666' }}>Billet pour : <strong>{nom}</strong></p>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: modesParticipation[nom] === 'virtuel' ? '#E3F2FD' : '#E8F5E9', color: modesParticipation[nom] === 'virtuel' ? '#2E86C1' : '#4CAF7D' }}>
+                  {modesParticipation[nom] === 'virtuel' ? '💻 Virtuel' : '🏛️ Sur place'}
+                </span>
+              </div>
             ))}
             {allergiesMeta && (
               <p className="text-xs mt-1" style={{ color: '#C9A84C' }}>
@@ -147,7 +159,6 @@ export default async function ConfirmationPage({ searchParams }: Props) {
             )}
           </div>
 
-          {/* Détail paiement */}
           <div className="rounded-lg p-4 mb-6 text-left space-y-2 text-sm" style={{ backgroundColor: '#F5F3EE' }}>
             <p className="font-bold mb-2" style={{ color: '#1A2535' }}>Détail du paiement</p>
             <div className="flex justify-between" style={{ color: '#666666' }}>

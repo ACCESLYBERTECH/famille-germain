@@ -54,38 +54,27 @@ function SectionAllergies({ allergies, setAllergies, autreAllergie, setAutreAlle
       <div className="grid grid-cols-1 gap-2">
         {ALLERGIES_OPTIONS.map(option => (
           <label key={option} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={allergies.includes(option)}
-              onChange={() => toggleAllergie(option)}
-              className="rounded"
-            />
+            <input type="checkbox" checked={allergies.includes(option)} onChange={() => toggleAllergie(option)} className="rounded" />
             <span className="text-sm" style={{ color: '#1A2535' }}>{option}</span>
           </label>
         ))}
       </div>
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: '#666666' }}>✏️ Autre allergie ou précision</label>
-        <input
-          type="text"
-          className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
-          style={{ borderColor: '#E0E0E0', backgroundColor: 'white' }}
-          placeholder="Ex: intolérance au soya, diabétique..."
-          value={autreAllergie}
-          onChange={e => setAutreAllergie(e.target.value)}
-        />
+        <input type="text" className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0', backgroundColor: 'white' }} placeholder="Ex: intolérance au soya, diabétique..." value={autreAllergie} onChange={e => setAutreAllergie(e.target.value)} />
       </div>
     </div>
   )
 }
 
-function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais, prix, detailPrix }: {
+function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais, prix, detailPrix, modesParticipation }: {
   evenement: Evenement
   compte: Compte
   nomsSelectionnes: string[]
   estSansFrais: boolean
   prix: number
   detailPrix: DetailPrix
+  modesParticipation: Record<string, string>
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -102,7 +91,7 @@ function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais,
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/evenements/confirmation?evenement_id=${evenement.id}&nom_pci=${encodeURIComponent(nomPci)}&noms=${encodeURIComponent(JSON.stringify(nomsSelectionnes))}`,
+        return_url: `${window.location.origin}/evenements/confirmation?evenement_id=${evenement.id}&nom_pci=${encodeURIComponent(nomPci)}&noms=${encodeURIComponent(JSON.stringify(nomsSelectionnes))}&modes=${encodeURIComponent(JSON.stringify(modesParticipation))}`,
       },
     })
 
@@ -126,6 +115,7 @@ function FormulairePaiement({ evenement, compte, nomsSelectionnes, estSansFrais,
 export default function FormulaireAchat({ evenement, compte, estSansFrais, prix, stripePublicKey, nomsDejaPris }: Props) {
   const router = useRouter()
   const [nomsSelectionnes, setNomsSelectionnes] = useState<string[]>([])
+  const [modesParticipation, setModesParticipation] = useState<Record<string, string>>({})
   const [clientSecret, setClientSecret] = useState('')
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
@@ -135,8 +125,6 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   const [autreAllergie, setAutreAllergie] = useState('')
 
   const stripePromise = loadStripe(stripePublicKey)
-
-  // Banquet associé à cet événement
   const aBanquet = (evenement as any).a_banquet
 
   const nomsDisponibles = [
@@ -145,9 +133,18 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   ]
 
   function toggleNom(nom: string) {
-    setNomsSelectionnes(prev =>
-      prev.includes(nom) ? prev.filter(n => n !== nom) : [...prev, nom]
-    )
+    setNomsSelectionnes(prev => {
+      const nouveau = prev.includes(nom) ? prev.filter(n => n !== nom) : [...prev, nom]
+      // Initialiser le mode par défaut sur place si nouveau nom ajouté
+      if (!prev.includes(nom)) {
+        setModesParticipation(m => ({ ...m, [nom]: 'sur_place' }))
+      }
+      return nouveau
+    })
+  }
+
+  function setMode(nom: string, mode: string) {
+    setModesParticipation(m => ({ ...m, [nom]: mode }))
   }
 
   function allergiesJSON(): string | null {
@@ -162,7 +159,6 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
     }
     setErreur('')
 
-    // Si billet payant avec banquet → demander allergies d'abord
     if (!estSansFrais && aBanquet) {
       setEtape('allergies')
       return
@@ -184,6 +180,7 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
         est_sans_frais: estSansFrais,
         quantite: nomsSelectionnes.length,
         allergies: allergiesJSON(),
+        modes_participation: modesParticipation,
       }),
     })
 
@@ -231,18 +228,42 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-2" style={{ color: '#1A2535' }}>Ce billet est pour :</label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {nomsDisponibles.map(nom => {
                 const dejaPris = nomsDejaPris.includes(nom)
                 const selectionne = nomsSelectionnes.includes(nom)
+                const mode = modesParticipation[nom] ?? 'sur_place'
                 return (
-                  <label key={nom} className={`flex items-center gap-3 p-3 rounded-lg border ${dejaPris ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} style={{ borderColor: selectionne ? '#C9A84C' : '#E0E0E0', backgroundColor: selectionne ? '#FFF8E1' : dejaPris ? '#F5F5F5' : 'white' }}>
-                    <input type="checkbox" checked={selectionne} disabled={dejaPris} onChange={() => !dejaPris && toggleNom(nom)} />
-                    <div className="flex-1">
-                      <span className="font-medium" style={{ color: '#1A2535' }}>{nom}</span>
-                      {dejaPris && <span className="ml-2 text-xs" style={{ color: '#E57373' }}>Billet déjà acheté</span>}
-                    </div>
-                  </label>
+                  <div key={nom}>
+                    <label className={`flex items-center gap-3 p-3 rounded-lg border ${dejaPris ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} style={{ borderColor: selectionne ? '#C9A84C' : '#E0E0E0', backgroundColor: selectionne ? '#FFF8E1' : dejaPris ? '#F5F5F5' : 'white' }}>
+                      <input type="checkbox" checked={selectionne} disabled={dejaPris} onChange={() => !dejaPris && toggleNom(nom)} />
+                      <div className="flex-1">
+                        <span className="font-medium" style={{ color: '#1A2535' }}>{nom}</span>
+                        {dejaPris && <span className="ml-2 text-xs" style={{ color: '#E57373' }}>Billet déjà acheté</span>}
+                      </div>
+                    </label>
+
+                    {/* Question mode de participation — apparaît sous le nom si coché */}
+                    {selectionne && (
+                      <div className="ml-3 mt-2 p-3 rounded-lg" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E8E4DC' }}>
+                        <p className="text-xs font-medium mb-2" style={{ color: '#1A2535' }}>Comment {nom.split(' ')[0]} compte-t-il assister?</p>
+                        <div className="flex gap-3">
+                          <label className="flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-colors" style={{ borderColor: mode === 'sur_place' ? '#C9A84C' : '#E0E0E0', backgroundColor: mode === 'sur_place' ? '#FFF8E1' : 'white' }}>
+                            <input type="radio" name={`mode-${nom}`} checked={mode === 'sur_place'} onChange={() => setMode(nom, 'sur_place')} />
+                            <div>
+                              <p className="text-xs font-medium" style={{ color: '#1A2535' }}>🏛️ Sur place</p>
+                            </div>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-colors" style={{ borderColor: mode === 'virtuel' ? '#2E86C1' : '#E0E0E0', backgroundColor: mode === 'virtuel' ? '#E3F2FD' : 'white' }}>
+                            <input type="radio" name={`mode-${nom}`} checked={mode === 'virtuel'} onChange={() => setMode(nom, 'virtuel')} />
+                            <div>
+                              <p className="text-xs font-medium" style={{ color: '#1A2535' }}>💻 Virtuel</p>
+                            </div>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
@@ -304,12 +325,7 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
             Le banquet est inclus avec votre billet. Veuillez indiquer vos allergies ou restrictions alimentaires.
           </p>
 
-          <SectionAllergies
-            allergies={allergies}
-            setAllergies={setAllergies}
-            autreAllergie={autreAllergie}
-            setAutreAllergie={setAutreAllergie}
-          />
+          <SectionAllergies allergies={allergies} setAllergies={setAllergies} autreAllergie={autreAllergie} setAutreAllergie={setAutreAllergie} />
 
           {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
 
@@ -330,7 +346,15 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
             Billet{nomsSelectionnes.length > 1 ? 's' : ''} pour : <strong>{nomsSelectionnes.join(' & ')}</strong>
           </p>
 
-          {/* Afficher allergies si saisies */}
+          {/* Résumé modes participation */}
+          <div className="rounded-lg p-3 text-xs space-y-1" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E0E0E0' }}>
+            {nomsSelectionnes.map(nom => (
+              <p key={nom} style={{ color: '#666666' }}>
+                {nom} : <strong style={{ color: '#1A2535' }}>{modesParticipation[nom] === 'virtuel' ? '💻 Virtuel' : '🏛️ Sur place'}</strong>
+              </p>
+            ))}
+          </div>
+
           {(allergies.length > 0 || autreAllergie) && (
             <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
               <p className="font-medium mb-1" style={{ color: '#1A2535' }}>🍽️ Allergies enregistrées :</p>
@@ -363,7 +387,7 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
           </div>
 
           <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <FormulairePaiement evenement={evenement} compte={compte} nomsSelectionnes={nomsSelectionnes} estSansFrais={estSansFrais} prix={prix} detailPrix={detailPrix} />
+            <FormulairePaiement evenement={evenement} compte={compte} nomsSelectionnes={nomsSelectionnes} estSansFrais={estSansFrais} prix={prix} detailPrix={detailPrix} modesParticipation={modesParticipation} />
           </Elements>
         </div>
       )}

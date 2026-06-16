@@ -23,10 +23,9 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-
     if (!user) return NextResponse.json({ erreur: 'Non autorisé' }, { status: 401 })
 
-    const { evenement_id, nom_pci, est_sans_frais, quantite = 1, allergies } = await request.json()
+    const { evenement_id, nom_pci, est_sans_frais, quantite = 1, allergies, modes_participation } = await request.json()
 
     const { data: evenement } = await supabase
       .from('evenements')
@@ -44,7 +43,6 @@ export async function POST(request: NextRequest) {
 
     if (!compte || compte.statut !== 'actif') return NextResponse.json({ erreur: 'Compte inactif' }, { status: 403 })
 
-    // Si sans frais — créer les billets directement sans Stripe
     if (est_sans_frais) {
       const noms = nom_pci.includes(' & ') ? nom_pci.split(' & ') : [nom_pci]
 
@@ -61,6 +59,8 @@ export async function POST(request: NextRequest) {
         if (billetExistant) continue
 
         const token = crypto.randomUUID()
+        const modeNom = modes_participation?.[nom.trim()] ?? 'sur_place'
+
         await supabase.from('billets').insert({
           evenement_id,
           compte_id: user.id,
@@ -72,7 +72,8 @@ export async function POST(request: NextRequest) {
           tvq: 0,
           frais_stripe: 0,
           prix_total: 0,
-          allergies: null, // Sans frais — allergies demandées à l'achat du banquet
+          allergies: null,
+          mode_participation: modeNom,
           qr_code_token: token,
           statut: 'vendu',
         })
@@ -81,7 +82,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ sans_frais: true })
     }
 
-    // Calculer le prix actuel
     const maintenant = new Date()
     const paliers = (evenement.paliers ?? []).sort((a: { ordre: number }, b: { ordre: number }) => a.ordre - b.ordre)
     const palierActuel = paliers.find((p: { date_fin: string }) => new Date(p.date_fin) > maintenant)
@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
         frais_stripe: fraisStripe.toString(),
         prix_total: totalGrossUp.toString(),
         allergies: allergies ?? '',
+        modes_participation: modes_participation ? JSON.stringify(modes_participation) : '',
       },
     })
 

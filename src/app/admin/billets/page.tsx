@@ -25,7 +25,7 @@ export default async function AdminBilletsPage() {
 
   const { data: billets } = await supabaseAdmin
     .from('billets')
-    .select('*, evenements(nom, date_debut, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, numero_amway, leader_id)')
+    .select('*, evenements(nom, date_debut, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, numero_amway, leader_id), mode_participation')
     .order('created_at', { ascending: false })
 
   const { data: evenements } = await supabaseAdmin

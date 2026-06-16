@@ -11,6 +11,7 @@ interface Billet {
   est_sans_frais: boolean
   created_at: string
   stripe_payment_intent_id: string | null
+  mode_participation: string | null
   evenements: { nom: string; date_debut: string; a_banquet: boolean } | null
   comptes: { prenom_1: string; nom_1: string; courriel: string; numero_amway: string; leader_id: string | null } | null
 }
@@ -54,6 +55,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
   const [filtreStatut, setFiltreStatut] = useState<'tous' | 'vendu' | 'utilise' | 'rembourse'>('tous')
   const [filtreEvenement, setFiltreEvenement] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
+  const [filtreMode, setFiltreMode] = useState('')
   const [recherche, setRecherche] = useState('')
   const [tri, setTri] = useState<TriType>('nom')
   const [modalOuvert, setModalOuvert] = useState(false)
@@ -71,10 +73,13 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
   const router = useRouter()
 
   const totauxParEvenement = useMemo(() => {
-    const totaux: Record<string, number> = {}
-    billets.forEach(b => {
+    const totaux: Record<string, { total: number; surPlace: number; virtuel: number }> = {}
+    billets.filter(b => b.statut !== 'rembourse').forEach(b => {
       const nom = b.evenements?.nom ?? 'Inconnu'
-      totaux[nom] = (totaux[nom] ?? 0) + 1
+      if (!totaux[nom]) totaux[nom] = { total: 0, surPlace: 0, virtuel: 0 }
+      totaux[nom].total++
+      if (b.mode_participation === 'virtuel') totaux[nom].virtuel++
+      else totaux[nom].surPlace++
     })
     return totaux
   }, [billets])
@@ -90,11 +95,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       const matchStatut = filtreStatut === 'tous' ? true : b.statut === filtreStatut
       const matchEvenement = filtreEvenement === '' ? true : b.evenements?.nom === filtreEvenement
       const matchLeader = filtreLeader === '' ? true : b.comptes?.leader_id === filtreLeader
+      const matchMode = filtreMode === '' ? true : (b.mode_participation ?? 'sur_place') === filtreMode
       const matchRecherche = recherche.length < 2 ? true :
         b.nom_pci.toLowerCase().includes(recherche.toLowerCase()) ||
         b.comptes?.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
         b.comptes?.numero_amway.toLowerCase().includes(recherche.toLowerCase())
-      return matchStatut && matchEvenement && matchLeader && matchRecherche
+      return matchStatut && matchEvenement && matchLeader && matchMode && matchRecherche
     })
 
     result = [...result].sort((a, b) => {
@@ -107,10 +113,10 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
     })
 
     return result
-  }, [billets, filtreStatut, filtreEvenement, filtreLeader, recherche, tri])
+  }, [billets, filtreStatut, filtreEvenement, filtreLeader, filtreMode, recherche, tri])
 
   function exporterCSV() {
-    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix', 'Banquet']
+    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix', 'Mode', 'Banquet']
     const lignes = billetsFiltres.map(b => {
       const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
       const amway = b.comptes?.numero_amway ?? ''
@@ -119,10 +125,11 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       const evenement = b.evenements?.nom ?? ''
       const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
       const prix = b.est_sans_frais ? 'Sans frais' : b.prix_paye === 0 ? 'Billet offert' : `${b.prix_paye.toFixed(2)} $`
+      const mode = b.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
       const banquet = b.est_sans_frais && b.evenements?.a_banquet
         ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
         : ''
-      return [date, amway, nom, courriel, evenement, statut, prix, banquet]
+      return [date, amway, nom, courriel, evenement, statut, prix, mode, banquet]
     })
 
     const contenu = [entetes, ...lignes]
@@ -248,19 +255,32 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
 
   return (
     <div>
-      {/* Totaux par événement */}
+      {/* Totaux par événement avec stats Sur place / Virtuel */}
       {nomsEvenements.length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-4 mb-4">
           <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Billets par événement</p>
-          <div className="space-y-2">
-            {nomsEvenements.map(ev => (
-              <div key={ev} className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: '#1A2535' }}>{ev}</span>
-                <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
-                  {totauxParEvenement[ev]} billet{totauxParEvenement[ev] > 1 ? 's' : ''}
-                </span>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {nomsEvenements.map(ev => {
+              const stats = totauxParEvenement[ev] ?? { total: 0, surPlace: 0, virtuel: 0 }
+              return (
+                <div key={ev}>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium" style={{ color: '#1A2535' }}>{ev}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
+                      {stats.total} billet{stats.total > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 ml-1">
+                    <span className="text-xs flex items-center gap-1" style={{ color: '#4CAF7D' }}>
+                      🏛️ Sur place : <strong>{stats.surPlace}</strong>
+                    </span>
+                    <span className="text-xs flex items-center gap-1" style={{ color: '#2E86C1' }}>
+                      💻 Virtuel : <strong>{stats.virtuel}</strong>
+                    </span>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -304,6 +324,11 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
               {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
             </select>
           )}
+          <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreMode} onChange={e => setFiltreMode(e.target.value)}>
+            <option value="">Sur place + Virtuel</option>
+            <option value="sur_place">🏛️ Sur place seulement</option>
+            <option value="virtuel">💻 Virtuel seulement</option>
+          </select>
         </div>
         <div className="flex gap-1 items-center">
           <span className="text-xs mr-1" style={{ color: '#999999' }}>Trier :</span>
@@ -326,12 +351,16 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
               ? leaders.find(l => l.id === billet.comptes?.leader_id)
               : null
             const aBanquetAchete = banquetsAchetes.some(b => b.billet_id === billet.id)
+            const estVirtuel = billet.mode_participation === 'virtuel'
             return (
               <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <p className="font-semibold" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={statutStyle(billet.statut)}>{statutLabel(billet.statut)}</span>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: estVirtuel ? '#E3F2FD' : '#E8F5E9', color: estVirtuel ? '#2E86C1' : '#4CAF7D' }}>
+                      {estVirtuel ? '💻 Virtuel' : '🏛️ Sur place'}
+                    </span>
                     {billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Sans frais</span>}
                     {billet.prix_paye === 0 && !billet.est_sans_frais && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>Billet offert</span>}
                     {billet.est_sans_frais && billet.evenements?.a_banquet && (
