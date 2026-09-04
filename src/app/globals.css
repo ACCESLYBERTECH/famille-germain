@@ -25,30 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ===== MODE ACCESSIBILITÉ (admin seulement) ===== */
-body.mode-accessibilite {
-  font-size: 18px !important;
+/* ===== TAILLE DE TEXTE DE BASE ===== */
+html {
+  font-size: 18px;
 }
-
-body.mode-accessibilite p,
-body.mode-accessibilite span,
-body.mode-accessibilite a,
-body.mode-accessibilite td,
-body.mode-accessibilite th,
-body.mode-accessibilite li,
-body.mode-accessibilite label,
-body.mode-accessibilite div {
-  font-size: 1rem !important;
-  line-height: 1.6 !important;
-}
-
-body.mode-accessibilite input,
-body.mode-accessibilite select,
-body.mode-accessibilite textarea,
-body.mode-accessibilite button {
-  font-size: 1rem !important;
-}
-
-body.mode-accessibilite h1 { font-size: 1.8rem !important; }
-body.mode-accessibilite h2 { font-size: 1.5rem !important; }
-body.mode-accessibilite h3 { font-size: 1.3rem !important; }
