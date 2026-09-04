@@ -74,15 +74,21 @@ export interface Billet {
   nom_pci: string
   leader_id?: string | null
   est_sans_frais: boolean
-  banquet_achete: boolean
-  offert_par_admin: boolean
+  offert_par_admin?: boolean
   prix_paye: number
+  tps?: number | null
+  tvq?: number | null
+  frais_stripe?: number | null
+  prix_total?: number | null
+  allergies?: string | null
+  mode_participation?: string | null
   stripe_payment_intent_id?: string | null
   stripe_refund_id?: string | null
   qr_code_token: string
   statut: StatutBillet
   scanne_le?: string | null
-  scanne_ville?: string | null
+  scanne_ville_id?: string | null
+  scanne_par_id?: string | null
   rembourse_le?: string | null
   rembourse_par?: string | null
   created_at: string

@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import GestionPCI from './GestionPCI.tsx'
+import GestionPCI from './GestionPCI'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

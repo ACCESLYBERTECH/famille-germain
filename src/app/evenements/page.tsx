@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
-import ListeEvenements from './ListeEvenements.tsx'
+import ListeEvenements from './ListeEvenements'
 
 export default async function EvenementsPage() {
   const supabase = await createClient()
