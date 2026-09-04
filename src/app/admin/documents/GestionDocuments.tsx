@@ -18,7 +18,7 @@ interface Props {
   documents: Document[]
 }
 
-const documentVide = { titre: '', type: 'pdf' as const, url: '', section: 'pci' as const, ordre: 0, actif: true }
+const documentVide = { titre: '', type: 'pdf' as 'pdf' | 'lien' | 'youtube', url: '', section: 'pci' as 'pci' | 'platine', ordre: 0, actif: true }
 
 export default function GestionDocuments({ documents }: Props) {
   const [afficherFormulaire, setAfficherFormulaire] = useState(false)
