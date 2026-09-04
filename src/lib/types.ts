@@ -27,6 +27,9 @@ export interface Compte {
   periode_sf_fin?: string | null
   consentement_communications: boolean
   created_at: string
+  groupe?: string | null
+  photo_url?: string | null
+  visible_inscription?: boolean | null
 }
 
 export interface Evenement {
