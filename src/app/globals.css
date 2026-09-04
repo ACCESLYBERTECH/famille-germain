@@ -26,63 +26,33 @@ body {
 }
 
 /* ===== MODE ACCESSIBILITÉ (admin seulement) ===== */
-body.mode-accessibilite {
-  font-size: 16px;
+body.mode-accessibilite * {
+  font-size: larger !important;
+  line-height: 1.7 !important;
 }
 
-body.mode-accessibilite p,
-body.mode-accessibilite span,
-body.mode-accessibilite label,
 body.mode-accessibilite input,
 body.mode-accessibilite select,
-body.mode-accessibilite textarea,
-body.mode-accessibilite button {
-  font-size: 1rem !important;
-  line-height: 1.6 !important;
-}
-
-body.mode-accessibilite .text-xs {
-  font-size: 0.85rem !important;
-}
-
-body.mode-accessibilite .text-sm {
-  font-size: 1rem !important;
-}
-
-body.mode-accessibilite .text-base {
+body.mode-accessibilite textarea {
   font-size: 1.1rem !important;
+  padding: 0.75rem 1rem !important;
+  min-height: 2.75rem !important;
 }
 
-body.mode-accessibilite .text-lg {
-  font-size: 1.25rem !important;
+body.mode-accessibilite button {
+  font-size: 1.05rem !important;
+  padding: 0.6rem 1.2rem !important;
+  min-height: 2.5rem !important;
 }
 
-body.mode-accessibilite .text-xl {
-  font-size: 1.4rem !important;
+body.mode-accessibilite th,
+body.mode-accessibilite td {
+  font-size: 1rem !important;
+  padding: 0.75rem !important;
 }
 
-body.mode-accessibilite .text-2xl {
-  font-size: 1.6rem !important;
-}
-
-body.mode-accessibilite .text-3xl {
-  font-size: 1.8rem !important;
-}
-
-body.mode-accessibilite .px-2 {
-  padding-left: 0.6rem !important;
-  padding-right: 0.6rem !important;
-}
-
-body.mode-accessibilite .py-1 {
-  padding-top: 0.35rem !important;
-  padding-bottom: 0.35rem !important;
-}
-
-body.mode-accessibilite .p-4 {
-  padding: 1.25rem !important;
-}
-
-body.mode-accessibilite .gap-2 {
-  gap: 0.6rem !important;
+body.mode-accessibilite .rounded-full span,
+body.mode-accessibilite .rounded-full {
+  font-size: 0.95rem !important;
+  padding: 0.3rem 0.7rem !important;
 }
