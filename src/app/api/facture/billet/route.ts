@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, { data }))
+    const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, { data }) as any)
 
     return new NextResponse(pdfBuffer, {
       headers: {
