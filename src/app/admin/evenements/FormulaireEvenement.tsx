@@ -15,7 +15,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
 
-  // Récupérer le banquet existant si modification
   const banquetExistant = (evenement as any)?.banquet?.[0] ?? null
 
   const [form, setForm] = useState({
@@ -69,6 +68,20 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
     setVilles(v => v.map((ville, i) => i === index ? { ...ville, nom_ville: valeur } : ville))
   }
 
+  async function gererBanquet(action: string, evenementId: string) {
+    await fetch('/api/admin/banquet', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        evenement_id: evenementId,
+        nom: form.nom_banquet,
+        prix: form.prix_banquet,
+        banquet_id: banquetExistant?.id,
+      }),
+    })
+  }
+
   async function handleSauvegarder() {
     setErreur('')
     if (!form.nom || !form.date_debut || !form.date_fin) {
@@ -78,8 +91,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
       setErreur('Veuillez entrer un prix pour le banquet.'); return
     }
     setChargement(true)
-
-    let evenementId = evenement?.id
 
     if (evenement) {
       await supabase.from('evenements').update({
@@ -118,25 +129,16 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         }
       }
 
-      // Gérer le banquet
+      // Gérer le banquet via API
       if (form.a_banquet) {
         if (banquetExistant) {
-          await supabase.from('banquets').update({
-            nom: form.nom_banquet,
-            prix: parseFloat(form.prix_banquet as string),
-          }).eq('id', banquetExistant.id)
+          await gererBanquet('modifier', evenement.id)
         } else {
-          await supabase.from('banquets').insert({
-            evenement_id: evenement.id,
-            nom: form.nom_banquet,
-            prix: parseFloat(form.prix_banquet as string),
-            statut: 'actif',
-          })
+          await gererBanquet('creer', evenement.id)
         }
       } else {
-        // Si on décoche le banquet, supprimer l'entrée
         if (banquetExistant) {
-          await supabase.from('banquets').delete().eq('id', banquetExistant.id)
+          await gererBanquet('supprimer', evenement.id)
         }
       }
 
@@ -155,8 +157,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
       }).select().single()
 
       if (nouvel) {
-        evenementId = nouvel.id
-
         for (const palier of paliers) {
           if (palier.prix && palier.date_fin) {
             await supabase.from('evenement_paliers').insert({
@@ -179,12 +179,7 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         }
 
         if (form.a_banquet) {
-          await supabase.from('banquets').insert({
-            evenement_id: nouvel.id,
-            nom: form.nom_banquet,
-            prix: parseFloat(form.prix_banquet as string),
-            statut: 'actif',
-          })
+          await gererBanquet('creer', nouvel.id)
         }
       }
     }
@@ -252,7 +247,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
             </div>
           </div>
 
-          {/* Toggles */}
           <div className="flex gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={form.a_billets} onChange={e => update('a_billets', e.target.checked)} />
@@ -264,7 +258,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
             </label>
           </div>
 
-          {/* Prix du banquet — visible seulement si a_banquet coché */}
           {form.a_banquet && (
             <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F5F3EE', border: '1px solid #E0E0E0' }}>
               <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>Configuration du banquet</p>
@@ -280,7 +273,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
             </div>
           )}
 
-          {/* Villes */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className={labelClass} style={{ color: '#1A2535' }}>Villes</label>
@@ -298,7 +290,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
             </div>
           </div>
 
-          {/* Paliers de prix */}
           {form.a_billets && (
             <div>
               <div className="flex items-center justify-between mb-2">
