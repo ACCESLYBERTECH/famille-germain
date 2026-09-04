@@ -192,7 +192,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
         `${pci.prenom_1} ${pci.nom_1}`.toLowerCase().includes(recherche.toLowerCase()) ||
         (pci.prenom_2 && `${pci.prenom_2} ${pci.nom_2}`.toLowerCase().includes(recherche.toLowerCase())) ||
         pci.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
-        pci.numero_amway.toLowerCase().includes(recherche.toLowerCase())
+        (pci.numero_amway ?? '').toLowerCase().includes(recherche.toLowerCase())
 
       const matchLeader =
         filtreLeader === '' ? true :
