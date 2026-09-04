@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import * as XLSX from 'xlsx'
 
 interface Evenement {
   id: string
@@ -46,31 +47,22 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
   const [filtreEvenement, setFiltreEvenement] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
   const [filtreBanquet, setFiltreBanquet] = useState<'tous' | 'avec' | 'sans'>('tous')
+  const [chargementExcel, setChargementExcel] = useState(false)
+  const [chargementPDF, setChargementPDF] = useState(false)
 
-  // Construire la liste complète
   const lignes = useMemo(() => {
     return billets.map(billet => {
       const banquetAchete = billet.est_sans_frais
         ? banquetsAchetes.find(b => b.billet_id === billet.id)
         : null
-
       const aBanquet = !billet.est_sans_frais || !!banquetAchete
-
       const allergies = billet.est_sans_frais
         ? (banquetAchete?.allergies ?? null)
         : billet.allergies
-
       const leaderNom = billet.comptes?.leader_id
         ? leaders.find(l => l.id === billet.comptes?.leader_id)
         : null
-
-      return {
-        billet,
-        aBanquet,
-        allergies,
-        leaderNom,
-        banquetAchete,
-      }
+      return { billet, aBanquet, allergies, leaderNom, banquetAchete }
     })
   }, [billets, banquetsAchetes, leaders])
 
@@ -93,66 +85,141 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
   const statsAvec = lignes.filter(l => l.aBanquet).length
   const statsSans = lignes.filter(l => !l.aBanquet).length
 
-  function exporterCSV() {
-    const entetes = ['Nom PCI', 'Courriel', 'Leader', 'Événement', 'Type billet', 'Banquet', 'Mode', 'Allergies', 'Date achat']
-
-    const lignesCSV = lignesFiltrees.map(l => {
-      const nom = l.billet.nom_pci
-      const courriel = l.billet.comptes?.courriel ?? ''
-      const leader = l.leaderNom ? `${l.leaderNom.prenom_1} ${l.leaderNom.nom_1}` : 'Aucun'
-      const evenement = l.billet.evenements?.nom ?? ''
-      const type = l.billet.est_sans_frais ? 'Sans frais' : 'Régulier (payant)'
-      const banquet = l.aBanquet ? 'Avec banquet' : 'Sans banquet'
-      const mode = l.billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
-      const allergies = l.allergies
-        ? JSON.parse(l.allergies).join(', ')
-        : 'Aucune'
-      const date = new Date(l.billet.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
-      return [nom, courriel, leader, evenement, type, banquet, mode, allergies, date]
-    })
-
-    const contenu = [entetes, ...lignesCSV]
-      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-
-    const blob = new Blob(['\uFEFF' + contenu], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const lien = document.createElement('a')
-    lien.href = url
-    lien.download = `rapport-banquets${filtreEvenement ? '-' + filtreEvenement.replace(/\s+/g, '-') : ''}.csv`
-    lien.click()
-    URL.revokeObjectURL(url)
+  function formaterAllergies(allergies: string | null): string {
+    if (!allergies) return 'Aucune'
+    try { return JSON.parse(allergies).join(', ') } catch { return allergies }
   }
 
-  function formaterAllergies(allergies: string | null): string {
-    if (!allergies) return '—'
+  function preparerDonnees() {
+    return lignesFiltrees.map(({ billet, aBanquet, allergies, leaderNom }) => ({
+      'Nom PCI': billet.nom_pci,
+      'Courriel': billet.comptes?.courriel ?? '',
+      'Leader': leaderNom ? `${leaderNom.prenom_1} ${leaderNom.nom_1}` : 'Aucun',
+      'Événement': billet.evenements?.nom ?? '',
+      'Type de billet': billet.est_sans_frais ? 'Sans frais' : 'Régulier (payant)',
+      'Banquet': aBanquet ? 'Avec banquet' : 'Sans banquet',
+      'Mode participation': billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place',
+      'Allergies': formaterAllergies(allergies),
+      "Date d'achat": new Date(billet.created_at).toLocaleDateString('fr-CA'),
+    }))
+  }
+
+  async function exporterExcel() {
+    setChargementExcel(true)
     try {
-      const liste = JSON.parse(allergies)
-      return liste.join(', ')
-    } catch {
-      return allergies
+      const donnees = preparerDonnees()
+      const wb = XLSX.utils.book_new()
+
+      // Feuille principale
+      const ws = XLSX.utils.json_to_sheet(donnees)
+
+      // Largeurs de colonnes
+      ws['!cols'] = [
+        { wch: 25 }, // Nom PCI
+        { wch: 30 }, // Courriel
+        { wch: 22 }, // Leader
+        { wch: 30 }, // Événement
+        { wch: 18 }, // Type
+        { wch: 15 }, // Banquet
+        { wch: 15 }, // Mode
+        { wch: 40 }, // Allergies
+        { wch: 14 }, // Date
+      ]
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Rapport banquets')
+
+      // Feuille résumé
+      const nomEv = filtreEvenement || 'Tous les événements'
+      const nomLeader = filtreLeader ? leaders.find(l => l.id === filtreLeader)?.prenom_1 + ' ' + leaders.find(l => l.id === filtreLeader)?.nom_1 : 'Tous les leaders'
+
+      const resume = [
+        ['RAPPORT BANQUETS — ACCESLYBERTECH', ''],
+        ['Famille Germain – Yager Group', ''],
+        ['', ''],
+        ['Filtres appliqués', ''],
+        ['Événement', nomEv],
+        ['Leader', nomLeader],
+        ['', ''],
+        ['Statistiques', ''],
+        ['Total billets', statsTotal],
+        ['Avec banquet', statsAvec],
+        ['Sans banquet', statsSans],
+        ['', ''],
+        ['Généré le', new Date().toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })],
+      ]
+
+      const wsResume = XLSX.utils.aoa_to_sheet(resume)
+      wsResume['!cols'] = [{ wch: 25 }, { wch: 35 }]
+      XLSX.utils.book_append_sheet(wb, wsResume, 'Résumé')
+
+      // Feuille allergies seulement
+      const avecAllergies = lignesFiltrees
+        .filter(l => l.aBanquet && l.allergies)
+        .map(({ billet, allergies, leaderNom }) => ({
+          'Nom PCI': billet.nom_pci,
+          'Leader': leaderNom ? `${leaderNom.prenom_1} ${leaderNom.nom_1}` : 'Aucun',
+          'Allergies': formaterAllergies(allergies),
+          'Mode': billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place',
+        }))
+
+      if (avecAllergies.length > 0) {
+        const wsAllergies = XLSX.utils.json_to_sheet(avecAllergies)
+        wsAllergies['!cols'] = [{ wch: 25 }, { wch: 22 }, { wch: 45 }, { wch: 12 }]
+        XLSX.utils.book_append_sheet(wb, wsAllergies, 'Allergies seulement')
+      }
+
+      const nomFichier = `rapport-banquets${filtreEvenement ? '-' + filtreEvenement.replace(/\s+/g, '-') : ''}.xlsx`
+      XLSX.writeFile(wb, nomFichier)
+    } finally {
+      setChargementExcel(false)
+    }
+  }
+
+  async function exporterPDF() {
+    setChargementPDF(true)
+    try {
+      const params = new URLSearchParams()
+      if (filtreEvenement) {
+        const ev = evenements.find(e => e.nom === filtreEvenement)
+        if (ev) params.set('evenement_id', ev.id)
+      }
+      if (filtreLeader) params.set('leader_id', filtreLeader)
+      if (filtreBanquet !== 'tous') params.set('filtre_banquet', filtreBanquet)
+
+      const res = await fetch(`/api/admin/rapport-banquets-pdf?${params.toString()}`)
+      if (!res.ok) { alert('Erreur lors de la génération du PDF'); return }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const lien = document.createElement('a')
+      lien.href = url
+      lien.download = `rapport-banquets${filtreEvenement ? '-' + filtreEvenement.replace(/\s+/g, '-') : ''}.pdf`
+      lien.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setChargementPDF(false)
     }
   }
 
   return (
     <div>
-      {/* Stats rapides */}
+      {/* Stats rapides — cliquables */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer" onClick={() => setFiltreBanquet('tous')} style={{ border: filtreBanquet === 'tous' ? '2px solid #C9A84C' : '2px solid transparent' }}>
+        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer transition-all" onClick={() => setFiltreBanquet('tous')} style={{ border: filtreBanquet === 'tous' ? '2px solid #C9A84C' : '2px solid transparent' }}>
           <p className="text-2xl font-bold" style={{ color: '#1A2535' }}>{statsTotal}</p>
           <p className="text-sm mt-1" style={{ color: '#666666' }}>Total billets</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer" onClick={() => setFiltreBanquet('avec')} style={{ border: filtreBanquet === 'avec' ? '2px solid #4CAF7D' : '2px solid transparent' }}>
+        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer transition-all" onClick={() => setFiltreBanquet('avec')} style={{ border: filtreBanquet === 'avec' ? '2px solid #4CAF7D' : '2px solid transparent' }}>
           <p className="text-2xl font-bold" style={{ color: '#4CAF7D' }}>{statsAvec}</p>
           <p className="text-sm mt-1" style={{ color: '#666666' }}>🍽️ Avec banquet</p>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer" onClick={() => setFiltreBanquet('sans')} style={{ border: filtreBanquet === 'sans' ? '2px solid #E57373' : '2px solid transparent' }}>
+        <div className="bg-white rounded-xl p-4 shadow-sm text-center cursor-pointer transition-all" onClick={() => setFiltreBanquet('sans')} style={{ border: filtreBanquet === 'sans' ? '2px solid #E57373' : '2px solid transparent' }}>
           <p className="text-2xl font-bold" style={{ color: '#E57373' }}>{statsSans}</p>
           <p className="text-sm mt-1" style={{ color: '#666666' }}>Sans banquet</p>
         </div>
       </div>
 
-      {/* Filtres + Export */}
+      {/* Filtres + Boutons export */}
       <div className="bg-white rounded-t-2xl shadow px-4 pt-4 pb-3 border-b" style={{ borderColor: '#E0E0E0' }}>
         <div className="flex flex-wrap gap-3 items-center mb-3">
           <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
@@ -171,10 +238,13 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
             </button>
           )}
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
             <span className="text-xs" style={{ color: '#999999' }}>{lignesFiltrees.length} résultat{lignesFiltrees.length !== 1 ? 's' : ''}</span>
-            <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
-              ⬇️ CSV ({lignesFiltrees.length})
+            <button onClick={exporterExcel} disabled={chargementExcel} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#4CAF7D' }}>
+              {chargementExcel ? '⏳ Excel...' : '📊 Excel'}
+            </button>
+            <button onClick={exporterPDF} disabled={chargementPDF} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#E57373' }}>
+              {chargementPDF ? '⏳ PDF...' : '📄 PDF'}
             </button>
           </div>
         </div>
@@ -200,29 +270,20 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
                     {billet.mode_participation === 'virtuel' ? '💻 Virtuel' : '🏛️ Sur place'}
                   </span>
                 </div>
-
                 <p className="text-sm" style={{ color: '#666666' }}>{billet.evenements?.nom}</p>
-
                 <div className="flex gap-3 mt-0.5 flex-wrap">
                   <p className="text-xs" style={{ color: '#999999' }}>{billet.comptes?.courriel}</p>
                   {leaderNom && <p className="text-xs" style={{ color: '#2E86C1' }}>Leader : {leaderNom.prenom_1} {leaderNom.nom_1}</p>}
                 </div>
-
-                {/* Allergies */}
-                <div className="mt-2">
-                  {aBanquet ? (
-                    <p className="text-xs" style={{ color: allergies ? '#E57373' : '#999999' }}>
-                      🍽️ Allergies : <span className="font-medium">{formaterAllergies(allergies)}</span>
-                    </p>
-                  ) : null}
-                </div>
+                {aBanquet && (
+                  <p className="text-xs mt-1" style={{ color: allergies ? '#E57373' : '#999999' }}>
+                    🍽️ Allergies : <span className="font-medium">{formaterAllergies(allergies)}</span>
+                  </p>
+                )}
               </div>
-
-              <div className="text-right flex-shrink-0">
-                <p className="text-xs" style={{ color: '#999999' }}>
-                  {new Date(billet.created_at).toLocaleDateString('fr-CA')}
-                </p>
-              </div>
+              <p className="text-xs flex-shrink-0" style={{ color: '#999999' }}>
+                {new Date(billet.created_at).toLocaleDateString('fr-CA')}
+              </p>
             </div>
           ))
         )}
