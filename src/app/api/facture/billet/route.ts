@@ -183,8 +183,9 @@ export async function GET(request: NextRequest) {
     }
 
     const pdfBuffer = await renderToBuffer(React.createElement(FacturePDF, { data }) as any)
+    const uint8Array = new Uint8Array(pdfBuffer)
 
-    return new NextResponse(pdfBuffer, {
+    return new NextResponse(uint8Array, {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="facture-${data.numeroFacture}.pdf"`,
