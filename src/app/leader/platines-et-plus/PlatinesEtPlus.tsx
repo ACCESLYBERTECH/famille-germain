@@ -180,7 +180,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       const banquet = b.est_sans_frais && b.evenements?.a_banquet
         ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
         : ''
-      const mode = billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
+      const mode = b.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
       return [date, nom, amway, groupe, leader, evenement, statut, mode, banquet]
     })
 
