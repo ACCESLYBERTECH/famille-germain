@@ -14,7 +14,28 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const supabase = createClient()
   const [menuOuvert, setMenuOuvert] = useState(false)
   const [gestionOuvert, setGestionOuvert] = useState(false)
+  const [modeAccess, setModeAccess] = useState(false)
   const gestionRef = useRef<HTMLDivElement>(null)
+
+  // Charger le mode accessibilité depuis localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('mode-accessibilite')
+    if (saved === 'true') {
+      setModeAccess(true)
+      document.body.classList.add('mode-accessibilite')
+    }
+  }, [])
+
+  function toggleModeAccess() {
+    const nouveau = !modeAccess
+    setModeAccess(nouveau)
+    localStorage.setItem('mode-accessibilite', nouveau.toString())
+    if (nouveau) {
+      document.body.classList.add('mode-accessibilite')
+    } else {
+      document.body.classList.remove('mode-accessibilite')
+    }
+  }
 
   async function handleDeconnexion() {
     await supabase.auth.signOut()
@@ -113,7 +134,24 @@ export default function Navbar({ prenom, role }: NavbarProps) {
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {/* Bouton accessibilité — admin seulement */}
+          {role === 'admin' && (
+            <button
+              onClick={toggleModeAccess}
+              title={modeAccess ? 'Désactiver le mode accessibilité' : 'Activer le mode accessibilité'}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                backgroundColor: modeAccess ? '#C9A84C' : 'rgba(255,255,255,0.1)',
+                color: modeAccess ? '#1A2535' : '#E0E0E0',
+                border: modeAccess ? 'none' : '1px solid rgba(255,255,255,0.2)'
+              }}
+            >
+              <span className="text-base">👁️</span>
+              {modeAccess ? 'Grand texte ON' : 'Grand texte'}
+            </button>
+          )}
+
           <div className="text-right hidden sm:block">
             <p className="text-white text-sm font-medium">{prenom}</p>
             <p className="text-xs capitalize" style={{ color: '#C9A84C' }}>{role}</p>
