@@ -26,33 +26,29 @@ body {
 }
 
 /* ===== MODE ACCESSIBILITÉ (admin seulement) ===== */
-body.mode-accessibilite * {
-  font-size: larger !important;
-  line-height: 1.7 !important;
+body.mode-accessibilite {
+  font-size: 18px !important;
+}
+
+body.mode-accessibilite p,
+body.mode-accessibilite span,
+body.mode-accessibilite a,
+body.mode-accessibilite td,
+body.mode-accessibilite th,
+body.mode-accessibilite li,
+body.mode-accessibilite label,
+body.mode-accessibilite div {
+  font-size: 1rem !important;
+  line-height: 1.6 !important;
 }
 
 body.mode-accessibilite input,
 body.mode-accessibilite select,
-body.mode-accessibilite textarea {
-  font-size: 1.1rem !important;
-  padding: 0.75rem 1rem !important;
-  min-height: 2.75rem !important;
-}
-
+body.mode-accessibilite textarea,
 body.mode-accessibilite button {
-  font-size: 1.05rem !important;
-  padding: 0.6rem 1.2rem !important;
-  min-height: 2.5rem !important;
-}
-
-body.mode-accessibilite th,
-body.mode-accessibilite td {
   font-size: 1rem !important;
-  padding: 0.75rem !important;
 }
 
-body.mode-accessibilite .rounded-full span,
-body.mode-accessibilite .rounded-full {
-  font-size: 0.95rem !important;
-  padding: 0.3rem 0.7rem !important;
-}
+body.mode-accessibilite h1 { font-size: 1.8rem !important; }
+body.mode-accessibilite h2 { font-size: 1.5rem !important; }
+body.mode-accessibilite h3 { font-size: 1.3rem !important; }
