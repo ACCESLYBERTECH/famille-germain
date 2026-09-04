@@ -175,30 +175,21 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
     }
   }
 
-  async function exporterPDF() {
-    setChargementPDF(true)
-    try {
-      const params = new URLSearchParams()
-      if (filtreEvenement) {
-        const ev = evenements.find(e => e.nom === filtreEvenement)
-        if (ev) params.set('evenement_id', ev.id)
-      }
-      if (filtreLeader) params.set('leader_id', filtreLeader)
-      if (filtreBanquet !== 'tous') params.set('filtre_banquet', filtreBanquet)
+     async function exporterPDF() {
+     setChargementPDF(true)
+     try {
+       const params = new URLSearchParams()
+       if (filtreEvenement) {
+         const ev = evenements.find(e => e.nom === filtreEvenement)
+         if (ev) params.set('evenement_id', ev.id)
+       }
+       if (filtreLeader) params.set('leader_id', filtreLeader)
+       if (filtreBanquet !== 'tous') params.set('filtre_banquet', filtreBanquet)
 
-      const res = await fetch(`/api/admin/rapport-banquets-pdf?${params.toString()}`)
-      if (!res.ok) { alert('Erreur lors de la génération du PDF'); return }
-
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const lien = document.createElement('a')
-      lien.href = url
-      lien.download = `rapport-banquets${filtreEvenement ? '-' + filtreEvenement.replace(/\s+/g, '-') : ''}.pdf`
-      lien.click()
-      URL.revokeObjectURL(url)
-    } finally {
-      setChargementPDF(false)
-    }
+       window.open(`/api/admin/rapport-banquets-pdf?${params.toString()}`, '_blank')
+     } finally {
+       setChargementPDF(false)
+     }
   }
 
   return (
