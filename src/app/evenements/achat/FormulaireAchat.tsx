@@ -34,7 +34,8 @@ const ALLERGIES_OPTIONS = [
   '🌱 Végétalien (vegan)',
 ]
 
-function SectionAllergies({ allergies, setAllergies, autreAllergie, setAutreAllergie }: {
+function SectionAllergiesPersonne({ nom, allergies, setAllergies, autreAllergie, setAutreAllergie }: {
+  nom: string
   allergies: string[]
   setAllergies: (a: string[]) => void
   autreAllergie: string
@@ -47,9 +48,11 @@ function SectionAllergies({ allergies, setAllergies, autreAllergie, setAutreAlle
     )
   }
 
+  const prenom = nom.split(' ')[0]
+
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E0E0E0' }}>
-      <p className="text-sm font-bold" style={{ color: '#1A2535' }}>🍽️ Allergies et restrictions alimentaires</p>
+      <p className="text-sm font-bold" style={{ color: '#1A2535' }}>🍽️ Allergies — <span style={{ color: '#C9A84C' }}>{prenom}</span></p>
       <p className="text-xs" style={{ color: '#666666' }}>Sélectionnez tout ce qui s'applique (optionnel)</p>
       <div className="grid grid-cols-1 gap-2">
         {ALLERGIES_OPTIONS.map(option => (
@@ -121,8 +124,9 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   const [erreur, setErreur] = useState('')
   const [etape, setEtape] = useState<'selection' | 'allergies' | 'paiement' | 'confirme'>('selection')
   const [detailPrix, setDetailPrix] = useState<DetailPrix>({ sousTotal: 0, tps: 0, tvq: 0, fraisStripe: 0, prixTotal: 0 })
-  const [allergies, setAllergies] = useState<string[]>([])
-  const [autreAllergie, setAutreAllergie] = useState('')
+
+  // Allergies par personne : { [nom]: { allergies: string[], autre: string } }
+  const [allergiesParPersonne, setAllergiesParPersonne] = useState<Record<string, { allergies: string[], autre: string }>>({})
 
   const stripePromise = loadStripe(stripePublicKey)
   const aBanquet = (evenement as any).a_banquet
@@ -135,9 +139,9 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
   function toggleNom(nom: string) {
     setNomsSelectionnes(prev => {
       const nouveau = prev.includes(nom) ? prev.filter(n => n !== nom) : [...prev, nom]
-      // Initialiser le mode par défaut sur place si nouveau nom ajouté
       if (!prev.includes(nom)) {
         setModesParticipation(m => ({ ...m, [nom]: 'sur_place' }))
+        setAllergiesParPersonne(a => ({ ...a, [nom]: { allergies: [], autre: '' } }))
       }
       return nouveau
     })
@@ -147,10 +151,25 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
     setModesParticipation(m => ({ ...m, [nom]: mode }))
   }
 
+  function setAllergiesPersonne(nom: string, allergies: string[]) {
+    setAllergiesParPersonne(prev => ({ ...prev, [nom]: { ...prev[nom], allergies } }))
+  }
+
+  function setAutreAllergiePersonne(nom: string, autre: string) {
+    setAllergiesParPersonne(prev => ({ ...prev, [nom]: { ...prev[nom], autre } }))
+  }
+
+  // Construire le JSON d'allergies par personne pour les metadata Stripe
   function allergiesJSON(): string | null {
-    const liste = [...allergies]
-    if (autreAllergie.trim()) liste.push(`Autre: ${autreAllergie.trim()}`)
-    return liste.length > 0 ? JSON.stringify(liste) : null
+    const result: Record<string, string[]> = {}
+    for (const nom of nomsSelectionnes) {
+      const data = allergiesParPersonne[nom]
+      if (!data) continue
+      const liste = [...data.allergies]
+      if (data.autre.trim()) liste.push(`Autre: ${data.autre.trim()}`)
+      if (liste.length > 0) result[nom] = liste
+    }
+    return Object.keys(result).length > 0 ? JSON.stringify(result) : null
   }
 
   async function handleContinuer() {
@@ -243,22 +262,18 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
                       </div>
                     </label>
 
-                    {/* Question mode de participation — apparaît sous le nom si coché */}
+                    {/* Mode participation sous chaque nom coché */}
                     {selectionne && (
                       <div className="ml-3 mt-2 p-3 rounded-lg" style={{ backgroundColor: '#F8F7F4', border: '1px solid #E8E4DC' }}>
                         <p className="text-xs font-medium mb-2" style={{ color: '#1A2535' }}>Comment {nom.split(' ')[0]} compte-t-il assister?</p>
                         <div className="flex gap-3">
                           <label className="flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-colors" style={{ borderColor: mode === 'sur_place' ? '#C9A84C' : '#E0E0E0', backgroundColor: mode === 'sur_place' ? '#FFF8E1' : 'white' }}>
                             <input type="radio" name={`mode-${nom}`} checked={mode === 'sur_place'} onChange={() => setMode(nom, 'sur_place')} />
-                            <div>
-                              <p className="text-xs font-medium" style={{ color: '#1A2535' }}>🏛️ Sur place</p>
-                            </div>
+                            <p className="text-xs font-medium" style={{ color: '#1A2535' }}>🏛️ Sur place</p>
                           </label>
                           <label className="flex items-center gap-2 cursor-pointer flex-1 p-2 rounded-lg border transition-colors" style={{ borderColor: mode === 'virtuel' ? '#2E86C1' : '#E0E0E0', backgroundColor: mode === 'virtuel' ? '#E3F2FD' : 'white' }}>
                             <input type="radio" name={`mode-${nom}`} checked={mode === 'virtuel'} onChange={() => setMode(nom, 'virtuel')} />
-                            <div>
-                              <p className="text-xs font-medium" style={{ color: '#1A2535' }}>💻 Virtuel</p>
-                            </div>
+                            <p className="text-xs font-medium" style={{ color: '#1A2535' }}>💻 Virtuel</p>
                           </label>
                         </div>
                       </div>
@@ -315,17 +330,25 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
         </div>
       )}
 
-      {/* ÉTAPE 1.5 — Allergies (billet payant avec banquet seulement) */}
+      {/* ÉTAPE 1.5 — Allergies par personne (billet payant avec banquet) */}
       {etape === 'allergies' && (
         <div className="space-y-4">
-          <p className="text-sm font-medium" style={{ color: '#1A2535' }}>
-            Billet{nomsSelectionnes.length > 1 ? 's' : ''} pour : <strong>{nomsSelectionnes.join(' & ')}</strong>
-          </p>
-          <p className="text-xs" style={{ color: '#666666' }}>
-            Le banquet est inclus avec votre billet. Veuillez indiquer vos allergies ou restrictions alimentaires.
-          </p>
+          <div className="rounded-lg p-3" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
+            <p className="text-sm font-medium" style={{ color: '#1A2535' }}>🍽️ Le banquet est inclus avec votre billet</p>
+            <p className="text-xs mt-1" style={{ color: '#666666' }}>Indiquez les allergies ou restrictions alimentaires pour chaque personne.</p>
+          </div>
 
-          <SectionAllergies allergies={allergies} setAllergies={setAllergies} autreAllergie={autreAllergie} setAutreAllergie={setAutreAllergie} />
+          {/* Un tableau par personne sélectionnée */}
+          {nomsSelectionnes.map(nom => (
+            <SectionAllergiesPersonne
+              key={nom}
+              nom={nom}
+              allergies={allergiesParPersonne[nom]?.allergies ?? []}
+              setAllergies={(a) => setAllergiesPersonne(nom, a)}
+              autreAllergie={allergiesParPersonne[nom]?.autre ?? ''}
+              setAutreAllergie={(v) => setAutreAllergiePersonne(nom, v)}
+            />
+          ))}
 
           {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
 
@@ -355,10 +378,23 @@ export default function FormulaireAchat({ evenement, compte, estSansFrais, prix,
             ))}
           </div>
 
-          {(allergies.length > 0 || autreAllergie) && (
-            <div className="rounded-lg p-3 text-xs" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
-              <p className="font-medium mb-1" style={{ color: '#1A2535' }}>🍽️ Allergies enregistrées :</p>
-              <p style={{ color: '#666666' }}>{[...allergies, autreAllergie ? `Autre: ${autreAllergie}` : ''].filter(Boolean).join(', ')}</p>
+          {/* Résumé allergies par personne */}
+          {nomsSelectionnes.some(nom => {
+            const d = allergiesParPersonne[nom]
+            return d && (d.allergies.length > 0 || d.autre.trim())
+          }) && (
+            <div className="rounded-lg p-3 text-xs space-y-2" style={{ backgroundColor: '#FFF8E1', border: '1px solid #FFE082' }}>
+              <p className="font-medium" style={{ color: '#1A2535' }}>🍽️ Allergies enregistrées :</p>
+              {nomsSelectionnes.map(nom => {
+                const d = allergiesParPersonne[nom]
+                if (!d || (d.allergies.length === 0 && !d.autre.trim())) return null
+                const liste = [...d.allergies, d.autre.trim() ? `Autre: ${d.autre.trim()}` : ''].filter(Boolean)
+                return (
+                  <p key={nom} style={{ color: '#666666' }}>
+                    <strong>{nom.split(' ')[0]} :</strong> {liste.join(', ')}
+                  </p>
+                )
+              })}
             </div>
           )}
 
