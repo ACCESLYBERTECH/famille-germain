@@ -180,7 +180,8 @@ src/app/
 │   ├── banquets/page.tsx + GestionBanquets.tsx — Rapport banquets + Excel + PDF
 │   ├── portiers/page.tsx + GestionPortiers.tsx
 │   ├── documents/page.tsx + GestionDocuments.tsx
-│   └── carrousel/page.tsx + AdminCarrouselClient.tsx
+│   ├── carrousel/page.tsx + AdminCarrouselClient.tsx
+│   └── marketing/page.tsx + GestionMarketing.tsx — Envoi promo courriels par événement
 └── leader/
     └── platines-et-plus/page.tsx + PlatinesEtPlus.tsx
 ```
@@ -200,7 +201,10 @@ src/app/api/
 │   ├── rapport-excel/route.ts
 │   ├── banquet/route.ts                — CRUD banquets via supabaseAdmin (contourne RLS)
 │   ├── rapport-banquets-excel/route.ts
-│   └── rapport-banquets-pdf/route.ts   — HTML imprimable dans nouvel onglet
+│   ├── rapport-banquets-pdf/route.ts   — HTML imprimable dans nouvel onglet
+│   └── marketing/
+│       ├── envoyer/route.ts            — Envoi promo à tous les PCI/leaders actifs+consentants
+│       └── test/route.ts               — Envoi de test à l'admin connecté
 ├── billets/offrir/route.ts
 ├── remboursement/route.ts
 ├── scan/route.ts
@@ -354,6 +358,13 @@ src/components/
 - Domaine `acceslybertech.com` vérifié dans WHC DNS
 - Templates : bienvenue PCI, confirmation billet, confirmation remboursement, billet offert, notification admin
 
+### Marketing (Admin)
+- Page `/admin/marketing` — envoi de courriels promo en un clic par événement
+- Sélection événement, sujet et image bannière modifiables, envoi de test à soi-même avant l'envoi réel
+- Envoi aux PCI/leaders actifs et consentants (`consentement_communications`), par lots de 100 via Resend
+- Template `PromoEvenement` : logos, badges (Session/Congrès/Platine/Banquet), paliers de prix avec dates, section banquet, gère aussi les événements sans billets (informatif) et multi-villes
+- Historique des envois (table `campagnes_email`) affiché dans l'admin
+
 ---
 
 ## Patterns techniques importants
@@ -433,13 +444,12 @@ git push
 1. **Apple Wallet / Google Wallet** — intégration passes numériques
 2. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
 3. **Rapport financier détaillé événement** — détails à confirmer avec les admins
-4. **Amélioration visuel emails** — templates Resend + logos
+4. **Amélioration visuel emails** — templates Resend + logos (bienvenue, confirmation billet, remboursement, notification admin)
 5. **Personnalisation emails Supabase en français** — templates auth Supabase
 6. **Adaptation responsive** — tablette et cellulaire
-7. **Email marketing** — Resend Broadcasts pour annonces événements
-8. **Nom complet + co-PCI dans navbar** — coin supérieur droit
-9. **Retravailler le visuel des courriels promo (marketing)** — fonctionnel mais encore basique, design à peaufiner
-10. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+7. **Nom complet + co-PCI dans navbar** — coin supérieur droit
+8. **Retravailler le visuel des courriels promo (marketing)** — fonctionnel mais encore basique, design à peaufiner
+9. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
 
 ---
 
@@ -453,4 +463,4 @@ git push
 
 ---
 
-*Dernière mise à jour : Septembre 2026 — Session 5*
+*Dernière mise à jour : Septembre 2026 — Session 6*
