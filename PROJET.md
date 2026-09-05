@@ -144,9 +144,9 @@ id UUID, url, ordre, lien, cree_at
 ### Pages
 ```
 src/app/
-├── page.tsx                          — Redirect vers /accueil ou /connexion
+├── page.tsx                          — Dashboard admin ou redirect
 ├── accueil/page.tsx                  — Page d'accueil PCI/leader (carrousel + photo leader)
-├── connexion/page.tsx                — Login avec logos navy
+├── connexion/page.tsx                — Login avec logos navy en-tête
 ├── inscription/page.tsx              — Inscription 4 étapes
 ├── inscription/merci/page.tsx        — Page de remerciement
 ├── mot-de-passe-oublie/page.tsx
@@ -156,28 +156,28 @@ src/app/
 │   ├── page.tsx                      — Liste événements PCI
 │   ├── ListeEvenements.tsx
 │   ├── achat/page.tsx                — Achat billet
-│   ├── achat/FormulaireAchat.tsx
-│   ├── confirmation/page.tsx         — Confirmation paiement billet
-│   ├── achat-banquet/page.tsx        — Achat banquet
+│   ├── achat/FormulaireAchat.tsx     — Allergies par personne si banquet
+│   ├── confirmation/page.tsx
+│   ├── achat-banquet/page.tsx        — Achat banquet (sans frais)
 │   ├── achat-banquet/FormulaireAchatBanquet.tsx
 │   ├── confirmation-banquet/page.tsx
 │   └── mes-billets/
 │       ├── page.tsx
-│       └── MesBilletsClient.tsx
+│       └── MesBilletsClient.tsx      — QR zoom, factures PDF
 ├── documents/page.tsx
 ├── contact/page.tsx
 ├── scan/
 │   ├── page.tsx
 │   └── ScanInterface.tsx
 ├── admin/
-│   ├── page.tsx                      — Dashboard admin avec stats
-│   ├── pci/page.tsx + GestionPCI.tsx
+│   ├── page.tsx                      — Dashboard admin avec stats live
+│   ├── pci/page.tsx + GestionPCI.tsx — Recherche, filtres, orphelins, ajout manuel
 │   ├── evenements/
 │   │   ├── page.tsx
 │   │   ├── GestionEvenements.tsx
-│   │   └── FormulaireEvenement.tsx
+│   │   └── FormulaireEvenement.tsx   — Config banquet via API
 │   ├── billets/page.tsx + GestionBillets.tsx
-│   ├── banquets/page.tsx + GestionBanquets.tsx — NOUVEAU
+│   ├── banquets/page.tsx + GestionBanquets.tsx — Rapport banquets + Excel + PDF
 │   ├── portiers/page.tsx + GestionPortiers.tsx
 │   ├── documents/page.tsx + GestionDocuments.tsx
 │   └── carrousel/page.tsx + AdminCarrouselClient.tsx
@@ -188,23 +188,23 @@ src/app/
 ### API Routes
 ```
 src/app/api/
-├── auth/resoudre-identifiant/route.ts    — Résolution identifiant portier
-├── public/leaders/route.ts              — Leaders visibles pour inscription
+├── auth/resoudre-identifiant/route.ts
+├── public/leaders/route.ts              — Filtre visible_inscription=true
 ├── stripe/
-│   ├── create-payment-intent/route.ts   — PaymentIntent billets
+│   ├── create-payment-intent/route.ts   — TPS/TVQ/gross-up, allergies par personne, modes
 │   └── create-payment-intent-banquet/route.ts
 ├── admin/
 │   ├── modifier-compte/route.ts
-│   ├── creer-pci/route.ts              — Création manuelle PCI
+│   ├── creer-pci/route.ts              — Création manuelle + email bienvenue
 │   ├── portiers/route.ts
 │   ├── rapport-excel/route.ts
-│   ├── banquet/route.ts                — CRUD banquets via supabaseAdmin
+│   ├── banquet/route.ts                — CRUD banquets via supabaseAdmin (contourne RLS)
 │   ├── rapport-banquets-excel/route.ts
-│   └── rapport-banquets-pdf/route.ts
+│   └── rapport-banquets-pdf/route.ts   — HTML imprimable dans nouvel onglet
 ├── billets/offrir/route.ts
 ├── remboursement/route.ts
 ├── scan/route.ts
-├── facture/billet/route.ts             — PDF facture @react-pdf/renderer
+├── facture/billet/route.ts             — PDF @react-pdf/renderer
 ├── leader/modifier-groupe/route.ts
 └── emails/
     ├── bienvenue-pci/route.ts
@@ -215,17 +215,17 @@ src/app/api/
 ### Composants
 ```
 src/components/
-├── Navbar.tsx                          — Navbar sticky avec rôles
+├── Navbar.tsx                          — Sticky, logos, menu Gestion admin
 ├── QRCode.tsx
 └── CarrouselAccueil.tsx
 ```
 
 ---
 
-## Fonctionnalités complétées
+## Fonctionnalités complétées ✅
 
 ### Auth & Navigation
-- Inscription 4 étapes (province dynamique, dropdown leaders, conditions d'utilisation)
+- Inscription 4 étapes (province dynamique, dropdown leaders filtrés, conditions d'utilisation)
 - Connexion avec logos Germain + Yager en en-tête navy
 - Mot de passe oublié / réinitialisation
 - Navbar sticky avec logos, menu déroulant "Gestion" admin
@@ -234,11 +234,12 @@ src/components/
 ### Gestion PCI (Admin)
 - Liste PCI actifs avec recherche (nom, courriel, # Amway)
 - Filtre par leader + détection orphelins (badge ⚠️ Sans leader)
-- Modal modification complet (identité, contact, adresse, Amway, rôle, leader, groupe, SF)
-- Ajout manuel de PCI avec mot de passe temporaire + email bienvenue
+- Bouton alerte orange cliquable si orphelins existent
+- Modal modification complet
+- **Ajout manuel de PCI** avec mot de passe temporaire + email bienvenue
 - Approbation/refus des PCI en attente
 - Photo leader (bucket `leaders-photos`)
-- Visibilité leader : Régulier / Invisible (caché du dropdown inscription et du carrousel)
+- **Visibilité leader : Régulier / Invisible** (caché du dropdown inscription et du carrousel)
 - Badge 👁️ Invisible dans la liste admin
 
 ### Événements
@@ -246,42 +247,44 @@ src/components/
 - Paliers de prix automatiques (max 4)
 - Multi-villes
 - Toggle `a_billets` / `a_banquet`
-- Configuration banquet (nom + prix) via API supabaseAdmin
+- **Configuration banquet (nom + prix) via API supabaseAdmin** (contourne RLS)
 - Badges Session/Congrès/Banquet/Platine
 - Countdown jours restants
 - Description avec Voir plus/moins
 
 ### Paiements
-- TPS (5%) + TVQ (9.975%) calculées sur le prix
+- TPS (5%) + TVQ (9.975%) sur billets payants
 - Frais Stripe gross-up : `(sous-total + taxes + 0.30) / (1 - 0.029)`
 - Stripe principal pour billets, Stripe séparé pour banquets
 - Confirmation Stripe avec sauvegarde taxes dans BD
-- Remboursement 100% (admin seulement)
+- Remboursement 100% admin (non remboursable pour banquets)
+- Carte test : `4242 4242 4242 4242`
 
 ### Système Banquet
 - Banquet lié à un événement (table `banquets`)
-- Disponible aux PCI sans frais après achat du billet
+- Disponible aux PCI sans frais après achat du billet dans page Événements
 - Achat séparé avec Stripe banquet
 - 3 résultats de scan :
-  - 🔵 Billet régulier (payant)
+  - 🔵 Billet régulier (payant — banquet inclus)
   - 🟢 Sans frais avec banquet
   - 🟡 Sans frais sans banquet
 - Non remboursable
-- Indicateur "Avec/Sans banquet" dans Gestion billets et Platines et plus
+- Indicateur "Avec/Sans banquet" dans Gestion billets et Platines et plus (si événement a banquet)
+- Légende bracelets dans scanner si événement avec banquet
 
 ### Allergies alimentaires
-- Demandées aux billets payants avec banquet (étape 1.5)
-- Demandées à l'achat du banquet (sans frais)
+- **Billets payants avec banquet** : demandées à l'étape 1.5, **une section par personne** (Claude / Véronique séparés)
+- **Achat du banquet sans frais** : demandées dans FormulaireAchatBanquet
 - Options : Noix/arachides, Gluten, Lactose, Œufs, Poisson, Crustacés, Végétarien, Végétalien + texte libre
-- Stockées dans `billets.allergies` et `billets_banquets.allergies`
+- Stockées dans `billets.allergies` (JSON par personne) et `billets_banquets.allergies`
 
 ### Mode participation
 - Question Sur place / Virtuel par personne à l'achat
-- Affiché sous chaque nom coché
+- Affiché sous chaque nom coché individuellement
 - Stocké dans `billets.mode_participation`
 - Stats par événement dans Gestion billets et Platines et plus
 - Filtre Sur place / Virtuel dans Gestion billets
-- Export CSV inclut le mode
+- Un billet Virtuel peut quand même être scanné à la porte
 
 ### QR Codes & Scan
 - QR code unique par billet (`qr_code_token`)
@@ -290,23 +293,28 @@ src/components/
 - 3 couleurs de résultat pour banquet
 - Légende bracelets si événement avec banquet
 - Stats par ville (admin seulement)
-- Multi-ville par portier
 
 ### Mes billets (PCI)
 - Liste billets actifs (30 jours après l'événement)
 - Zoom QR code en modal
 - Bouton 📄 Télécharger la facture (billets payants)
 - Bouton 📄 Facture pour banquets achetés
-- Indicateur banquet si événement a banquet
 
 ### Factures PDF
 - Générées à la volée avec `@react-pdf/renderer`
-- Numéro facture : `BIL-XXXXXXXX` ou `BAN-XXXXXXXX`
+- Numéro : `BIL-XXXXXXXX` ou `BAN-XXXXXXXX`
 - Détail : sous-total, TPS, TVQ, frais Stripe, total, badge PAYÉ
 - API : `/api/facture/billet?billet_id=X&type=billet|banquet`
 
+### Rapport Banquets (Admin)
+- Page `/admin/banquets` dans menu Gestion
+- 3 types affichés : Régulier (banquet inclus), SF avec banquet, SF sans banquet
+- Filtres : événement, leader, statut banquet (cliquables depuis stats)
+- **Export Excel** (SheetJS/xlsx) — 3 feuilles : Rapport complet, Résumé, Allergies seulement
+- **Rapport PDF** — HTML professionnel dans nouvel onglet, imprimable avec Ctrl+P
+
 ### Page d'accueil
-- Carrousel avec photo leader côte-à-côte (navy)
+- Carrousel avec photo leader côte-à-côte (fond navy)
 - Images admin uploadables avec liens cliquables
 - Bouton Pause/Play
 - Leader invisible → pas de photo affichée
@@ -320,16 +328,8 @@ src/components/
 - Filtre par leader, événement, groupe
 - Indicateur banquet + mode participation
 - Stats Sur place/Virtuel par événement
-- Export CSV avec colonne Banquet et Mode
+- Export CSV avec colonnes Banquet et Mode
 - Onglet Profils PCI avec modification du groupe
-
-### Rapport Banquets (Admin — NOUVEAU)
-- Page `/admin/banquets`
-- Liste tous les billets des événements avec banquet
-- Affiche : Sans frais avec banquet, Sans frais sans banquet, Régulier (banquet inclus)
-- Filtres : par événement, par leader, par statut banquet
-- Export Excel (3 feuilles : rapport, résumé, allergies seulement)
-- Rapport PDF imprimable dans nouvel onglet
 
 ### Gestion Billets (Admin)
 - Filtres : statut, événement, leader, mode participation
@@ -343,7 +343,7 @@ src/components/
 - Comptes indépendants (table `portiers_comptes`)
 - Identifiant format : `PORTIER1-LONGUEUIL`
 - Assignés à un événement + ville
-- API : `/api/auth/resoudre-identifiant` dans publicRoutes
+- Login via `/api/auth/resoudre-identifiant` (dans publicRoutes)
 
 ### Documents
 - Upload PDF dans Supabase Storage (bucket `documents`)
@@ -360,40 +360,37 @@ src/components/
 
 ### Supabase
 - **Toujours `supabaseAdmin` (service role)** pour les requêtes admin côté serveur
-- RLS policies bloquent les inserts côté client → utiliser API routes avec supabaseAdmin
+- **RLS policies bloquent les inserts côté client** → utiliser API routes avec supabaseAdmin
 - `get_my_role()` SECURITY DEFINER pour éviter récursion RLS
 - Jointures explicites : `comptes!billets_compte_id_fkey`
 - `get_groupe_ids` RPC pour hiérarchie leaders
+- GRANT explicites requis pour chaque table
 
-### Next.js
+### Next.js / TypeScript
 - **Pas de `admin/layout.tsx`** — double navbar
 - Chaque page admin a sa propre `<Navbar />`
-- Page carrousel admin : `page.tsx` (serveur) + `AdminCarrouselClient.tsx` (client)
 - `window.location.href = '/'` plus fiable que `router.push` pour redirections post-login
-- Imports sans extension `.tsx` (cause erreur TypeScript en production)
-
-### TypeScript (production)
-- Vercel fait un check TypeScript strict — les erreurs locales silencieuses échouent en prod
-- Tous les champs nullable doivent avoir `?? ''` ou `?? null`
+- **Imports sans extension `.tsx`** — cause erreur TypeScript en production Vercel
+- Champs nullable doivent avoir `?? ''` ou `?? null`
 - `renderToBuffer()` → wrapper avec `as any` pour @react-pdf/renderer
 - Buffer → `new Uint8Array(buffer)` pour NextResponse
 
 ### Stripe
-- Gross-up formula : `(sous-total-taxé + 0.30) / (1 - 0.029)`
-- Taxes et frais stockés dans les metadata du PaymentIntent
-- Récupérés depuis les metadata à la confirmation
-- Carte test : `4242 4242 4242 4242`
+- Gross-up : `(sous-total-taxé + 0.30) / (1 - 0.029)`
+- Taxes et frais stockés dans metadata PaymentIntent
+- Récupérés depuis metadata à la confirmation
+- Allergies par personne stockées en JSON dans metadata
 
 ### CSS/Tailwind
 - `font-size: 18px` dans `globals.css` pour meilleure lisibilité
 - Styles inline avec `style={{ color: '#1A2535' }}` partout
 - JSX attributs sur une seule ligne (évite erreurs parser)
+- Pas de mode accessibilité (retiré — trop complexe)
 
 ---
 
 ## Middleware
 ```typescript
-// Routes publiques
 const publicRoutes = [
   '/connexion', '/inscription', '/mot-de-passe-oublie',
   '/reinitialiser-mot-de-passe', '/api/auth', '/api/public', '/conditions'
@@ -409,6 +406,28 @@ const publicRoutes = [
 
 ---
 
+## Déploiement production
+
+### Vercel
+- URL : https://famille-germain.vercel.app
+- Plan : Hobby (repo public — obligatoire pour Hobby)
+- Auto-deploy sur `git push` vers `main`
+- Variables d'environnement configurées dans Vercel dashboard
+
+### Supabase
+- Site URL : https://famille-germain.vercel.app
+- Redirect URLs : https://famille-germain.vercel.app/**
+
+### Commande déploiement
+```bash
+git add .
+git commit -m "description"
+git push
+# Vercel déploie automatiquement en ~1 minute
+```
+
+---
+
 ## À faire (liste prioritaire)
 
 1. **Apple Wallet / Google Wallet** — intégration passes numériques
@@ -419,28 +438,7 @@ const publicRoutes = [
 6. **Adaptation responsive** — tablette et cellulaire
 7. **Email marketing** — Resend Broadcasts pour annonces événements
 8. **Nom complet + co-PCI dans navbar** — coin supérieur droit
-9. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape)
-
----
-
-## Déploiement production
-
-### Vercel
-- URL : https://famille-germain.vercel.app
-- Plan : Hobby (repo public)
-- Auto-deploy sur `git push` vers `main`
-
-### Supabase
-- Site URL : https://famille-germain.vercel.app
-- Redirect URLs : https://famille-germain.vercel.app/**
-
-### Pour déployer
-```bash
-git add .
-git commit -m "description"
-git push
-# Vercel déploie automatiquement
-```
+9. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
 
 ---
 
@@ -448,9 +446,10 @@ git push
 - Fournir le fichier complet pour les modifications (pas de diffs partiels)
 - Pour fichiers >500 lignes, demander avant de fournir
 - Toujours utiliser `supabaseAdmin` côté serveur pour les requêtes admin
-- Tester localement avant de pousser
 - Commits descriptifs après chaque groupe logique de features
+- Mario travaille sur Windows, VS Code, terminal intégré
+- GitHub auth via personal access token (classic, repo scope)
 
 ---
 
-*Dernière mise à jour : Septembre 2026*
+*Dernière mise à jour : Septembre 2026 — Session 5*
