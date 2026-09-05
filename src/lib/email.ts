@@ -3,6 +3,7 @@ import BienvenuePCI from '@/emails/BienvenuePCI'
 import ConfirmationBillet from '@/emails/ConfirmationBillet'
 import NotificationAdmin from '@/emails/NotificationAdmin'
 import ConfirmationRemboursement from '@/emails/ConfirmationRemboursement'
+import PromoEvenement from '@/emails/PromoEvenement'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.FROM_EMAIL!
@@ -92,4 +93,37 @@ export async function envoyerConfirmationRemboursement(params: {
       montant: params.montant,
     }),
   })
+}
+
+export async function envoyerPromoEvenement(params: {
+  destinataires: { prenom: string; email: string }[]
+  sujet: string
+  nomEvenement: string
+  description: string
+  dateDebut: string
+  dateFin: string
+  lieu: string
+  villes: string[]
+  acces: 'public' | 'platine'
+  aBillets: boolean
+  aBanquet: boolean
+  banquetNom: string | null
+  banquetPrix: number | null
+  paliers: { prix: number; date_fin: string; ordre: number }[]
+  imageUrl?: string
+  lienAchat: string
+}) {
+  const { destinataires, sujet, ...contenu } = params
+
+  for (let i = 0; i < destinataires.length; i += 100) {
+    const paquet = destinataires.slice(i, i + 100)
+    await resend.batch.send(
+      paquet.map(d => ({
+        from: FROM,
+        to: d.email,
+        subject: sujet,
+        react: PromoEvenement({ prenom: d.prenom, appUrl: APP_URL, ...contenu }),
+      }))
+    )
+  }
 }

@@ -65,6 +65,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/documents', label: '📄 Documents' },
     { href: '/admin/banquets', label: '🍽️ Rapport banquets' },
     { href: '/admin/carrousel', label: '🖼️ Carrousel' },
+    { href: '/admin/marketing', label: '📣 Marketing' },
   ]
 
   const liensAdminMobile = [
@@ -74,6 +75,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/billets', label: 'Gestion billets' },
     { href: '/admin/portiers', label: 'Portiers' },
     { href: '/admin/carrousel', label: 'Carrousel' },
+    { href: '/admin/marketing', label: 'Marketing' },
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },

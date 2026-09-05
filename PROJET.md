@@ -438,7 +438,8 @@ git push
 6. **Adaptation responsive** — tablette et cellulaire
 7. **Email marketing** — Resend Broadcasts pour annonces événements
 8. **Nom complet + co-PCI dans navbar** — coin supérieur droit
-9. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+9. **Retravailler le visuel des courriels promo (marketing)** — fonctionnel mais encore basique, design à peaufiner
+10. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
 
 ---
 
