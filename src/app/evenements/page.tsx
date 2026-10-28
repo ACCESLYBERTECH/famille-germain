@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import CompteNonActif from '@/components/CompteNonActif'
 import ListeEvenements from './ListeEvenements'
 
 export default async function EvenementsPage() {
@@ -16,21 +17,7 @@ export default async function EvenementsPage() {
     .single()
 
   if (compte?.statut !== 'actif') {
-    return (
-      <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
-        <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
-        <div className="max-w-2xl mx-auto pt-20 px-4 text-center">
-          <div className="bg-white rounded-2xl shadow p-8">
-            <p className="text-lg font-medium mb-2" style={{ color: '#1A2535' }}>
-              Compte en attente d'approbation
-            </p>
-            <p className="text-sm" style={{ color: '#666666' }}>
-              Un administrateur va approuver votre compte sous peu. Vous recevrez un courriel de confirmation.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+    return <CompteNonActif prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} statut={compte?.statut} />
   }
 
   // Charger les événements actifs avec banquets

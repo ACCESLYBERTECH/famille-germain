@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import CompteNonActif from '@/components/CompteNonActif'
 import NonAccessibleDeveloppeur from '@/components/NonAccessibleDeveloppeur'
 import PlatinesEtPlus from './PlatinesEtPlus'
 
@@ -24,6 +25,7 @@ export default async function PlatinesEtPlusPage() {
 
   if (compte?.role === 'developpeur') return <NonAccessibleDeveloppeur prenom={compte.prenom_1 ?? ''} titre="Platines et plus" />
   if (compte?.role !== 'leader' && compte?.role !== 'admin') redirect('/')
+  if (compte?.role === 'leader' && compte?.statut !== 'actif') return <CompteNonActif prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} statut={compte?.statut} />
 
   const { data: groupeIds } = await supabaseAdmin
     .rpc('get_groupe_ids', { leader_uuid: user.id })
@@ -40,7 +42,8 @@ export default async function PlatinesEtPlusPage() {
     : { data: [] }
 
   const leadersGroupe = (membres ?? []).filter((m: any) => m.role === 'leader')
-  const pcis = (membres ?? []).filter((m: any) => m.role === 'pci' || m.role === 'leader')
+  // Les demandes refusées ne font pas partie du groupe
+  const pcis = (membres ?? []).filter((m: any) => (m.role === 'pci' || m.role === 'leader') && m.statut !== 'refuse')
 
   const { data: billets } = idsPourBillets.length > 0
     ? await supabaseAdmin

@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { data: compte } = await supabase.from('comptes').select('role').eq('id', user.id).single()
-    if (compte?.role !== 'leader' && compte?.role !== 'admin') {
+    const { data: compte } = await supabase.from('comptes').select('role, statut').eq('id', user.id).single()
+    if ((compte?.role !== 'leader' || compte?.statut !== 'actif') && compte?.role !== 'admin') {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 

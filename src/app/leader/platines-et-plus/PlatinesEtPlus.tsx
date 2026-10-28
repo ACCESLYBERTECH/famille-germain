@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface PCI {
   id: string
@@ -56,7 +57,15 @@ type TriBillets = 'nom' | 'evenement' | 'statut' | 'date'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
 export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes }: Props) {
-  const [onglet, setOnglet] = useState<'billets' | 'profils'>('billets')
+  const [onglet, setOnglet] = useState<'billets' | 'profils' | 'inactifs'>('billets')
+  const [statutEdit, setStatutEdit] = useState('actif')
+  const [statutChargement, setStatutChargement] = useState(false)
+  const [statutSauvegarde, setStatutSauvegarde] = useState(false)
+  const router = useRouter()
+
+  // Profils actifs et inactifs (l'historique des billets n'est jamais touché)
+  const pcisActifs = useMemo(() => pcis.filter(p => p.statut !== 'inactif'), [pcis])
+  const pcisInactifs = useMemo(() => pcis.filter(p => p.statut === 'inactif'), [pcis])
   const [recherche, setRecherche] = useState('')
   const [filtreEvenement, setFiltreEvenement] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
@@ -129,7 +138,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   }, [billets, recherche, filtreEvenement, idsPCIFiltresParLeader, idsPCIFiltresParGroupe, triBillets, pcis])
 
   const pcisFiltres = useMemo(() => {
-    let result = pcis.filter(p => {
+    const listeProfils = onglet === 'inactifs' ? pcisInactifs : pcisActifs
+    let result = listeProfils.filter(p => {
       const matchRecherche = recherche.length < 2 ? true :
         `${p.prenom_1} ${p.nom_1}`.toLowerCase().includes(recherche.toLowerCase()) ||
         p.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -147,7 +157,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     })
 
     return result
-  }, [pcis, recherche, filtreLeader, filtreGroupe, triProfils])
+  }, [pcisActifs, pcisInactifs, onglet, recherche, filtreLeader, filtreGroupe, triProfils])
 
   async function sauvegarderGroupe() {
     if (!profilOuvert) return
@@ -206,6 +216,28 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     setProfilOuvert(pci)
     setGroupeEdit(pci.groupe ?? '')
     setGroupeSauvegarde(false)
+    setStatutEdit(pci.statut)
+    setStatutSauvegarde(false)
+  }
+
+  async function sauvegarderStatut() {
+    if (!profilOuvert) return
+    setStatutChargement(true)
+    const res = await fetch('/api/leader/modifier-statut', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: profilOuvert.id, statut: statutEdit }),
+    })
+    setStatutChargement(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'Erreur lors de la sauvegarde')
+      return
+    }
+    setStatutSauvegarde(true)
+    profilOuvert.statut = statutEdit
+    setTimeout(() => setStatutSauvegarde(false), 2000)
+    router.refresh()
   }
 
   const statutBilletStyle = (statut: string) => {
@@ -285,7 +317,10 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
           Billets ({billets.length})
         </button>
         <button onClick={() => setOnglet('profils')} className={ongletClass(onglet === 'profils')} style={onglet === 'profils' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
-          Profils PCI ({pcis.length})
+          Profils PCI ({pcisActifs.length})
+        </button>
+        <button onClick={() => setOnglet('inactifs')} className={ongletClass(onglet === 'inactifs')} style={onglet === 'inactifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
+          PCI inactifs ({pcisInactifs.length})
         </button>
       </div>
 
@@ -322,7 +357,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
               </div>
             )}
 
-            {onglet === 'profils' && (
+            {(onglet === 'profils' || onglet === 'inactifs') && (
               <div className="flex gap-1 ml-auto">
                 <span className="text-xs self-center mr-1" style={{ color: '#999999' }}>Trier :</span>
                 {(['nom', 'numero_amway', 'ville'] as TriProfils[]).map(t => (
@@ -385,7 +420,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         )}
 
         {/* ONGLET PROFILS */}
-        {onglet === 'profils' && (
+        {(onglet === 'profils' || onglet === 'inactifs') && (
           <div>
             {pcisFiltres.length === 0 ? (
               <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun PCI trouvé</div>
@@ -398,6 +433,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                       <p className="font-semibold" style={{ color: '#1A2535' }}>
                         {pci.prenom_1} {pci.nom_1}
                         {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
+                        {pci.statut === 'inactif' && <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#ECEFF1', color: '#757575' }}>⏸️ Inactif</span>}
                       </p>
                       {pci.groupe && <p className="text-xs font-medium mt-0.5" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}</p>}
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
@@ -471,6 +507,25 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                   </button>
                 </div>
               </div>
+
+              {/* Statut Actif / Inactif — pas pour soi-même ni pour une demande en attente */}
+              {profilOuvert.id !== leaderConnecteId && (profilOuvert.statut === 'actif' || profilOuvert.statut === 'inactif') && (
+                <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
+                  <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Statut</label>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: '#4CAF7D' }}>
+                      <input type="radio" name="statut-profil" checked={statutEdit === 'actif'} onChange={() => setStatutEdit('actif')} /> Actif
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm cursor-pointer" style={{ color: '#757575' }}>
+                      <input type="radio" name="statut-profil" checked={statutEdit === 'inactif'} onChange={() => setStatutEdit('inactif')} /> Inactif
+                    </label>
+                    <button onClick={sauvegarderStatut} disabled={statutChargement || statutEdit === profilOuvert.statut} className="ml-auto px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: statutSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
+                      {statutChargement ? '...' : statutSauvegarde ? '✓' : 'Sauver'}
+                    </button>
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: '#999999' }}>Un PCI inactif garde tous ses billets et son historique.</p>
+                </div>
+              )}
             </div>
 
             <button onClick={() => setProfilOuvert(null)} className="w-full mt-6 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#C9A84C' }}>

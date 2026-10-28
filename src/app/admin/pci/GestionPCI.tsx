@@ -8,7 +8,8 @@ import type { Compte } from '@/lib/types'
 interface Props {
   pciEnAttente: Compte[]
   pciActifs: Compte[]
-  leaders: { id: string; prenom_1: string; nom_1: string }[]
+  pciInactifs: Compte[]
+  leaders: { id: string; prenom_1: string; nom_1: string; statut?: string }[]
   roleUtilisateur?: string
 }
 
@@ -25,10 +26,10 @@ const formVide = {
   groupe: '', mot_de_passe: '',
 }
 
-export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtilisateur }: Props) {
+export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leaders, roleUtilisateur }: Props) {
   // Le développeur ne peut pas donner les rôles Admin ou Développeur
   const rolesProtegesBloques = roleUtilisateur === 'developpeur'
-  const [onglet, setOnglet] = useState<'attente' | 'actifs'>('attente')
+  const [onglet, setOnglet] = useState<'attente' | 'actifs' | 'inactifs'>('attente')
   const [chargement, setChargement] = useState<string | null>(null)
   const [modalModif, setModalModif] = useState<Compte | null>(null)
   const [sauvegarde, setSauvegarde] = useState(false)
@@ -113,7 +114,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
 
   async function refuser(id: string) {
     setChargement(id)
-    await supabase.from('comptes').update({ statut: 'inactif' }).eq('id', id)
+    await supabase.from('comptes').update({ statut: 'refuse' }).eq('id', id)
     setChargement(null)
     router.refresh()
   }
@@ -142,6 +143,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
       groupe: pci.groupe ?? '',
       photo_url: (pci as any).photo_url ?? '',
       visible_inscription: (pci as any).visible_inscription !== false,
+      statut: pci.statut ?? 'actif',
     })
   }
 
@@ -189,8 +191,11 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
     router.refresh()
   }
 
+  // Liste affichée : PCI actifs ou PCI inactifs selon l'onglet
+  const listeCourante = onglet === 'inactifs' ? pciInactifs : pciActifs
+
   const pciActifsFiltres = useMemo(() => {
-    return pciActifs.filter(pci => {
+    return listeCourante.filter(pci => {
       const matchRecherche = recherche.length < 2 ? true :
         `${pci.prenom_1} ${pci.nom_1}`.toLowerCase().includes(recherche.toLowerCase()) ||
         (pci.prenom_2 && `${pci.prenom_2} ${pci.nom_2}`.toLowerCase().includes(recherche.toLowerCase())) ||
@@ -204,7 +209,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
 
       return matchRecherche && matchLeader
     })
-  }, [pciActifs, recherche, filtreLeader])
+  }, [listeCourante, recherche, filtreLeader])
 
   const ongletClass = (actif: boolean) =>
     `px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${actif ? 'text-white' : 'text-gray-500 hover:text-gray-700'}`
@@ -219,7 +224,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
 
   const inputClass = "w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400"
   const labelClass = "block text-xs font-medium mb-1"
-  const orphelins = pciActifs.filter(p => !p.leader_id).length
+  const orphelins = listeCourante.filter(p => !p.leader_id).length
+  const nomLeaderOption = (l: { prenom_1: string; nom_1: string; statut?: string }) => `${l.prenom_1} ${l.nom_1}${l.statut === 'inactif' ? ' (inactif)' : ''}`
 
   return (
     <div>
@@ -235,6 +241,9 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
           <button onClick={() => setOnglet('actifs')} className={ongletClass(onglet === 'actifs')} style={onglet === 'actifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
             PCI actifs ({pciActifs.length})
           </button>
+          <button onClick={() => setOnglet('inactifs')} className={ongletClass(onglet === 'inactifs')} style={onglet === 'inactifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
+            PCI inactifs ({pciInactifs.length})
+          </button>
         </div>
         <button onClick={ouvrirModalAjout} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#4CAF7D' }}>
           + Ajouter un PCI
@@ -244,14 +253,14 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
       <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
 
         {/* Barre de recherche */}
-        {onglet === 'actifs' && (
+        {(onglet === 'actifs' || onglet === 'inactifs') && (
           <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
             <input className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom, courriel ou # Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
             <div className="flex flex-wrap gap-2 items-center">
               <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
                 <option value="">Tous les leaders</option>
                 <option value="aucun">⚠️ Aucun leader assigné ({orphelins})</option>
-                {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
+                {leaders.map(l => <option key={l.id} value={l.id}>{nomLeaderOption(l)}</option>)}
               </select>
               {(recherche || filtreLeader) && (
                 <button onClick={() => { setRecherche(''); setFiltreLeader('') }} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#666666' }}>
@@ -302,8 +311,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
           </div>
         )}
 
-        {/* ACTIFS */}
-        {onglet === 'actifs' && (
+        {/* ACTIFS / INACTIFS */}
+        {(onglet === 'actifs' || onglet === 'inactifs') && (
           <div>
             {pciActifsFiltres.length === 0 ? (
               <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun PCI trouvé</div>
@@ -321,6 +330,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
                           {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
                         </p>
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: bg, color }}>{label}</span>
+                        {pci.statut === 'inactif' && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#ECEFF1', color: '#757575' }}>⏸️ Inactif</span>}
                         {!pci.leader_id && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>⚠️ Sans leader</span>}
                         {estInvisible && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>👁️ Invisible</span>}
                       </div>
@@ -446,7 +456,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
                 <label className={labelClass} style={{ color: '#1A2535' }}>Leader assigné</label>
                 <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.leader_id} onChange={e => updateAjout('leader_id', e.target.value)}>
                   <option value="">Aucun leader</option>
-                  {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
+                  {leaders.map(l => <option key={l.id} value={l.id}>{nomLeaderOption(l)}</option>)}
                 </select>
               </div>
 
@@ -493,7 +503,19 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
 
             <div className="px-6 py-4 space-y-4">
 
-              <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>Identité</p>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>Identité</p>
+                {(form.statut === 'actif' || form.statut === 'inactif') && (
+                  <div className="flex gap-4 text-sm">
+                    <label className="flex items-center gap-1.5 cursor-pointer" style={{ color: '#4CAF7D' }}>
+                      <input type="radio" name="statut-compte" checked={form.statut === 'actif'} onChange={() => update('statut', 'actif')} /> Actif
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer" style={{ color: '#757575' }}>
+                      <input type="radio" name="statut-compte" checked={form.statut === 'inactif'} onChange={() => update('statut', 'inactif')} /> Inactif
+                    </label>
+                  </div>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass} style={{ color: '#1A2535' }}>Prénom</label>
@@ -581,7 +603,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtili
                 <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.leader_id} onChange={e => update('leader_id', e.target.value)}>
                   <option value="">Aucun leader</option>
                   {leaders.map(l => (
-                    <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>
+                    <option key={l.id} value={l.id}>{nomLeaderOption(l)}</option>
                   ))}
                 </select>
               </div>

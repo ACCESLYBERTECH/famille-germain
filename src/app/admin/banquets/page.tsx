@@ -37,7 +37,7 @@ export default async function AdminBanquetsPage() {
     .from('comptes')
     .select('id, prenom_1, nom_1')
     .eq('role', 'leader')
-    .eq('statut', 'actif')
+    .in('statut', ['actif', 'inactif'])
     .order('nom_1', { ascending: true })
 
   // Tous les billets des événements avec banquet

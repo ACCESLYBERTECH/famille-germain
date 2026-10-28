@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .from('comptes')
       .select('id, prenom_1, nom_1')
       .eq('role', 'leader')
-      .eq('statut', 'actif')
+      .in('statut', ['actif', 'inactif'])
 
     let billetsQuery = supabaseAdmin
       .from('billets')

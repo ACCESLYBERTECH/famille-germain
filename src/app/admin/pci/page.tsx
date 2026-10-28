@@ -38,11 +38,19 @@ export default async function AdminPCIPage() {
     .neq('role', 'portier')
     .order('created_at', { ascending: false })
 
+  const { data: pciInactifs } = await supabaseAdmin
+    .from('comptes')
+    .select('*')
+    .eq('statut', 'inactif')
+    .neq('role', 'portier')
+    .order('nom_1', { ascending: true })
+
+  // Leaders actifs et inactifs (pour afficher le nom du leader de chaque PCI)
   const { data: leaders } = await supabaseAdmin
     .from('comptes')
-    .select('id, prenom_1, nom_1')
+    .select('id, prenom_1, nom_1, statut')
     .eq('role', 'leader')
-    .eq('statut', 'actif')
+    .in('statut', ['actif', 'inactif'])
     .order('nom_1', { ascending: true })
 
   return (
@@ -53,6 +61,7 @@ export default async function AdminPCIPage() {
         <GestionPCI
           pciEnAttente={pciEnAttente ?? []}
           pciActifs={pciActifs ?? []}
+          pciInactifs={pciInactifs ?? []}
           leaders={leaders ?? []}
           roleUtilisateur={compte?.role ?? ''}
         />
