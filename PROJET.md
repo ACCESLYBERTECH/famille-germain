@@ -48,6 +48,15 @@ Red   : #E57373
 - `leader` — leader avec accès Platines et plus
 - `portier` — compte indépendant pour scanner les billets
 - `admin` — accès complet à tout
+- `developpeur` — compte séparé du développeur (Mario). Voir section « Rôle développeur »
+
+## Statuts de compte (`comptes.statut`)
+- `en_attente` — inscription pas encore traitée
+- `actif` — compte normal
+- `inactif` — retiré des listes actives ; **billets, banquets et historique conservés**. Peut se connecter et voir « Mes billets », ne peut plus acheter. Leader inactif = plus d'accès à Platines et plus
+- `refuse` — inscription refusée (bouton Refuser)
+- Contrainte SQL `comptes_statut_check`
+- **Ne jamais effacer un PCI** : on le rend Inactif (historique des ventes avec les noms)
 
 ---
 
@@ -78,12 +87,13 @@ NEXT_PUBLIC_APP_URL=https://famille-germain.vercel.app
 
 ### comptes
 ```sql
-id UUID, courriel, role, prenom_1, nom_1, prenom_2, nom_2,
+id UUID, courriel, role ('pci'|'leader'|'portier'|'admin'|'developpeur'), prenom_1, nom_1, prenom_2, nom_2,
 numero_amway, date_inscription_amway, adresse, ville, province,
 pays, code_postal, telephone, leader_id, statut,
 periode_sf_debut, periode_sf_fin, consentement_communications,
 groupe, photo_url, visible_inscription BOOLEAN DEFAULT true,
 created_at
+-- statut : 'en_attente'|'actif'|'inactif'|'refuse'
 ```
 
 ### evenements
@@ -168,7 +178,7 @@ src/app/
 ├── contact/page.tsx
 ├── scan/
 │   ├── page.tsx
-│   └── ScanInterface.tsx
+│   └── ScanInterface.tsx             — Recherche et stats via API serveur (plus de lecture directe de billets)
 ├── admin/
 │   ├── page.tsx                      — Dashboard admin avec stats live
 │   ├── pci/page.tsx + GestionPCI.tsx — Recherche, filtres, orphelins, ajout manuel
@@ -190,13 +200,17 @@ src/app/
 ```
 src/app/api/
 ├── auth/resoudre-identifiant/route.ts
+├── scan/
+│   ├── route.ts                         — Portier / admin / développeur
+│   ├── recherche/route.ts               — Recherche billet par nom (serveur)
+│   └── stats/route.ts                   — Nb de scans par ville (admin / développeur)
 ├── public/leaders/route.ts              — Filtre visible_inscription=true
 ├── stripe/
 │   ├── create-payment-intent/route.ts   — TPS/TVQ/gross-up, allergies par personne, modes
 │   └── create-payment-intent-banquet/route.ts
 ├── admin/
 │   ├── modifier-compte/route.ts
-│   ├── creer-pci/route.ts              — Création manuelle + email bienvenue
+│   ├── creer-pci/route.ts              — Création manuelle + email bienvenue (déplacé dans api/ — corrigeait un 404)
 │   ├── portiers/route.ts
 │   ├── rapport-excel/route.ts
 │   ├── banquet/route.ts                — CRUD banquets via supabaseAdmin (contourne RLS)
@@ -207,9 +221,9 @@ src/app/api/
 │       └── test/route.ts               — Envoi de test à l'admin connecté
 ├── billets/offrir/route.ts
 ├── remboursement/route.ts
-├── scan/route.ts
 ├── facture/billet/route.ts             — PDF @react-pdf/renderer
 ├── leader/modifier-groupe/route.ts
+├── leader/modifier-statut/route.ts     — Leader rend Actif/Inactif un PCI de son groupe
 └── emails/
     ├── bienvenue-pci/route.ts
     ├── confirmation-billet-offert/route.ts
@@ -221,7 +235,19 @@ src/app/api/
 src/components/
 ├── Navbar.tsx                          — Sticky, logos, menu Gestion admin
 ├── QRCode.tsx
-└── CarrouselAccueil.tsx
+├── CarrouselAccueil.tsx
+├── NonAccessibleDeveloppeur.tsx        — Page 🔒 « Non accessible au développeur »
+└── CompteNonActif.tsx                  — Message selon statut (en attente / inactif / refusé)
+
+src/lib/
+├── acces.ts                            — estAdmin, estDeveloppeur, estAdminOuDeveloppeur, peutScanner
+├── types.ts
+└── email.ts
+
+sql/                                    — Scripts SQL exécutés dans Supabase (historique)
+├── role-developpeur.sql
+├── securite-rls-leaders.sql
+└── statut-inactif-refuse.sql
 ```
 
 ---
@@ -235,13 +261,23 @@ src/components/
 - Navbar sticky avec logos, menu déroulant "Gestion" admin
 - Page de remerciement après inscription
 
+### Rôle développeur (Session 7)
+- Compte séparé, rôle `developpeur` (assigné par SQL ou par l'admin dans Gestion PCI)
+- **Accès 100 %** : Gestion PCI, Gestion événements, Portiers, Documents, Carrousel, Marketing, Scanner
+- **Tableau de bord** : visible, chiffres masqués « ••• », case Derniers billets 🔒
+- **Non accessible** (page 🔒 avec message, menus quand même visibles) : Gestion billets, Rapport banquets, Platines et plus
+- Exports, remboursement, offrir un billet : réservés à l'admin
+- Garde-fou : le développeur ne peut pas modifier un compte admin/développeur ni donner ces rôles (code + RLS `comptes_update_developpeur`)
+- Aucune règle RLS sur `billets` / `billets_banquets` pour le développeur
+
 ### Gestion PCI (Admin)
 - Liste PCI actifs avec recherche (nom, courriel, # Amway)
 - Filtre par leader + détection orphelins (badge ⚠️ Sans leader)
 - Bouton alerte orange cliquable si orphelins existent
 - Modal modification complet
 - **Ajout manuel de PCI** avec mot de passe temporaire + email bienvenue
-- Approbation/refus des PCI en attente
+- Approbation/refus des PCI en attente (refus → statut `refuse`)
+- **Onglet PCI inactifs** + choix ● Actif ○ Inactif dans la fenêtre Modifier
 - Photo leader (bucket `leaders-photos`)
 - **Visibilité leader : Régulier / Invisible** (caché du dropdown inscription et du carrousel)
 - Badge 👁️ Invisible dans la liste admin
@@ -334,6 +370,8 @@ src/components/
 - Stats Sur place/Virtuel par événement
 - Export CSV avec colonnes Banquet et Mode
 - Onglet Profils PCI avec modification du groupe
+- **Onglet PCI inactifs** + statut Actif/Inactif dans le Profil (pas pour soi-même ; vérification du groupe côté serveur)
+- Billets des PCI inactifs toujours affichés et comptés
 
 ### Gestion Billets (Admin)
 - Filtres : statut, événement, leader, mode participation
@@ -374,7 +412,11 @@ src/components/
 - **RLS policies bloquent les inserts côté client** → utiliser API routes avec supabaseAdmin
 - `get_my_role()` SECURITY DEFINER pour éviter récursion RLS
 - Jointures explicites : `comptes!billets_compte_id_fkey`
-- `get_groupe_ids` RPC pour hiérarchie leaders
+- `get_groupe_ids` RPC pour hiérarchie leaders — **service_role seulement** (ne filtre pas par statut)
+- **RLS durcies (Session 7)** : un leader ne lit que son propre compte et ses propres banquets ; le portier ne lit plus `billets` directement ; uploads carrousel / photos leaders = admin + développeur
+- **Règle** : toute lecture de données d'autres utilisateurs passe par une route API avec `supabaseAdmin` + vérification du rôle, jamais par le navigateur
+- Vérification des rôles centralisée dans `src/lib/acces.ts`
+- Listes de leaders pour affichage historique : `.in('statut', ['actif', 'inactif'])` (sinon le nom d'un leader inactif disparaît)
 - GRANT explicites requis pour chaque table
 
 ### Next.js / TypeScript
@@ -396,6 +438,7 @@ src/components/
 - `font-size: 18px` dans `globals.css` pour meilleure lisibilité
 - Styles inline avec `style={{ color: '#1A2535' }}` partout
 - JSX attributs sur une seule ligne (évite erreurs parser)
+- **Fichiers en fins de ligne Windows (CRLF)** — à conserver lors des modifications
 - Pas de mode accessibilité (retiré — trop complexe)
 
 ---
@@ -454,8 +497,8 @@ git push
 ---
 
 ## Règles de développement
-- Fournir le fichier complet pour les modifications (pas de diffs partiels)
-- Pour fichiers >500 lignes, demander avant de fournir
+- **Depuis Session 7 : Claude a accès au dossier local et écrit lui-même les fichiers**, après validation de Mario. Claude présente les changements, Mario valide, Claude écrit et vérifie TypeScript (`tsc`), Mario teste (`npm run dev`) puis fait git add/commit/push
+- Claude ne peut pas exécuter de commandes sur le PC ni effacer de fichiers : Mario s'en charge
 - Toujours utiliser `supabaseAdmin` côté serveur pour les requêtes admin
 - Commits descriptifs après chaque groupe logique de features
 - Mario travaille sur Windows, VS Code, terminal intégré
@@ -463,4 +506,4 @@ git push
 
 ---
 
-*Dernière mise à jour : Septembre 2026 — Session 6*
+*Dernière mise à jour : 28 octobre 2026 — Session 7*
