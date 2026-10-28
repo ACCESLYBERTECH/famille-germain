@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Stripe from 'stripe'
+import { formaterAllergies } from '@/lib/allergies'
 
 const stripeBanquet = new Stripe(process.env.STRIPE_BANQUET_SECRET_KEY!)
 
@@ -101,7 +102,7 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
             <p className="text-sm" style={{ color: '#666666' }}>Pour : <strong>{billet?.nom_pci}</strong></p>
             {allergiesMeta && (
               <p className="text-xs mt-1" style={{ color: '#C9A84C' }}>
-                🍽️ Allergies : {JSON.parse(allergiesMeta).join(', ')}
+                🍽️ Allergies : {formaterAllergies(allergiesMeta)}
               </p>
             )}
           </div>

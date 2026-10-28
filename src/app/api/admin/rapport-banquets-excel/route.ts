@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { formaterAllergies } from '@/lib/allergies'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
         : null
       const aBanquet = !billet.est_sans_frais || !!banquetAchete
       const allergiesRaw = billet.est_sans_frais ? banquetAchete?.allergies : billet.allergies
-      const allergies = allergiesRaw ? JSON.parse(allergiesRaw).join(', ') : 'Aucune'
+      const allergies = formaterAllergies(allergiesRaw, billet.nom_pci)
       const leaderNom = leaders?.find((l: any) => l.id === billet.comptes?.leader_id)
       return {
         nom: billet.nom_pci,

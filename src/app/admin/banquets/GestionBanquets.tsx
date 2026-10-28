@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import * as XLSX from 'xlsx'
+import { formaterAllergies } from '@/lib/allergies'
 
 interface Evenement {
   id: string
@@ -56,9 +57,11 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
         ? banquetsAchetes.find(b => b.billet_id === billet.id)
         : null
       const aBanquet = !billet.est_sans_frais || !!banquetAchete
-      const allergies = billet.est_sans_frais
+      // Allergies de CETTE personne seulement (null si aucune)
+      const allergiesTexte = formaterAllergies(billet.est_sans_frais
         ? (banquetAchete?.allergies ?? null)
-        : billet.allergies
+        : billet.allergies, billet.nom_pci)
+      const allergies = allergiesTexte === 'Aucune' ? null : allergiesTexte
       const leaderNom = billet.comptes?.leader_id
         ? leaders.find(l => l.id === billet.comptes?.leader_id)
         : null
@@ -85,10 +88,6 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
   const statsAvec = lignes.filter(l => l.aBanquet).length
   const statsSans = lignes.filter(l => !l.aBanquet).length
 
-  function formaterAllergies(allergies: string | null): string {
-    if (!allergies) return 'Aucune'
-    try { return JSON.parse(allergies).join(', ') } catch { return allergies }
-  }
 
   function preparerDonnees() {
     return lignesFiltrees.map(({ billet, aBanquet, allergies, leaderNom }) => ({
@@ -99,7 +98,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
       'Type de billet': billet.est_sans_frais ? 'Sans frais' : 'Régulier (payant)',
       'Banquet': aBanquet ? 'Avec banquet' : 'Sans banquet',
       'Mode participation': billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place',
-      'Allergies': formaterAllergies(allergies),
+      'Allergies': (allergies ?? 'Aucune'),
       "Date d'achat": new Date(billet.created_at).toLocaleDateString('fr-CA'),
     }))
   }
@@ -158,7 +157,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
         .map(({ billet, allergies, leaderNom }) => ({
           'Nom PCI': billet.nom_pci,
           'Leader': leaderNom ? `${leaderNom.prenom_1} ${leaderNom.nom_1}` : 'Aucun',
-          'Allergies': formaterAllergies(allergies),
+          'Allergies': (allergies ?? 'Aucune'),
           'Mode': billet.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place',
         }))
 
@@ -268,7 +267,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
                 </div>
                 {aBanquet && (
                   <p className="text-xs mt-1" style={{ color: allergies ? '#E57373' : '#999999' }}>
-                    🍽️ Allergies : <span className="font-medium">{formaterAllergies(allergies)}</span>
+                    🍽️ Allergies : <span className="font-medium">{(allergies ?? 'Aucune')}</span>
                   </p>
                 )}
               </div>

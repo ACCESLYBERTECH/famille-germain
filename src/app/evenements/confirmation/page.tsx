@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Stripe from 'stripe'
 import { envoyerConfirmationBillet } from '@/lib/email'
+import { formaterAllergies } from '@/lib/allergies'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -154,7 +155,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
             ))}
             {allergiesMeta && (
               <p className="text-xs mt-1" style={{ color: '#C9A84C' }}>
-                🍽️ Allergies : {JSON.parse(allergiesMeta).join(', ')}
+                🍽️ Allergies : {formaterAllergies(allergiesMeta)}
               </p>
             )}
           </div>
