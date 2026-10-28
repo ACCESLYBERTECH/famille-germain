@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import NonAccessibleDeveloppeur from '@/components/NonAccessibleDeveloppeur'
 import PlatinesEtPlus from './PlatinesEtPlus'
 
 const supabaseAdmin = createAdminClient(
@@ -21,6 +22,7 @@ export default async function PlatinesEtPlusPage() {
     .eq('id', user.id)
     .single()
 
+  if (compte?.role === 'developpeur') return <NonAccessibleDeveloppeur prenom={compte.prenom_1 ?? ''} titre="Platines et plus" />
   if (compte?.role !== 'leader' && compte?.role !== 'admin') redirect('/')
 
   const { data: groupeIds } = await supabaseAdmin

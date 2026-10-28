@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import NonAccessibleDeveloppeur from '@/components/NonAccessibleDeveloppeur'
 import GestionBanquets from './GestionBanquets'
 
 const supabaseAdmin = createAdminClient(
@@ -21,6 +22,7 @@ export default async function AdminBanquetsPage() {
     .eq('id', user.id)
     .single()
 
+  if (compte?.role === 'developpeur') return <NonAccessibleDeveloppeur prenom={compte.prenom_1 ?? ''} titre="Rapport banquets" />
   if (compte?.role !== 'admin') redirect('/')
 
   // Tous les événements avec banquet

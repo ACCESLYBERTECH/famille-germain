@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { estAdminOuDeveloppeur } from '@/lib/acces'
 import GestionEvenements from './GestionEvenements'
 
 export default async function AdminEvenementsPage() {
@@ -15,7 +16,7 @@ export default async function AdminEvenementsPage() {
     .eq('id', user.id)
     .single()
 
-  if (compte?.role !== 'admin') redirect('/')
+  if (!estAdminOuDeveloppeur(compte?.role)) redirect('/')
 
   const { data: evenements } = await supabase
     .from('evenements')

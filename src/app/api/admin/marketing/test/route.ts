@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { envoyerPromoEvenement } from '@/lib/email'
+import { estAdminOuDeveloppeur } from '@/lib/acces'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: compteRole } = await supabase.from('comptes').select('role').eq('id', user.id).single()
-    if (compteRole?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    if (!estAdminOuDeveloppeur(compteRole?.role)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: compte } = await supabaseAdmin
       .from('comptes')

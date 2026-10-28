@@ -60,7 +60,7 @@ export default async function DocumentsPage() {
         </div>
 
         {/* Section Platine */}
-        {(compte.role === 'leader' || compte.role === 'admin') && (
+        {(compte.role === 'leader' || compte.role === 'admin' || compte.role === 'developpeur') && (
           <div>
             <h2 className="text-lg font-semibold mb-4" style={{ color: '#1A2535' }}>Documents Platine+</h2>
             {docsPlatine.length === 0 ? (

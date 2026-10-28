@@ -1,4 +1,4 @@
-export type Role = 'pci' | 'leader' | 'portier' | 'admin'
+export type Role = 'pci' | 'leader' | 'portier' | 'admin' | 'developpeur'
 export type Statut = 'en_attente' | 'actif' | 'inactif'
 export type StatutBillet = 'vendu' | 'utilise' | 'rembourse'
 export type StatutEvenement = 'actif' | 'inactif' | 'archive'

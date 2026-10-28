@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import type { Compte } from '@/lib/types'
+import { estAdminOuDeveloppeur } from '@/lib/acces'
 
 interface Props {
   compte: Compte
@@ -28,13 +28,13 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
   const [villeChoisie, setVilleChoisie] = useState(ville?.id ?? '')
   const [billetsRecherche, setBilletsRecherche] = useState<any[]>([])
   const [statsVilles, setStatsVilles] = useState<{ nom: string; count: number }[]>([])
-  const supabase = createClient()
+  const voitToutLeScanner = estAdminOuDeveloppeur(compte.role)
 
   const evenementActif = evenement ?? evenements?.find(e => e.id === evenementChoisi)
   const villeActive = ville ?? evenementActif?.villes?.find((v: any) => v.id === villeChoisie)
 
   useEffect(() => {
-    if (compte.role !== 'admin') return
+    if (!voitToutLeScanner) return
     if (!evenementActif?.id) return
     chargerStats()
   }, [evenementChoisi, resultat])
@@ -42,11 +42,9 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
   async function chargerStats() {
     if (!evenementActif?.id) return
 
-    const { data: billets } = await supabase
-      .from('billets')
-      .select('scanne_ville_id, evenement_villes(nom_ville)')
-      .eq('evenement_id', evenementActif.id)
-      .eq('statut', 'utilise')
+    const res = await fetch('/api/scan/stats?evenement_id=' + evenementActif.id)
+    if (!res.ok) return
+    const { scans: billets } = await res.json()
 
     if (!billets) return
 
@@ -119,16 +117,13 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
     setResultat(null)
     setBilletsRecherche([])
 
-    const termes = recherche.trim().toLowerCase()
-    const { data: billets } = await supabase
-      .from('billets')
-      .select('*, evenement:evenements(*)')
-      .eq('evenement_id', evenementActif?.id)
-      .neq('statut', 'rembourse')
-
-    const trouves = billets?.filter(b =>
-      b.nom_pci.toLowerCase().includes(termes)
-    ) ?? []
+    const res = await fetch('/api/scan/recherche', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evenement_id: evenementActif?.id, recherche }),
+    })
+    const { billets } = res.ok ? await res.json() : { billets: [] }
+    const trouves: any[] = billets ?? []
 
     if (trouves.length === 0) {
       setResultat({ type: 'erreur', message: '❌ Aucun billet trouvé', couleur: '#E57373' })
@@ -147,7 +142,7 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
     <div className="space-y-4">
 
       {/* Sélection événement (admin seulement) */}
-      {compte.role === 'admin' && evenements && (
+      {voitToutLeScanner && evenements && (
         <div className="bg-white rounded-2xl shadow p-4 space-y-3">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Événement</label>
@@ -190,7 +185,7 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
       )}
 
       {/* Stats par ville (admin seulement) */}
-      {compte.role === 'admin' && statsVilles.length > 0 && (
+      {voitToutLeScanner && statsVilles.length > 0 && (
         <div className="bg-white rounded-2xl shadow p-4">
           <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Scans par ville</p>
           <div className="space-y-2">

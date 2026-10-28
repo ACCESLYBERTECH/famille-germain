@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { estAdminOuDeveloppeur, estDeveloppeur } from '@/lib/acces'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,6 +25,12 @@ export default async function Home() {
 
   if (compte?.role === 'pci' || compte?.role === 'leader') redirect('/accueil')
   if (compte?.role === 'portier') redirect('/scan')
+  if (!estAdminOuDeveloppeur(compte?.role)) redirect('/accueil')
+
+  // Développeur : les chiffres sont masqués et les billets ne sont jamais chargés
+  const modeDev = estDeveloppeur(compte?.role)
+  const masque = (valeur: number | null) => modeDev ? '•••' : (valeur ?? 0)
+  const compteVide = Promise.resolve({ count: null })
 
   // Stats principales
   const [
@@ -40,10 +47,10 @@ export default async function Home() {
     supabaseAdmin.from('comptes').select('*', { count: 'exact', head: true }).eq('statut', 'en_attente'),
     supabaseAdmin.from('comptes').select('*', { count: 'exact', head: true }).eq('role', 'leader').eq('statut', 'actif'),
     supabaseAdmin.from('evenements').select('*', { count: 'exact', head: true }).eq('statut', 'actif'),
-    supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'vendu'),
-    supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'utilise'),
-    supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'rembourse'),
-    supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'vendu').eq('prix_paye', 0).eq('est_sans_frais', false),
+    modeDev ? compteVide : supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'vendu'),
+    modeDev ? compteVide : supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'utilise'),
+    modeDev ? compteVide : supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'rembourse'),
+    modeDev ? compteVide : supabaseAdmin.from('billets').select('*', { count: 'exact', head: true }).eq('statut', 'vendu').eq('prix_paye', 0).eq('est_sans_frais', false),
   ])
 
   // Derniers PCI en attente
@@ -55,11 +62,13 @@ export default async function Home() {
     .limit(5)
 
   // Derniers billets achetés
-  const { data: derniersBillets } = await supabaseAdmin
-    .from('billets')
-    .select('id, nom_pci, created_at, est_sans_frais, prix_paye, evenements(nom)')
-    .order('created_at', { ascending: false })
-    .limit(5)
+  const { data: derniersBillets } = modeDev
+    ? { data: [] as any[] }
+    : await supabaseAdmin
+      .from('billets')
+      .select('id, nom_pci, created_at, est_sans_frais, prix_paye, evenements(nom)')
+      .order('created_at', { ascending: false })
+      .limit(5)
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
@@ -74,7 +83,7 @@ export default async function Home() {
           <a href="/admin/pci" className="flex items-center gap-3 rounded-xl p-4 mb-6 hover:opacity-90 transition-opacity" style={{ backgroundColor: '#E57373' }}>
             <span className="text-white text-xl">⚠️</span>
             <p className="text-white font-medium">
-              {pciEnAttente} PCI en attente d'approbation — Cliquez pour traiter
+              {modeDev ? 'Des' : pciEnAttente} PCI en attente d'approbation — Cliquez pour traiter
             </p>
           </a>
         )}
@@ -83,15 +92,15 @@ export default async function Home() {
         <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Membres</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
           <a href="/admin/pci" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#2E86C1' }}>{totalPci ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#2E86C1' }}>{masque(totalPci)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>PCI actifs</p>
           </a>
           <a href="/admin/pci" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#C9A84C' }}>{totalLeaders ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#C9A84C' }}>{masque(totalLeaders)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Leaders</p>
           </a>
           <a href="/admin/pci" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: (pciEnAttente ?? 0) > 0 ? '#E57373' : '#4CAF7D' }}>{pciEnAttente ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: (pciEnAttente ?? 0) > 0 ? '#E57373' : '#4CAF7D' }}>{masque(pciEnAttente)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>En attente</p>
           </a>
         </div>
@@ -100,19 +109,19 @@ export default async function Home() {
         <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Billets</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <a href="/admin/billets" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#2E86C1' }}>{totalBillets ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#2E86C1' }}>{masque(totalBillets)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Vendus</p>
           </a>
           <a href="/admin/billets" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#4CAF7D' }}>{billetsUtilises ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#4CAF7D' }}>{masque(billetsUtilises)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Utilisés</p>
           </a>
           <a href="/admin/billets" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#E57373' }}>{billetsRembourses ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#E57373' }}>{masque(billetsRembourses)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Remboursés</p>
           </a>
           <a href="/admin/billets" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#9C27B0' }}>{billetsOfferts ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#9C27B0' }}>{masque(billetsOfferts)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Billets offerts</p>
           </a>
         </div>
@@ -121,7 +130,7 @@ export default async function Home() {
         <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Événements</p>
         <div className="grid grid-cols-1 md:grid-cols-1 gap-4 mb-8">
           <a href="/admin/evenements" className="bg-white rounded-2xl shadow p-5 text-center hover:shadow-md transition-shadow block">
-            <p className="text-3xl font-bold mb-1" style={{ color: '#C9A84C' }}>{totalEvenements ?? 0}</p>
+            <p className="text-3xl font-bold mb-1" style={{ color: '#C9A84C' }}>{masque(totalEvenements)}</p>
             <p className="text-sm" style={{ color: '#666666' }}>Événements actifs</p>
           </a>
         </div>
@@ -154,7 +163,13 @@ export default async function Home() {
             )}
           </div>
 
-          {/* Derniers billets */}
+          {/* Derniers billets — non accessible au développeur */}
+          {modeDev ? (
+          <div className="bg-white rounded-2xl shadow p-5">
+            <p className="font-bold mb-4" style={{ color: '#1A2535' }}>Derniers billets</p>
+            <p className="text-sm text-center py-4" style={{ color: '#E57373' }}>🔒 Non accessible au développeur</p>
+          </div>
+          ) : (
           <div className="bg-white rounded-2xl shadow p-5">
             <div className="flex justify-between items-center mb-4">
               <p className="font-bold" style={{ color: '#1A2535' }}>Derniers billets</p>
@@ -178,6 +193,7 @@ export default async function Home() {
               </div>
             )}
           </div>
+          )}
 
         </div>
 

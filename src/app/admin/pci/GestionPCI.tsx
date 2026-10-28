@@ -9,6 +9,7 @@ interface Props {
   pciEnAttente: Compte[]
   pciActifs: Compte[]
   leaders: { id: string; prenom_1: string; nom_1: string }[]
+  roleUtilisateur?: string
 }
 
 const PROVINCES_CANADA = ['Québec', 'Ontario', 'Colombie-Britannique', 'Alberta', 'Manitoba', 'Saskatchewan', 'Nouvelle-Écosse', 'Nouveau-Brunswick', 'Terre-Neuve-et-Labrador', 'Île-du-Prince-Édouard']
@@ -24,7 +25,9 @@ const formVide = {
   groupe: '', mot_de_passe: '',
 }
 
-export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) {
+export default function GestionPCI({ pciEnAttente, pciActifs, leaders, roleUtilisateur }: Props) {
+  // Le développeur ne peut pas donner les rôles Admin ou Développeur
+  const rolesProtegesBloques = roleUtilisateur === 'developpeur'
   const [onglet, setOnglet] = useState<'attente' | 'actifs'>('attente')
   const [chargement, setChargement] = useState<string | null>(null)
   const [modalModif, setModalModif] = useState<Compte | null>(null)
@@ -210,6 +213,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
     if (role === 'leader') return { label: 'Leader', bg: '#E3F2FD', color: '#2E86C1' }
     if (role === 'admin') return { label: 'Admin', bg: '#FFF3E0', color: '#E57373' }
     if (role === 'portier') return { label: 'Portier', bg: '#F3E5F5', color: '#9C27B0' }
+    if (role === 'developpeur') return { label: 'Développeur', bg: '#ECEFF1', color: '#546E7A' }
     return { label: 'Actif', bg: '#E8F5E9', color: '#4CAF7D' }
   }
 
@@ -434,7 +438,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={formAjout.role} onChange={e => updateAjout('role', e.target.value)}>
                   <option value="pci">PCI</option>
                   <option value="leader">Leader</option>
-                  <option value="admin">Admin</option>
+                  <option value="admin" disabled={rolesProtegesBloques}>Admin</option>
+                  <option value="developpeur" disabled={rolesProtegesBloques}>Développeur</option>
                 </select>
               </div>
               <div>
@@ -567,7 +572,8 @@ export default function GestionPCI({ pciEnAttente, pciActifs, leaders }: Props) 
                 <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.role} onChange={e => update('role', e.target.value)}>
                   <option value="pci">PCI</option>
                   <option value="leader">Leader</option>
-                  <option value="admin">Admin</option>
+                  <option value="admin" disabled={rolesProtegesBloques}>Admin</option>
+                  <option value="developpeur" disabled={rolesProtegesBloques}>Développeur</option>
                 </select>
               </div>
               <div>

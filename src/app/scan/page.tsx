@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import ScanInterface from './ScanInterface'
+import { peutScanner, estAdminOuDeveloppeur } from '@/lib/acces'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -21,7 +22,7 @@ export default async function ScanPage() {
     .eq('id', user.id)
     .single()
 
-  if (!compte || !['portier', 'admin'].includes(compte.role)) redirect('/')
+  if (!compte || !peutScanner(compte.role)) redirect('/')
 
   let evenement = null
   let ville = null
@@ -51,7 +52,7 @@ export default async function ScanPage() {
   }
 
   let evenements = null
-  if (compte.role === 'admin') {
+  if (estAdminOuDeveloppeur(compte.role)) {
     const { data } = await supabaseAdmin
       .from('evenements')
       .select('*, villes:evenement_villes(*)')

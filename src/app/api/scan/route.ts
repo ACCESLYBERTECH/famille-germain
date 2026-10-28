@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { peutScanner } from '@/lib/acces'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
     const { data: compte } = await supabase.from('comptes').select('role').eq('id', user.id).single()
-    if (!compte || !['portier', 'admin'].includes(compte.role)) {
+    if (!compte || !peutScanner(compte.role)) {
       return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
     }
 

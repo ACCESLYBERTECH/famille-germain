@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { estAdminOuDeveloppeur } from '@/lib/acces'
 import GestionPortiers from './GestionPortiers'
 
 const supabaseAdmin = createAdminClient(
@@ -21,7 +22,7 @@ export default async function AdminPortiersPage() {
     .eq('id', user.id)
     .single()
 
-  if (compte?.role !== 'admin') redirect('/')
+  if (!estAdminOuDeveloppeur(compte?.role)) redirect('/')
 
   const { data: portiers } = await supabaseAdmin
     .from('portiers_comptes')

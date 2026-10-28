@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import { estAdminOuDeveloppeur } from '@/lib/acces'
 import GestionPCI from './GestionPCI'
 
 const supabaseAdmin = createAdminClient(
@@ -21,7 +22,7 @@ export default async function AdminPCIPage() {
     .eq('id', user.id)
     .single()
 
-  if (compte?.role !== 'admin') redirect('/')
+  if (!estAdminOuDeveloppeur(compte?.role)) redirect('/')
 
   const { data: pciEnAttente } = await supabaseAdmin
     .from('comptes')
@@ -53,6 +54,7 @@ export default async function AdminPCIPage() {
           pciEnAttente={pciEnAttente ?? []}
           pciActifs={pciActifs ?? []}
           leaders={leaders ?? []}
+          roleUtilisateur={compte?.role ?? ''}
         />
       </div>
     </div>
