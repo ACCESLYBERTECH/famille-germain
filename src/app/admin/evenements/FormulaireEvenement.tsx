@@ -133,7 +133,6 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
       }).eq('id', evenement.id)
 
       await supabase.from('evenement_paliers').delete().eq('evenement_id', evenement.id)
-      await supabase.from('evenement_villes').delete().eq('evenement_id', evenement.id)
 
       for (const palier of paliers) {
         if (palier.prix && palier.date_fin) {
@@ -146,14 +145,28 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         }
       }
 
-      for (const ville of villes) {
-        if (ville.nom_ville) {
-          await supabase.from('evenement_villes').insert({
-            evenement_id: evenement.id,
-            nom_ville: ville.nom_ville,
-            ordre: ville.ordre,
-          })
+      // Villes : on garde les mêmes identifiants (les portiers et les billets scannés y sont liés).
+      // Avant : on effaçait puis recréait toutes les villes. L'effacement était refusé
+      // (ville liée à un portier ou à un billet scanné) et les villes se dupliquaient.
+      const villesGardees = villes.filter(v => v.nom_ville?.trim())
+      for (let i = 0; i < villesGardees.length; i++) {
+        const ville = villesGardees[i]
+        if (ville.id) {
+          await supabase.from('evenement_villes').update({ nom_ville: ville.nom_ville!.trim(), ordre: i + 1 }).eq('id', ville.id)
+        } else {
+          await supabase.from('evenement_villes').insert({ evenement_id: evenement.id, nom_ville: ville.nom_ville!.trim(), ordre: i + 1 })
         }
+      }
+
+      // Villes retirées du formulaire
+      const villesRetirees = (evenement.villes ?? []).filter(e => !villesGardees.some(v => v.id === e.id))
+      const villesNonRetirees: string[] = []
+      for (const ville of villesRetirees) {
+        const { error } = await supabase.from('evenement_villes').delete().eq('id', ville.id)
+        if (error) villesNonRetirees.push(ville.nom_ville)
+      }
+      if (villesNonRetirees.length > 0) {
+        alert(`Ville(s) non retirée(s) : ${villesNonRetirees.join(', ')}.\nElles sont liées à un portier ou à des billets déjà scannés. Changez d'abord la ville du portier dans la page Portiers.`)
       }
 
       // Gérer le banquet via API
