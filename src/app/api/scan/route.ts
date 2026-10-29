@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { peutScanner } from '@/lib/acces'
+import { braceletsEvenement } from '@/lib/bracelets'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +25,7 @@ export async function POST(request: Request) {
     // Récupérer le billet avec l'événement
     const { data: billet } = await supabaseAdmin
       .from('billets')
-      .select('*, evenements(nom, a_banquet, banquet:banquets(id))')
+      .select('*, evenements(*, banquet:banquets(id))')
       .eq('qr_code_token', token.trim())
       .single()
 
@@ -71,22 +72,33 @@ export async function POST(request: Request) {
       scanne_par_id: user.id,
     }).eq('id', billet.id)
 
-    // Construire le message selon les 3 cas
+    // Construire le message selon les 3 cas — couleurs des bracelets de l'événement
+    // Sans bracelets : couleurs standard du site et aucune mention de bracelet
+    const avecBracelets = abanquet && billet.evenements?.a_bracelets !== false
+    const bracelets = avecBracelets ? braceletsEvenement(billet.evenements) : braceletsEvenement(null)
     let message = ''
     let couleurResultat = 'succes'
+    let couleur = '#4CAF7D'
+    let bracelet: string | null = null
 
     if (!billet.est_sans_frais) {
-      // 🔵 Billet régulier payant — banquet inclus
-      message = '🔵 BILLET RÉGULIER'
+      // Billet régulier payant — banquet inclus
+      message = 'BILLET RÉGULIER'
       couleurResultat = 'regulier'
-    } else if (billet.est_sans_frais && abanquet && banquetAchete) {
-      // 🟢 Sans frais avec banquet
-      message = '🟢 SANS FRAIS — AVEC BANQUET'
-      couleurResultat = 'succes'
-    } else if (billet.est_sans_frais && abanquet && !banquetAchete) {
-      // 🟡 Sans frais sans banquet
-      message = '🟡 SANS FRAIS — SANS BANQUET'
-      couleurResultat = 'sans_banquet'
+      couleur = bracelets.regulier.couleur
+      if (avecBracelets) bracelet = bracelets.regulier.nom
+    } else if (abanquet && banquetAchete) {
+      // Sans frais avec banquet
+      message = 'SANS FRAIS — AVEC BANQUET'
+      couleurResultat = 'sf_banquet'
+      couleur = bracelets.sf_banquet.couleur
+      if (avecBracelets) bracelet = bracelets.sf_banquet.nom
+    } else if (abanquet && !banquetAchete) {
+      // Sans frais sans banquet
+      message = 'SANS FRAIS — SANS BANQUET'
+      couleurResultat = 'sf_sans_banquet'
+      couleur = bracelets.sf_sans_banquet.couleur
+      if (avecBracelets) bracelet = bracelets.sf_sans_banquet.nom
     } else {
       // Sans frais, événement sans banquet
       message = '✅ BILLET SANS FRAIS'
@@ -96,6 +108,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       resultat: 'succes',
       couleurResultat,
+      couleur,
+      bracelet,
       message,
       sousTitre: billet.nom_pci,
     })

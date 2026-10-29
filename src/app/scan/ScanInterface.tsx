@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import type { Compte } from '@/lib/types'
 import { estAdminOuDeveloppeur } from '@/lib/acces'
+import { braceletsEvenement, couleurTexte, LIBELLES_BRACELETS, type TypeBracelet } from '@/lib/bracelets'
 
 interface Props {
   compte: Compte
@@ -14,6 +15,7 @@ interface Props {
 type ResultatScan = {
   type: 'succes' | 'erreur' | 'deja_scanne' | 'annule'
   couleurResultat?: string
+  bracelet?: string | null
   message: string
   sousTitre?: string
   couleur: string
@@ -32,6 +34,7 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
 
   const evenementActif = evenement ?? evenements?.find(e => e.id === evenementChoisi)
   const villeActive = ville ?? evenementActif?.villes?.find((v: any) => v.id === villeChoisie)
+  const avecBracelets = !!evenementActif?.a_banquet && evenementActif?.a_bracelets !== false
 
   useEffect(() => {
     if (!voitToutLeScanner) return
@@ -102,9 +105,10 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
     setResultat({
       type: typeResultat,
       couleurResultat: data.couleurResultat,
+      bracelet: data.bracelet ?? null,
       message: data.message,
       sousTitre: data.sousTitre,
-      couleur: getCouleurResultat(data.couleurResultat, typeResultat),
+      couleur: typeResultat === 'succes' && data.couleur ? data.couleur : getCouleurResultat(data.couleurResultat, typeResultat),
     })
 
     setToken('')
@@ -166,20 +170,19 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
       {/* Légende des couleurs — si événement avec banquet */}
       {evenementActif?.a_banquet && (
         <div className="bg-white rounded-2xl shadow p-4">
-          <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>Légende des bracelets</p>
+          <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: '#C9A84C' }}>{avecBracelets ? 'Légende des bracelets' : 'Légende des billets'}</p>
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#2E86C1' }}></div>
-              <span className="text-sm" style={{ color: '#1A2535' }}>Billet régulier (banquet inclus)</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#4CAF7D' }}></div>
-              <span className="text-sm" style={{ color: '#1A2535' }}>Sans frais — avec banquet</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: '#C9A84C' }}></div>
-              <span className="text-sm" style={{ color: '#1A2535' }}>Sans frais — sans banquet</span>
-            </div>
+            {(['regulier', 'sf_banquet', 'sf_sans_banquet'] as TypeBracelet[]).map(type => {
+              const b = braceletsEvenement(avecBracelets ? evenementActif : null)[type]
+              return (
+                <div key={type} className="flex items-center gap-3">
+                  {avecBracelets
+                    ? <div className="px-2.5 py-1 rounded-full text-xs font-bold flex-shrink-0 min-w-16 text-center" style={{ backgroundColor: b.couleur, color: couleurTexte(b.couleur), border: '1px solid #CCCCCC' }}>{b.nom}</div>
+                    : <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: b.couleur }}></div>}
+                  <span className="text-sm" style={{ color: '#1A2535' }}>{LIBELLES_BRACELETS[type]}</span>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
@@ -209,9 +212,10 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
 
       {/* Résultat du scan */}
       {resultat && (
-        <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: resultat.couleur }}>
-          <p className="text-white font-bold text-2xl">{resultat.message}</p>
-          {resultat.sousTitre && <p className="text-white text-base mt-2 opacity-90 font-medium">{resultat.sousTitre}</p>}
+        <div className="rounded-2xl p-6 text-center" style={{ backgroundColor: resultat.couleur, color: couleurTexte(resultat.couleur), border: '1px solid #CCCCCC' }}>
+          <p className="font-bold text-2xl">{resultat.message}</p>
+          {resultat.bracelet && <p className="font-bold text-3xl mt-3 uppercase">🎗️ Bracelet {resultat.bracelet}</p>}
+          {resultat.sousTitre && <p className="text-base mt-2 opacity-90 font-medium">{resultat.sousTitre}</p>}
         </div>
       )}
 

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import type { Evenement, EvenementPalier, EvenementVille } from '@/lib/types'
+import { braceletsEvenement, PALETTE_BRACELETS, LIBELLES_BRACELETS, couleurTexte, type TypeBracelet, type Bracelet } from '@/lib/bracelets'
 
 interface Props {
   evenement: Evenement | null
@@ -29,7 +30,31 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
     stripe_account: evenement?.stripe_account ?? 'principal',
     prix_banquet: banquetExistant?.prix ?? '',
     nom_banquet: banquetExistant?.nom ?? 'Banquet',
+    a_bracelets: (evenement as any)?.a_bracelets ?? true,
   })
+
+  // Couleurs des bracelets (événement avec banquet)
+  const [bracelets, setBracelets] = useState<Record<TypeBracelet, Bracelet>>(braceletsEvenement(evenement))
+  const typesBracelets: TypeBracelet[] = ['regulier', 'sf_banquet', 'sf_sans_banquet']
+
+  function updateBracelet(type: TypeBracelet, champ: keyof Bracelet, valeur: string) {
+    setBracelets(b => ({ ...b, [type]: { ...b[type], [champ]: valeur } }))
+  }
+
+  function choisirPastille(type: TypeBracelet, pastille: Bracelet) {
+    setBracelets(b => ({ ...b, [type]: { couleur: pastille.couleur, nom: pastille.nom } }))
+  }
+
+  function champsBracelets() {
+    return {
+      bracelet_regulier_couleur: bracelets.regulier.couleur,
+      bracelet_regulier_nom: bracelets.regulier.nom.trim() || null,
+      bracelet_sf_banquet_couleur: bracelets.sf_banquet.couleur,
+      bracelet_sf_banquet_nom: bracelets.sf_banquet.nom.trim() || null,
+      bracelet_sf_sans_banquet_couleur: bracelets.sf_sans_banquet.couleur,
+      bracelet_sf_sans_banquet_nom: bracelets.sf_sans_banquet.nom.trim() || null,
+    }
+  }
 
   const [paliers, setPaliers] = useState<Partial<EvenementPalier>[]>(
     evenement?.paliers?.length ? evenement.paliers : [{ prix: 0, date_fin: '', ordre: 1 }]
@@ -103,6 +128,8 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         a_billets: form.a_billets,
         a_banquet: form.a_banquet,
         stripe_account: form.stripe_account,
+        a_bracelets: form.a_bracelets,
+        ...champsBracelets(),
       }).eq('id', evenement.id)
 
       await supabase.from('evenement_paliers').delete().eq('evenement_id', evenement.id)
@@ -153,6 +180,8 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         a_billets: form.a_billets,
         a_banquet: form.a_banquet,
         stripe_account: form.stripe_account,
+        a_bracelets: form.a_bracelets,
+        ...champsBracelets(),
         statut: 'inactif',
       }).select().single()
 
@@ -270,6 +299,46 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
                 <input type="number" step="0.01" min="0" className={inputClass} style={{ borderColor: '#E0E0E0', backgroundColor: 'white' }} value={form.prix_banquet} onChange={e => update('prix_banquet', e.target.value)} placeholder="Ex: 75.00" />
                 <p className="text-xs mt-1" style={{ color: '#666666' }}>TPS, TVQ et frais de traitement seront ajoutés automatiquement</p>
               </div>
+
+              {/* Avec ou sans bracelets */}
+              <label className="flex items-center gap-2 cursor-pointer pt-3 border-t" style={{ borderColor: '#E0E0E0' }}>
+                <input type="checkbox" checked={form.a_bracelets} onChange={e => update('a_bracelets', e.target.checked)} />
+                <span className="text-sm font-medium" style={{ color: '#1A2535' }}>🎗️ Avec bracelets</span>
+                <span className="text-xs" style={{ color: '#666666' }}>(congrès de fin de semaine)</span>
+              </label>
+
+              {/* Couleurs des bracelets */}
+              {form.a_bracelets && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color: '#C9A84C' }}>🎗️ Couleurs des bracelets</p>
+                  <p className="text-xs mt-1" style={{ color: '#666666' }}>Le scanner affiche la couleur et le nom du bracelet à remettre. Modifiable jusqu'au jour du congrès.</p>
+                </div>
+                {typesBracelets.map(type => (
+                  <div key={type} className="rounded-lg p-3 space-y-2" style={{ backgroundColor: 'white', border: '1px solid #E0E0E0' }}>
+                    <div className="flex items-center gap-3">
+                      <div className="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style={{ backgroundColor: bracelets[type].couleur, color: couleurTexte(bracelets[type].couleur), border: '1px solid #CCCCCC' }}>
+                        {bracelets[type].nom || 'Sans nom'}
+                      </div>
+                      <span className="text-sm font-medium" style={{ color: '#1A2535' }}>{LIBELLES_BRACELETS[type]}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PALETTE_BRACELETS.map(p => (
+                        <button key={p.nom} type="button" title={p.nom} onClick={() => choisirPastille(type, p)} className="w-7 h-7 rounded-full" style={{ backgroundColor: p.couleur, border: bracelets[type].couleur.toUpperCase() === p.couleur.toUpperCase() ? '3px solid #1A2535' : '1px solid #CCCCCC' }} />
+                      ))}
+                      <label className="w-7 h-7 rounded-full flex items-center justify-center cursor-pointer text-xs" title="Autre couleur" style={{ border: '1px dashed #999999', color: '#666666' }}>
+                        +
+                        <input type="color" className="sr-only" value={bracelets[type].couleur} onChange={e => updateBracelet(type, 'couleur', e.target.value)} />
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs flex-shrink-0" style={{ color: '#666666' }}>Nom affiché</label>
+                      <input className="flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={bracelets[type].nom} onChange={e => updateBracelet(type, 'nom', e.target.value)} placeholder="Ex: Rouge" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              )}
             </div>
           )}
 

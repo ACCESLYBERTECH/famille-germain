@@ -37,6 +37,13 @@ export default function GestionEvenements({ evenements }: Props) {
       a_billets: evenement.a_billets,
       a_banquet: evenement.a_banquet,
       stripe_account: evenement.stripe_account,
+      a_bracelets: (evenement as any).a_bracelets ?? true,
+      bracelet_regulier_couleur: (evenement as any).bracelet_regulier_couleur ?? null,
+      bracelet_regulier_nom: (evenement as any).bracelet_regulier_nom ?? null,
+      bracelet_sf_banquet_couleur: (evenement as any).bracelet_sf_banquet_couleur ?? null,
+      bracelet_sf_banquet_nom: (evenement as any).bracelet_sf_banquet_nom ?? null,
+      bracelet_sf_sans_banquet_couleur: (evenement as any).bracelet_sf_sans_banquet_couleur ?? null,
+      bracelet_sf_sans_banquet_nom: (evenement as any).bracelet_sf_sans_banquet_nom ?? null,
       statut: 'inactif',
     }).select().single()
 
