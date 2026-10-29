@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { formaterAllergies } from '@/lib/allergies'
+import { correspondGroupe, SANS_GROUPE } from '@/lib/groupes'
 
 // Données du Rapport banquets — partagées entre la page imprimable et l'envoi par courriel
 // (côté serveur seulement : utilise la clé service_role)
@@ -13,12 +14,14 @@ export interface FiltresRapportBanquets {
   evenementId: string
   leaderId: string
   filtreBanquet: string // 'tous' | 'avec' | 'sans'
+  groupe?: string       // '' = tous, '__aucun__' = sans groupe, sinon clé du groupe
 }
 
 export interface LigneRapportBanquets {
   nom: string
   courriel: string
   leader: string
+  groupe: string
   sansFrais: boolean
   aBanquet: boolean
   virtuel: boolean
@@ -35,7 +38,7 @@ export interface RapportBanquets {
   leadersActifs: { id: string; nom: string; courriel: string }[]
 }
 
-export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanquet }: FiltresRapportBanquets): Promise<RapportBanquets> {
+export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanquet, groupe = '' }: FiltresRapportBanquets): Promise<RapportBanquets> {
   const { data: leaders } = await supabaseAdmin
     .from('comptes')
     .select('id, prenom_1, nom_1, courriel, statut')
@@ -45,7 +48,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
 
   let billetsQuery = supabaseAdmin
     .from('billets')
-    .select('*, evenements(id, nom, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, leader_id)')
+    .select('*, evenements(id, nom, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, leader_id, groupe)')
     .neq('statut', 'rembourse')
 
   if (evenementId) {
@@ -65,6 +68,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
 
   let billetsFiltres = billets ?? []
   if (leaderId) billetsFiltres = billetsFiltres.filter((b: any) => b.comptes?.leader_id === leaderId)
+  if (groupe) billetsFiltres = billetsFiltres.filter((b: any) => correspondGroupe(b.comptes?.groupe, groupe))
 
   const lignes: LigneRapportBanquets[] = billetsFiltres.map((billet: any) => {
     const banquetAchete = billet.est_sans_frais
@@ -77,6 +81,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
       nom: billet.nom_pci ?? '',
       courriel: billet.comptes?.courriel ?? '',
       leader: leader ? `${leader.prenom_1} ${leader.nom_1}` : '',
+      groupe: billet.comptes?.groupe ?? '',
       sansFrais: !!billet.est_sans_frais,
       aBanquet,
       virtuel: billet.mode_participation === 'virtuel',
@@ -93,6 +98,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
   const sousTitre = [
     nomEvenement,
     leaderFiltre ? `Leader : ${leaderFiltre.prenom_1} ${leaderFiltre.nom_1}` : '',
+    groupe ? `Groupe : ${groupe === SANS_GROUPE ? 'Sans groupe' : groupe}` : '',
     filtreBanquet === 'avec' ? 'Avec banquet seulement' : filtreBanquet === 'sans' ? 'Sans banquet seulement' : '',
   ].filter(Boolean).join(' · ')
 

@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import FiltreGroupe from '@/components/FiltreGroupe'
+import { correspondGroupe } from '@/lib/groupes'
 
 interface PCI {
   id: string
@@ -109,8 +111,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   }, [pcis, filtreLeader])
 
   const idsPCIFiltresParGroupe = useMemo(() => {
-    if (!filtreGroupe || filtreGroupe.length < 1) return null
-    return new Set(pcis.filter(p => p.groupe?.toLowerCase().includes(filtreGroupe.toLowerCase())).map(p => p.id))
+    if (!filtreGroupe) return null
+    return new Set(pcis.filter(p => correspondGroupe(p.groupe, filtreGroupe)).map(p => p.id))
   }, [pcis, filtreGroupe])
 
   const billetsFiltres = useMemo(() => {
@@ -145,7 +147,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         p.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
         p.numero_amway.toLowerCase().includes(recherche.toLowerCase())
       const matchLeader = filtreLeader === '' ? true : p.leader_id === filtreLeader
-      const matchGroupe = !filtreGroupe ? true : p.groupe?.toLowerCase().includes(filtreGroupe.toLowerCase())
+      const matchGroupe = correspondGroupe(p.groupe, filtreGroupe)
       return matchRecherche && matchLeader && matchGroupe
     })
 
@@ -338,13 +340,13 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
             )}
 
             {leadersGroupe.length > 0 && (
-              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
+              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
                 <option value="">Tous les leaders</option>
                 {leadersGroupe.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
               </select>
             )}
 
-            <input className="border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Filtrer par groupe..." value={filtreGroupe} onChange={e => setFiltreGroupe(e.target.value)} />
+            <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={pcis.map(p => ({ groupe: p.groupe, leader_id: p.leader_id }))} filtreLeader={filtreLeader} />
 
             {onglet === 'billets' && (
               <div className="flex gap-1 ml-auto">
@@ -501,7 +503,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
               <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Groupe</label>
                 <div className="flex gap-2">
-                  <input className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: BRISSON, ÉQUIPE-NORD..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
+                  <input className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
                   <button onClick={sauvegarderGroupe} disabled={sauvegroupeChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: groupeSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
                     {sauvegroupeChargement ? '...' : groupeSauvegarde ? '✓' : 'Sauver'}
                   </button>

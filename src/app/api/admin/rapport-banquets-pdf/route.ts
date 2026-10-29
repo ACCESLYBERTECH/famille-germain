@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       evenementId: searchParams.get('evenement_id') ?? '',
       leaderId: searchParams.get('leader_id') ?? '',
       filtreBanquet: searchParams.get('filtre_banquet') ?? 'tous',
+      groupe: searchParams.get('groupe') ?? '',
     }
 
     const r = await chargerRapportBanquets(filtres)
@@ -149,7 +150,7 @@ export async function GET(request: NextRequest) {
     ${r.lignes.map(l => `
     <tr>
       <td><strong>${esc(l.nom)}</strong><br><span style="color:#999;font-size:9px">${esc(l.courriel)}</span></td>
-      <td>${l.leader ? esc(l.leader) : '<span style="color:#999">Aucun</span>'}</td>
+      <td>${l.leader ? esc(l.leader) : '<span style="color:#999">Aucun</span>'}${l.groupe ? `<br><span style="color:#C9A84C;font-size:9px;font-weight:bold">${esc(l.groupe)}</span>` : ''}</td>
       <td><span class="badge ${l.sansFrais ? 'badge-sf' : 'badge-reg'}">${l.sansFrais ? 'Sans frais' : 'Régulier'}</span></td>
       <td><span class="badge ${l.aBanquet ? 'badge-avec' : 'badge-sans'}">${l.aBanquet ? '✓ Avec' : '✗ Sans'}</span></td>
       <td><span class="badge ${l.virtuel ? 'badge-virt' : 'badge-place'}">${l.virtuel ? 'Virtuel' : 'Sur place'}</span></td>
@@ -161,7 +162,7 @@ export async function GET(request: NextRequest) {
 </div>
 
 <script>
-  var filtres = ${JSON.stringify({ evenement_id: filtres.evenementId, leader_id: filtres.leaderId, filtre_banquet: filtres.filtreBanquet }).replace(/</g, '\\u003c')};
+  var filtres = ${JSON.stringify({ evenement_id: filtres.evenementId, leader_id: filtres.leaderId, filtre_banquet: filtres.filtreBanquet, groupe: filtres.groupe }).replace(/</g, '\\u003c')};
 
   function choisir() {
     var parLeader = document.querySelector('input[name=dest]:checked').value === 'leader';

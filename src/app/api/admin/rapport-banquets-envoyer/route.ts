@@ -15,12 +15,13 @@ export async function POST(request: Request) {
     const { data: compte } = await supabase.from('comptes').select('role').eq('id', user.id).single()
     if (compte?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { evenement_id, leader_id, filtre_banquet, destinataire_leader_id, courriel } = await request.json()
+    const { evenement_id, leader_id, filtre_banquet, groupe, destinataire_leader_id, courriel } = await request.json()
 
     const rapport = await chargerRapportBanquets({
       evenementId: evenement_id ?? '',
       leaderId: leader_id ?? '',
       filtreBanquet: filtre_banquet ?? 'tous',
+      groupe: groupe ?? '',
     })
 
     // Destinataire : un leader actif de la liste, OU un courriel saisi à la main

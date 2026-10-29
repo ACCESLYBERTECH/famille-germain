@@ -74,7 +74,7 @@ function RapportPDF({ r }: { r: RapportBanquets }) {
       ...r.lignes.map((l, i) =>
         React.createElement(View, { key: i, style: i % 2 ? s.ligneAlt : s.ligne, wrap: false },
           cellule(s.colNom, l.nom, { style: { fontFamily: 'Helvetica-Bold' } }),
-          cellule(s.colLeader, l.leader || 'Aucun', { style: { color: l.leader ? '#1A2535' : '#999999' } }),
+          cellule(s.colLeader, (l.leader || 'Aucun') + (l.groupe ? ' · ' + l.groupe : ''), { style: { color: l.leader ? '#1A2535' : '#999999' } }),
           cellule(s.colType, l.sansFrais ? 'Sans frais' : 'Régulier', { style: { color: l.sansFrais ? '#4CAF7D' : '#2E86C1' } }),
           cellule(s.colBanquet, l.aBanquet ? 'Avec' : 'Sans', { style: { color: l.aBanquet ? '#4CAF7D' : '#E57373', fontFamily: 'Helvetica-Bold' } }),
           cellule(s.colMode, l.virtuel ? 'Virtuel' : 'Sur place'),

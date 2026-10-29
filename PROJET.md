@@ -431,6 +431,7 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - **RLS durcies (Session 7)** : un leader ne lit que son propre compte et ses propres banquets ; le portier ne lit plus `billets` directement ; uploads carrousel / photos leaders = admin + développeur
 - **Règle** : toute lecture de données d'autres utilisateurs passe par une route API avec `supabaseAdmin` + vérification du rôle, jamais par le navigateur
 - Vérification des rôles centralisée dans `src/lib/acces.ts`
+- **Villes d'un événement : mises à jour en place** (update par id), jamais effacer-puis-recréer — `portiers_comptes.evenement_ville_id` et `billets.scanne_ville_id` y sont liés (ancien bogue : villes dupliquées à chaque sauvegarde)
 - Listes de leaders pour affichage historique : `.in('statut', ['actif', 'inactif'])` (sinon le nom d'un leader inactif disparaît)
 - GRANT explicites requis pour chaque table
 

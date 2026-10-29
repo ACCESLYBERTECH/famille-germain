@@ -2,6 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import FiltreGroupe from '@/components/FiltreGroupe'
+import { correspondGroupe } from '@/lib/groupes'
 
 interface Billet {
   id: string
@@ -13,7 +15,7 @@ interface Billet {
   stripe_payment_intent_id: string | null
   mode_participation: string | null
   evenements: { nom: string; date_debut: string; a_banquet: boolean } | null
-  comptes: { prenom_1: string; nom_1: string; courriel: string; numero_amway: string; leader_id: string | null } | null
+  comptes: { prenom_1: string; nom_1: string; courriel: string; numero_amway: string; leader_id: string | null; groupe?: string | null } | null
 }
 
 interface Evenement {
@@ -56,6 +58,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
   const [filtreEvenement, setFiltreEvenement] = useState('')
   const [filtreLeader, setFiltreLeader] = useState('')
   const [filtreMode, setFiltreMode] = useState('')
+  const [filtreGroupe, setFiltreGroupe] = useState('')
   const [recherche, setRecherche] = useState('')
   const [tri, setTri] = useState<TriType>('nom')
   const [modalOuvert, setModalOuvert] = useState(false)
@@ -96,11 +99,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       const matchEvenement = filtreEvenement === '' ? true : b.evenements?.nom === filtreEvenement
       const matchLeader = filtreLeader === '' ? true : b.comptes?.leader_id === filtreLeader
       const matchMode = filtreMode === '' ? true : (b.mode_participation ?? 'sur_place') === filtreMode
+      const matchGroupe = correspondGroupe(b.comptes?.groupe, filtreGroupe)
       const matchRecherche = recherche.length < 2 ? true :
         b.nom_pci.toLowerCase().includes(recherche.toLowerCase()) ||
         b.comptes?.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
         b.comptes?.numero_amway.toLowerCase().includes(recherche.toLowerCase())
-      return matchStatut && matchEvenement && matchLeader && matchMode && matchRecherche
+      return matchStatut && matchEvenement && matchLeader && matchMode && matchGroupe && matchRecherche
     })
 
     result = [...result].sort((a, b) => {
@@ -113,10 +117,10 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
     })
 
     return result
-  }, [billets, filtreStatut, filtreEvenement, filtreLeader, filtreMode, recherche, tri])
+  }, [billets, filtreStatut, filtreEvenement, filtreLeader, filtreMode, filtreGroupe, recherche, tri])
 
   function exporterCSV() {
-    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Événement', 'Statut', 'Prix', 'Mode', 'Banquet']
+    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Groupe', 'Événement', 'Statut', 'Prix', 'Mode', 'Banquet']
     const lignes = billetsFiltres.map(b => {
       const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
       const amway = b.comptes?.numero_amway ?? ''
@@ -129,7 +133,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       const banquet = b.est_sans_frais && b.evenements?.a_banquet
         ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
         : ''
-      return [date, amway, nom, courriel, evenement, statut, prix, mode, banquet]
+      return [date, amway, nom, courriel, b.comptes?.groupe ?? '', evenement, statut, prix, mode, banquet]
     })
 
     const contenu = [entetes, ...lignes]
@@ -319,11 +323,12 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
             </select>
           )}
           {leaders.length > 0 && (
-            <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => setFiltreLeader(e.target.value)}>
+            <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
               <option value="">Tous les leaders</option>
               {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
             </select>
           )}
+          <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} />
           <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreMode} onChange={e => setFiltreMode(e.target.value)}>
             <option value="">Sur place + Virtuel</option>
             <option value="sur_place">🏛️ Sur place seulement</option>

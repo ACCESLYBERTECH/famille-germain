@@ -46,7 +46,7 @@ export default async function AdminBanquetsPage() {
   const { data: billets } = evenementIds.length > 0
     ? await supabaseAdmin
         .from('billets')
-        .select('*, evenements(nom, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, leader_id)')
+        .select('*, evenements(nom, a_banquet), comptes!billets_compte_id_fkey(prenom_1, nom_1, courriel, leader_id, groupe)')
         .in('evenement_id', evenementIds)
         .neq('statut', 'rembourse')
         .order('created_at', { ascending: false })
