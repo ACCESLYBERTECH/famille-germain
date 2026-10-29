@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
+import { aAccesAudios } from '@/lib/audios'
 
 interface NavbarProps {
   prenom: string
@@ -15,6 +16,19 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const [menuOuvert, setMenuOuvert] = useState(false)
   const [gestionOuvert, setGestionOuvert] = useState(false)
   const gestionRef = useRef<HTMLDivElement>(null)
+  const [accesAudios, setAccesAudios] = useState(false)
+
+  // Lien Audios : seulement pour un PCI/leader actif pendant sa période sans frais
+  useEffect(() => {
+    if (role !== 'pci' && role !== 'leader') return
+    let annule = false
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data } = await supabase.from('comptes').select('role, statut, periode_sf_debut, periode_sf_fin').eq('id', user.id).single()
+      if (!annule) setAccesAudios(aAccesAudios(data))
+    })
+    return () => { annule = true }
+  }, [role])
 
   async function handleDeconnexion() {
     await supabase.auth.signOut()
@@ -32,9 +46,12 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const lienAudios = accesAudios ? [{ href: '/audios', label: '🎧 Audios' }] : []
+
   const liensCommuns = [
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
+    ...lienAudios,
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
   ]
@@ -43,6 +60,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
     { href: '/leader/platines-et-plus', label: 'Platines et plus' },
+    ...lienAudios,
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
   ]
@@ -63,6 +81,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/billets', label: '🎫 Gestion billets' },
     { href: '/admin/portiers', label: '🔑 Portiers' },
     { href: '/admin/documents', label: '📄 Documents' },
+    { href: '/admin/audios', label: '🎧 Audios' },
     { href: '/admin/banquets', label: '🍽️ Rapport banquets' },
     { href: '/admin/carrousel', label: '🖼️ Carrousel' },
     { href: '/admin/marketing', label: '📣 Marketing' },
@@ -76,6 +95,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/portiers', label: 'Portiers' },
     { href: '/admin/carrousel', label: 'Carrousel' },
     { href: '/admin/marketing', label: 'Marketing' },
+    { href: '/admin/audios', label: 'Audios' },
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },

@@ -339,6 +339,19 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Sans bracelets : couleurs standard (bleu/vert/or), « Légende des billets », aucune mention de bracelet
 - Logique : `src/lib/bracelets.ts`
 
+### Groupes (sous-groupes des leaders)
+- Champ libre `comptes.groupe` (modifiable par le leader dans Platines et plus). Exemple affiché : « Ex: GROUPEA, EQUIPE-1... »
+- Filtre Groupe (liste déroulante, liée au filtre Leader) : Gestion billets (+ colonne CSV), Rapport banquets (+ PDF, envoi, Excel), Gestion PCI, Platines et plus
+- Variantes regroupées (casse/espaces) : `src/lib/groupes.ts` + composant `src/components/FiltreGroupe.tsx`
+
+### Audios (nouveaux PCI)
+- Page `/audios` visible seulement par un PCI/leader **actif en période sans frais** (lien du menu caché sinon) — `src/lib/audios.ts` (`aAccesAudios`)
+- Écoute seulement (`controlsList="nodownload"`, pas de clic droit), un seul audio à la fois
+- Bucket Storage **privé** `audios` (50 Mo max, MP3/WAV) — liens signés de 3 h générés côté serveur
+- Tables `audio_categories` et `audios` (RLS admin + développeur) — SQL : `sql/audios.sql`
+- Admin `/admin/audios` : catégories (ajouter, renommer, ordre, effacer), audios (ajouter, modifier, ordre, activer/désactiver, effacer)
+- ⚠️ Plan gratuit Supabase : 1 Go de stockage, 5 Go de bande passante/mois — privilégier le MP3 « voix »
+
 ### QR Codes & Scan
 - QR code unique par billet (`qr_code_token`)
 - Scanner portier avec étape de confirmation obligatoire
