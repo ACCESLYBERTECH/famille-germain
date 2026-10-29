@@ -215,7 +215,8 @@ src/app/api/
 │   ├── rapport-excel/route.ts
 │   ├── banquet/route.ts                — CRUD banquets via supabaseAdmin (contourne RLS)
 │   ├── rapport-banquets-excel/route.ts
-│   ├── rapport-banquets-pdf/route.ts   — HTML imprimable dans nouvel onglet
+│   ├── rapport-banquets-pdf/route.ts   — HTML imprimable Lettre paysage + Imprimer/Envoyer
+│   ├── rapport-banquets-envoyer/route.ts — Envoi PDF en pièce jointe (Resend)
 │   └── marketing/
 │       ├── envoyer/route.ts            — Envoi promo à tous les PCI/leaders actifs+consentants
 │       └── test/route.ts               — Envoi de test à l'admin connecté
@@ -241,6 +242,8 @@ src/components/
 
 src/lib/
 ├── acces.ts                            — estAdmin, estDeveloppeur, estAdminOuDeveloppeur, peutScanner
+├── allergies.ts                        — formaterAllergies (2 formats JSON)
+├── rapportBanquets.ts / rapportBanquetsPDF.ts
 ├── types.ts
 └── email.ts
 
@@ -316,7 +319,9 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - **Billets payants avec banquet** : demandées à l'étape 1.5, **une section par personne** (Claude / Véronique séparés)
 - **Achat du banquet sans frais** : demandées dans FormulaireAchatBanquet
 - Options : Noix/arachides, Gluten, Lactose, Œufs, Poisson, Crustacés, Végétarien, Végétalien + texte libre
-- Stockées dans `billets.allergies` (JSON par personne) et `billets_banquets.allergies`
+- Stockées dans `billets.allergies` (JSON **par personne** : `{"Claude": ["…"]}`) et `billets_banquets.allergies` (JSON **liste** : `["…"]`)
+- **Toujours formater avec `formaterAllergies()` de `src/lib/allergies.ts`** (gère les 2 formats ; jamais `JSON.parse(...).join()`)
+- Les libellés contiennent des émojis (🌾 🥛 🥜…) : à retirer dans les PDF
 
 ### Mode participation
 - Question Sur place / Virtuel par personne à l'achat
@@ -325,6 +330,14 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Stats par événement dans Gestion billets et Platines et plus
 - Filtre Sur place / Virtuel dans Gestion billets
 - Un billet Virtuel peut quand même être scanné à la porte
+
+### Bracelets (congrès avec banquet)
+- Case **🎗️ Avec bracelets** dans la config du banquet (`evenements.a_bracelets`, défaut true)
+- 3 couleurs + noms par événement : `bracelet_regulier_*`, `bracelet_sf_banquet_*`, `bracelet_sf_sans_banquet_*` (`_couleur`, `_nom`)
+- Formulaire : 15 pastilles cliquables + couleur libre + « Nom affiché » ; copiés à la duplication
+- Scanner : résultat dans la couleur du bracelet + « 🎗️ BRACELET ROUGE » ; texte noir auto sur couleur pâle
+- Sans bracelets : couleurs standard (bleu/vert/or), « Légende des billets », aucune mention de bracelet
+- Logique : `src/lib/bracelets.ts`
 
 ### QR Codes & Scan
 - QR code unique par billet (`qr_code_token`)
@@ -351,7 +364,9 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - 3 types affichés : Régulier (banquet inclus), SF avec banquet, SF sans banquet
 - Filtres : événement, leader, statut banquet (cliquables depuis stats)
 - **Export Excel** (SheetJS/xlsx) — 3 feuilles : Rapport complet, Résumé, Allergies seulement
-- **Rapport PDF** — HTML professionnel dans nouvel onglet, imprimable avec Ctrl+P
+- **Rapport PDF** — HTML dans nouvel onglet, **Lettre paysage**, boutons 🖨️ Imprimer et 📧 Envoyer
+- **Envoi par courriel** : PDF en pièce jointe (`@react-pdf`, sans courriels des PCI) à un leader actif (liste) ou à un courriel saisi — admin seulement
+- Données partagées : `src/lib/rapportBanquets.ts` ; PDF : `src/lib/rapportBanquetsPDF.ts` (retire les émojis, police Helvetica)
 
 ### Page d'accueil
 - Carrousel avec photo leader côte-à-côte (fond navy)
