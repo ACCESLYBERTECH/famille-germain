@@ -184,7 +184,7 @@ export default function FormulaireAchatBanquet({ banquet, billet, compte, stripe
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6">
+    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
 
       {/* Résumé */}
       <div className="rounded-lg p-4 mb-6" style={{ backgroundColor: '#F5F3EE' }}>

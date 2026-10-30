@@ -114,9 +114,9 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
     <div className="rounded-2xl shadow-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
 
       {/* En-tête navy */}
-      <div className="px-6 py-4 flex items-center justify-between" style={{ backgroundColor: '#1A2535' }}>
+      <div className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3" style={{ backgroundColor: '#1A2535' }}>
         <div className="flex items-center gap-3 flex-wrap">
-          <h2 className="text-xl font-bold text-white">{ev.nom}</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white w-full sm:w-auto">{ev.nom}</h2>
           {ev.acces === 'platine' && (
             <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>★ PLATINE</span>
           )}
@@ -148,27 +148,27 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
       </div>
 
       {/* Corps */}
-      <div className="bg-white px-6 py-4">
+      <div className="bg-white px-4 sm:px-6 py-4">
 
         {/* Prix / Sans frais + Bouton billet */}
         {ev.a_billets && (
-          <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 pb-4" style={{ borderBottom: '1px solid #F0F0F0' }}>
             <div>
               {sf ? (
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>✓ Sans frais</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>✓ Sans frais</span>
                   <span className="text-xs" style={{ color: '#999' }}>Inclus avec votre adhésion</span>
                 </div>
               ) : (
                 <div>
-                  <p className="text-3xl font-bold" style={{ color: '#1A2535' }}>{prix === 0 ? 'Gratuit' : prix.toFixed(2) + ' $'}</p>
+                  <p className="text-3xl font-bold whitespace-nowrap" style={{ color: '#1A2535' }}>{prix === 0 ? 'Sans frais' : prix.toFixed(2) + ' $'}</p>
                   {prochainPalier && (
                     <p className="text-xs mt-1 font-medium" style={{ color: '#E57373' }}>⏰ Prix augmente le {new Date(prochainPalier.date_fin).toLocaleDateString('fr-CA')}</p>
                   )}
                 </div>
               )}
             </div>
-            <a href={urlAchat} className="px-8 py-3 rounded-xl text-white font-bold text-sm transition-opacity hover:opacity-90" style={{ backgroundColor: sf ? '#4CAF7D' : '#C9A84C' }}>
+            <a href={urlAchat} className="block w-full sm:w-auto text-center whitespace-nowrap px-8 py-3 rounded-xl text-white font-bold text-base sm:text-sm transition-opacity hover:opacity-90" style={{ backgroundColor: sf ? '#4CAF7D' : '#C9A84C' }}>
               {sf ? '🎟️ Obtenir mon billet' : '🎟️ Acheter un billet'}
             </a>
           </div>
@@ -182,7 +182,7 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
               {billetsSFPourCetEv.map(billet => {
                 const banquetAchete = banquetsAchetes.find(b => b.billet_id === billet.id)
                 return (
-                  <div key={billet.id} className="flex items-center justify-between gap-3">
+                  <div key={billet.id} className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
                       <p className="text-sm font-medium" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>
                       {banquetAchete ? (
@@ -194,7 +194,7 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
                     {banquetAchete ? (
                       <span className="px-3 py-1.5 rounded-lg text-xs font-bold" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>✓ Acheté</span>
                     ) : (
-                      <a href={`/evenements/achat-banquet?banquet_id=${banquet.id}&billet_id=${billet.id}`} className="px-4 py-2 rounded-lg text-white text-xs font-bold transition-opacity hover:opacity-90" style={{ backgroundColor: '#C9A84C' }}>
+                      <a href={`/evenements/achat-banquet?banquet_id=${banquet.id}&billet_id=${billet.id}`} className="px-4 py-2 rounded-lg text-white text-xs font-bold whitespace-nowrap transition-opacity hover:opacity-90" style={{ backgroundColor: '#C9A84C' }}>
                         🍽️ Acheter le banquet
                       </a>
                     )}
@@ -271,7 +271,7 @@ export default function ListeEvenements({ evenements, compte, billetsPCI, banque
     <div>
       {/* Bandeau sans frais actif */}
       {sfActive && (
-        <div className="rounded-2xl px-5 py-4 mb-6 flex items-center justify-between" style={{ backgroundColor: expirationProche ? '#FFF8E1' : '#E8F5E9', border: `1px solid ${expirationProche ? '#FFE082' : '#A5D6A7'}` }}>
+        <div className="rounded-2xl px-4 sm:px-5 py-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3" style={{ backgroundColor: expirationProche ? '#FFF8E1' : '#E8F5E9', border: `1px solid ${expirationProche ? '#FFE082' : '#A5D6A7'}` }}>
           <div className="flex items-center gap-3">
             <span className="text-2xl">✅</span>
             <div>
@@ -284,7 +284,7 @@ export default function ListeEvenements({ evenements, compte, billetsPCI, banque
               </p>
             </div>
           </div>
-          <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ backgroundColor: expirationProche ? '#FFE082' : '#C8E6C9', color: expirationProche ? '#F57F17' : '#2E7D32' }}>
+          <span className="self-start sm:self-auto text-xs font-bold px-3 py-1.5 rounded-full whitespace-nowrap" style={{ backgroundColor: expirationProche ? '#FFE082' : '#C8E6C9', color: expirationProche ? '#F57F17' : '#2E7D32' }}>
             {joursRestants} jour{joursRestants > 1 ? 's' : ''} restant{joursRestants > 1 ? 's' : ''}
           </span>
         </div>
