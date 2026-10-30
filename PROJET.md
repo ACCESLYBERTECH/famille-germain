@@ -519,15 +519,20 @@ git push
 
 ## À faire (liste prioritaire)
 
-1. **Apple Wallet / Google Wallet** — intégration passes numériques
-2. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
-3. **Rapport financier détaillé événement** — détails à confirmer avec les admins
-4. **Amélioration visuel emails** — templates Resend + logos (bienvenue, confirmation billet, remboursement, notification admin)
-5. **Personnalisation emails Supabase en français** — templates auth Supabase
-6. **Adaptation responsive** — tablette et cellulaire
-7. **Nom complet + co-PCI dans navbar** — coin supérieur droit
-8. **Retravailler le visuel des courriels promo (marketing)** — fonctionnel mais encore basique, design à peaufiner
-9. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+1. **Adaptation responsive** — tablette et cellulaire (événements, achat, Mes billets, scanner en priorité)
+2. **Rapport financier détaillé événement** — détails à confirmer avec les admins
+3. **Apple Wallet / Google Wallet** — intégration passes numériques (comptes développeur Apple/Google requis)
+4. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
+5. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+
+### Notés / reportés
+- Bouton Effacer un portier (reporté — Désactiver suffit)
+- Lien « Se désabonner » en un clic dans le courriel promo (actuellement : via page Contact)
+- Vercel Hobby = usage non commercial → probablement plan Pro avant le lancement à tous les PCI
+- Supabase gratuit : 1 Go stockage, 5 Go bande passante/mois (surveiller avec les audios)
+
+### Terminés (Session 7)
+- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar
 
 ---
 

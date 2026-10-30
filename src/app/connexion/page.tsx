@@ -50,17 +50,18 @@ export default function ConnexionPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F3EE' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: '#F5F3EE' }}>
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-md">
 
         {/* En-tête navy avec logos */}
-        <div className="flex items-center justify-center gap-4 py-6 px-8" style={{ backgroundColor: '#1A2535' }}>
-          <img src="/logo-germain.png" alt="La Famille Germain" className="h-20 w-auto" />
-          <img src="/logo-yager.png" alt="Yager Group" className="h-18 w-auto" />
+        {/* Sur cellulaire, les logos rapetissent pour tenir côte à côte sans être coupés */}
+        <div className="flex items-center justify-center gap-3 sm:gap-4 py-5 sm:py-6 px-4 sm:px-8" style={{ backgroundColor: '#1A2535' }}>
+          <img src="/logo-germain.png" alt="La Famille Germain" className="h-12 sm:h-20 w-auto max-w-[47%] object-contain" />
+          <img src="/logo-yager.png" alt="Yager Group" className="h-10 sm:h-18 w-auto max-w-[47%] object-contain" />
         </div>
 
         {/* Contenu */}
-        <div className="p-8">
+        <div className="p-6 sm:p-8">
           <div className="text-center mb-8">
             <p className="text-sm" style={{ color: '#666666' }}>Espace membres</p>
           </div>
@@ -68,7 +69,7 @@ export default function ConnexionPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Courriel ou identifiant</label>
-              <input type="text" value={identifiant} onChange={e => setIdentifiant(e.target.value)} className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2" style={{ borderColor: '#E0E0E0' }} placeholder="votre@courriel.com ou PORTIER1-LONGUEUIL" />
+              <input type="text" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={identifiant} onChange={e => setIdentifiant(e.target.value)} className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2" style={{ borderColor: '#E0E0E0' }} placeholder="votre@courriel.com" />
             </div>
 
             <div>
@@ -76,7 +77,7 @@ export default function ConnexionPage() {
                 <label className="block text-sm font-medium" style={{ color: '#1A2535' }}>Mot de passe</label>
                 <a href="/mot-de-passe-oublie" className="text-xs hover:underline" style={{ color: '#2E86C1' }}>Mot de passe oublié?</a>
               </div>
-              <input type="password" value={motDePasse} onChange={e => setMotDePasse(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleConnexion()} className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2" style={{ borderColor: '#E0E0E0' }} placeholder="••••••••" />
+              <input type="password" autoComplete="current-password" value={motDePasse} onChange={e => setMotDePasse(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleConnexion()} className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2" style={{ borderColor: '#E0E0E0' }} placeholder="••••••••" />
             </div>
 
             {erreur && <p className="text-sm text-center" style={{ color: '#E57373' }}>{erreur}</p>}
@@ -87,7 +88,7 @@ export default function ConnexionPage() {
 
             <p className="text-center text-sm" style={{ color: '#666666' }}>
               Pas encore de compte ?{' '}
-              <a href="/inscription" style={{ color: '#2E86C1' }} className="font-medium hover:underline">Créer un compte</a>
+              <a href="/inscription" style={{ color: '#2E86C1' }} className="font-medium hover:underline whitespace-nowrap">Créer un compte</a>
             </p>
           </div>
         </div>

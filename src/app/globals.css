@@ -12,13 +12,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
@@ -28,4 +21,14 @@ body {
 /* ===== TAILLE DE TEXTE DE BASE ===== */
 html {
   font-size: 18px;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ===== CELLULAIRE ===== */
+/* iPhone zoome automatiquement dans un champ dont le texte fait moins de 16 px :
+   on force 16 px sur petit écran pour éviter ce zoom gênant */
+@media (max-width: 640px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
 }
