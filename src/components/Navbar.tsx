@@ -17,15 +17,25 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const [gestionOuvert, setGestionOuvert] = useState(false)
   const gestionRef = useRef<HTMLDivElement>(null)
   const [accesAudios, setAccesAudios] = useState(false)
+  const [nomComplet, setNomComplet] = useState(prenom)
+  const [coPCI, setCoPCI] = useState('')
 
-  // Lien Audios : seulement pour un PCI/leader actif pendant sa période sans frais
+  // Compte connecté : nom complet + co-PCI (coin supérieur droit) et accès aux Audios
   useEffect(() => {
-    if (role !== 'pci' && role !== 'leader') return
     let annule = false
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
-      const { data } = await supabase.from('comptes').select('role, statut, periode_sf_debut, periode_sf_fin').eq('id', user.id).single()
-      if (!annule) setAccesAudios(aAccesAudios(data))
+      const { data } = await supabase
+        .from('comptes')
+        .select('role, statut, periode_sf_debut, periode_sf_fin, prenom_1, nom_1, prenom_2, nom_2')
+        .eq('id', user.id)
+        .single()
+      if (annule || !data) return
+      const nom1 = [data.prenom_1, data.nom_1].filter(Boolean).join(' ').trim()
+      const nom2 = [data.prenom_2, data.nom_2].filter(Boolean).join(' ').trim()
+      if (nom1) setNomComplet(nom1)
+      setCoPCI(nom2)
+      if (role === 'pci' || role === 'leader') setAccesAudios(aAccesAudios(data))
     })
     return () => { annule = true }
   }, [role])
@@ -141,9 +151,10 @@ export default function Navbar({ prenom, role }: NavbarProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <p className="text-white text-sm font-medium">{prenom}</p>
-            <p className="text-xs capitalize" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>
+          <div className="text-right hidden sm:block max-w-56 leading-tight">
+            <p className="text-white text-sm font-medium truncate" title={nomComplet}>{nomComplet}</p>
+            {coPCI && <p className="text-xs truncate" style={{ color: '#B8C0CC' }} title={coPCI}>& {coPCI}</p>}
+            <p className="text-xs capitalize mt-0.5" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>
           </div>
           <button onClick={handleDeconnexion} className="text-sm px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-80" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>Déconnexion</button>
           <button className="md:hidden text-white text-xl" onClick={() => setMenuOuvert(!menuOuvert)}>☰</button>
@@ -152,6 +163,11 @@ export default function Navbar({ prenom, role }: NavbarProps) {
 
       {menuOuvert && (
         <div className="md:hidden mt-3 pt-3 border-t border-white border-opacity-20">
+          <div className="sm:hidden px-3 pb-3 mb-2 border-b border-white border-opacity-10">
+            <p className="text-white text-sm font-medium">{nomComplet}</p>
+            {coPCI && <p className="text-xs" style={{ color: '#B8C0CC' }}>& {coPCI}</p>}
+            <p className="text-xs capitalize" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>
+          </div>
           {liensMobile.map(lien => (
             <a key={lien.href} href={lien.href} className="block px-3 py-2 rounded-lg text-sm font-medium" style={{ color: '#E0E0E0' }} onClick={() => setMenuOuvert(false)}>{lien.label}</a>
           ))}
