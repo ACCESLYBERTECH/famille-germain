@@ -333,14 +333,14 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
           <div className="flex flex-wrap gap-2 items-center">
             {evenements.length > 0 && (
-              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
+              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
                 <option value="">Tous les événements</option>
                 {evenements.map(ev => <option key={ev} value={ev}>{ev}</option>)}
               </select>
             )}
 
             {leadersGroupe.length > 0 && (
-              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
+              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
                 <option value="">Tous les leaders</option>
                 {leadersGroupe.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
               </select>
@@ -349,7 +349,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
             <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={pcis.map(p => ({ groupe: p.groupe, leader_id: p.leader_id }))} filtreLeader={filtreLeader} />
 
             {onglet === 'billets' && (
-              <div className="flex gap-1 ml-auto">
+              <div className="flex gap-1 ml-auto flex-wrap">
                 <span className="text-xs self-center mr-1" style={{ color: '#999999' }}>Trier :</span>
                 {(['nom', 'evenement', 'statut', 'date'] as TriBillets[]).map(t => (
                   <button key={t} onClick={() => setTriBillets(t)} className={triClass(triBillets === t)} style={triBillets === t ? { backgroundColor: '#1A2535' } : { backgroundColor: '#E0E0E0' }}>
@@ -360,7 +360,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
             )}
 
             {(onglet === 'profils' || onglet === 'inactifs') && (
-              <div className="flex gap-1 ml-auto">
+              <div className="flex gap-1 ml-auto flex-wrap">
                 <span className="text-xs self-center mr-1" style={{ color: '#999999' }}>Trier :</span>
                 {(['nom', 'numero_amway', 'ville'] as TriProfils[]).map(t => (
                   <button key={t} onClick={() => setTriProfils(t)} className={triClass(triProfils === t)} style={triProfils === t ? { backgroundColor: '#1A2535' } : { backgroundColor: '#E0E0E0' }}>
@@ -383,7 +383,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                 const leader = pci ? nomLeader(pci.leader_id) : null
                 const aBanquetAchete = banquetsAchetes.some(b => b.billet_id === billet.id)
                 return (
-                  <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+                  <div key={billet.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="font-semibold" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>
@@ -430,7 +430,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
               pcisFiltres.map(pci => {
                 const leader = nomLeader(pci.leader_id)
                 return (
-                  <div key={pci.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+                  <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
                     <div className="flex-1">
                       <p className="font-semibold" style={{ color: '#1A2535' }}>
                         {pci.prenom_1} {pci.nom_1}
@@ -502,8 +502,8 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
               <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Groupe</label>
-                <div className="flex gap-2">
-                  <input className="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
+                <div className="flex gap-2 flex-wrap">
+                  <input className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
                   <button onClick={sauvegarderGroupe} disabled={sauvegroupeChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: groupeSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
                     {sauvegroupeChargement ? '...' : groupeSauvegarde ? '✓' : 'Sauver'}
                   </button>

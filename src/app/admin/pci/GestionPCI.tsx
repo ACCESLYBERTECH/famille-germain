@@ -241,7 +241,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
     <div>
       {/* Bouton ajouter + onglets */}
       <div className="flex items-center justify-between mb-0">
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button onClick={() => setOnglet('attente')} className={ongletClass(onglet === 'attente')} style={onglet === 'attente' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
             En attente
             {pciEnAttente.length > 0 && (
@@ -267,7 +267,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
           <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
             <input className="w-full border rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom, courriel ou # Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
             <div className="flex flex-wrap gap-2 items-center">
-              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
+              <select className="border rounded-lg px-3 py-1.5 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
                 <option value="">Tous les leaders</option>
                 <option value="aucun">⚠️ Aucun leader assigné ({orphelins})</option>
                 {leaders.map(l => <option key={l.id} value={l.id}>{nomLeaderOption(l)}</option>)}
@@ -295,7 +295,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
               <div className="p-8 text-center" style={{ color: '#666666' }}>Aucune demande en attente ✓</div>
             ) : (
               pciEnAttente.map(pci => (
-                <div key={pci.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+                <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
                   <div className="flex-1">
                     <p className="font-semibold" style={{ color: '#1A2535' }}>
                       {pci.prenom_1} {pci.nom_1}
@@ -308,7 +308,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
                       <p className="text-xs mt-0.5" style={{ color: '#999999' }}>Inscription Amway : {new Date(pci.date_inscription_amway).toLocaleDateString('fr-CA')}</p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <button onClick={() => approuver(pci.id)} disabled={chargement === pci.id} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#4CAF7D' }}>
                       {chargement === pci.id ? '...' : 'Approuver'}
                     </button>
@@ -333,7 +333,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
                 const leaderDuPCI = leaders.find(l => l.id === pci.leader_id)
                 const estInvisible = pci.role === 'leader' && (pci as any).visible_inscription === false
                 return (
-                  <div key={pci.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+                  <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <p className="font-semibold" style={{ color: '#1A2535' }}>

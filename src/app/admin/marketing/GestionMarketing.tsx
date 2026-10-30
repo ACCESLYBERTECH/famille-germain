@@ -192,12 +192,12 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
           <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun envoi pour l'instant.</div>
         ) : (
           campagnes.map(c => (
-            <div key={c.id} className="p-4 border-b flex items-center justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+            <div key={c.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
               <div>
                 <p className="font-medium" style={{ color: '#1A2535' }}>{c.evenement_nom}</p>
                 <p className="text-sm" style={{ color: '#666666' }}>{c.sujet}</p>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="sm:text-right sm:flex-shrink-0">
                 <p className="text-sm font-medium" style={{ color: '#1A2535' }}>{c.nombre_destinataires} destinataires</p>
                 <p className="text-xs" style={{ color: '#999999' }}>
                   {new Date(c.created_at).toLocaleDateString('fr-CA', { year: 'numeric', month: 'long', day: 'numeric' })} à {new Date(c.created_at).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' })}

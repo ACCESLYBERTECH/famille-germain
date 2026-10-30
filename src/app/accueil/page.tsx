@@ -65,8 +65,8 @@ export default async function AccueilPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: '#1A2535' }}>Bonjour, {compte?.prenom_1}! 👋</h1>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#1A2535' }}>Bonjour, {compte?.prenom_1}! 👋</h1>
           <p className="text-gray-500 mt-1">Bienvenue sur la plateforme Famille Germain – Yager Group</p>
         </div>
         <CarrouselAccueil photoLeader={photoLeader} images={carrouselImages ?? []} prenom={compte?.prenom_1 ?? ''} />

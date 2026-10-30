@@ -135,7 +135,7 @@ export default function GestionPortiers({ portiers, evenements }: Props) {
           <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun portier créé</div>
         ) : (
           portiers.map(portier => (
-            <div key={portier.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+            <div key={portier.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <p className="font-semibold font-mono" style={{ color: '#1A2535' }}>{portier.identifiant}</p>

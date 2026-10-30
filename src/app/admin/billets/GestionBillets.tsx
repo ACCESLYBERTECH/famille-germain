@@ -317,25 +317,25 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
         <div className="flex flex-wrap gap-3 items-center mb-3">
           <input className="flex-1 min-w-48 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Rechercher par nom, courriel ou # Amway..." value={recherche} onChange={e => setRecherche(e.target.value)} />
           {nomsEvenements.length > 0 && (
-            <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
+            <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
               <option value="">Tous les événements</option>
               {nomsEvenements.map(ev => <option key={ev} value={ev}>{ev}</option>)}
             </select>
           )}
           {leaders.length > 0 && (
-            <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
+            <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
               <option value="">Tous les leaders</option>
               {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
             </select>
           )}
           <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} />
-          <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreMode} onChange={e => setFiltreMode(e.target.value)}>
+          <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreMode} onChange={e => setFiltreMode(e.target.value)}>
             <option value="">Sur place + Virtuel</option>
             <option value="sur_place">🏛️ Sur place seulement</option>
             <option value="virtuel">💻 Virtuel seulement</option>
           </select>
         </div>
-        <div className="flex gap-1 items-center">
+        <div className="flex gap-1 items-center flex-wrap">
           <span className="text-xs mr-1" style={{ color: '#999999' }}>Trier :</span>
           {(['nom', 'evenement', 'statut', 'numero_amway', 'date'] as TriType[]).map(t => (
             <button key={t} onClick={() => setTri(t)} className={triClass(tri === t)} style={tri === t ? { backgroundColor: '#1A2535' } : { backgroundColor: '#E0E0E0' }}>
@@ -358,7 +358,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
             const aBanquetAchete = banquetsAchetes.some(b => b.billet_id === billet.id)
             const estVirtuel = billet.mode_participation === 'virtuel'
             return (
-              <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+              <div key={billet.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <p className="font-semibold" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>

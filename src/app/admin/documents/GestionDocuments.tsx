@@ -176,7 +176,7 @@ export default function GestionDocuments({ documents }: Props) {
           {docsPci.length === 0 ? (
             <div className="p-6 text-center text-sm" style={{ color: '#666666' }}>Aucun document PCI</div>
           ) : docsPci.map(doc => (
-            <div key={doc.id} className="p-4 border-b flex items-center justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+            <div key={doc.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
               <div className="flex items-center gap-3">
                 <span className="text-xl">{icone(doc.type)}</span>
                 <div>
@@ -184,7 +184,7 @@ export default function GestionDocuments({ documents }: Props) {
                   <p className="text-xs" style={{ color: '#999999' }}>{doc.url.slice(0, 50)}...</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button onClick={() => ouvrirModifier(doc)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#1A2535' }}>Modifier</button>
                 <button onClick={() => toggleActif(doc)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: doc.actif ? '#FF9800' : '#4CAF7D' }}>
                   {doc.actif ? 'Désactiver' : 'Activer'}
@@ -203,7 +203,7 @@ export default function GestionDocuments({ documents }: Props) {
           {docsPlatine.length === 0 ? (
             <div className="p-6 text-center text-sm" style={{ color: '#666666' }}>Aucun document Platine+</div>
           ) : docsPlatine.map(doc => (
-            <div key={doc.id} className="p-4 border-b flex items-center justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+            <div key={doc.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
               <div className="flex items-center gap-3">
                 <span className="text-xl">{icone(doc.type)}</span>
                 <div>
@@ -211,7 +211,7 @@ export default function GestionDocuments({ documents }: Props) {
                   <p className="text-xs" style={{ color: '#999999' }}>{doc.url.slice(0, 50)}...</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <button onClick={() => ouvrirModifier(doc)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#1A2535' }}>Modifier</button>
                 <button onClick={() => toggleActif(doc)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: doc.actif ? '#FF9800' : '#4CAF7D' }}>
                   {doc.actif ? 'Désactiver' : 'Activer'}

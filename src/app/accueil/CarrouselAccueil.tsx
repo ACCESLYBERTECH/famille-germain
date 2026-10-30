@@ -66,25 +66,24 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
 
       {/* Carrousel principal */}
       <div
-        className="relative w-full rounded-2xl overflow-hidden shadow-lg"
+        className={`relative w-full rounded-2xl overflow-hidden shadow-lg ${estSlideLeader ? 'sm:h-[480px]' : 'aspect-video'}`}
         style={{
           backgroundColor: '#1A2535',
-          height: estSlideLeader ? '480px' : undefined,
-          aspectRatio: estSlideLeader ? undefined : '16/9',
           cursor: slide.lien ? 'pointer' : 'default',
         }}
         onClick={handleClickSlide}
       >
         {estSlideLeader ? (
-          <div className="flex h-full">
-            <div className="w-1/2 h-full relative">
+          // Cellulaire : photo en haut, nom en dessous. Plus grand écran : côte à côte
+          <div className="flex flex-col sm:flex-row h-full">
+            <div className="w-full sm:w-1/2 h-80 sm:h-full relative">
               <img src={slide.url} alt={slide.legende} className="w-full h-full object-cover object-top" />
             </div>
-            <div className="w-1/2 h-full flex flex-col justify-center px-10" style={{ backgroundColor: '#1A2535' }}>
+            <div className="w-full sm:w-1/2 sm:h-full flex flex-col justify-center px-6 pt-6 pb-14 sm:px-10 sm:py-0" style={{ backgroundColor: '#1A2535' }}>
               <p className="text-xs uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
                 {photoLeader?.estCouple ? 'Vos leaders' : 'Votre leader'}
               </p>
-              <p className="text-3xl font-bold text-white mb-4">{slide.legende}</p>
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-4">{slide.legende}</p>
               <div className="w-12 h-0.5 mb-4" style={{ backgroundColor: '#C9A84C' }}></div>
               <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Famille Germain – Yager Group</p>
             </div>
@@ -103,8 +102,8 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
         {/* Flèches navigation */}
         {total > 1 && (
           <>
-            <button onClick={e => { e.stopPropagation(); precedent() }} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl" style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>‹</button>
-            <button onClick={e => { e.stopPropagation(); suivant() }} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl" style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>›</button>
+            <button onClick={e => { e.stopPropagation(); precedent() }} className={`absolute left-3 ${estSlideLeader ? 'top-40 sm:top-1/2' : 'top-1/2'} -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>‹</button>
+            <button onClick={e => { e.stopPropagation(); suivant() }} className={`absolute right-3 ${estSlideLeader ? 'top-40 sm:top-1/2' : 'top-1/2'} -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>›</button>
           </>
         )}
 

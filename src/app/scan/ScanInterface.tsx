@@ -250,8 +250,8 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
       <div className="bg-white rounded-2xl shadow p-4">
         <label className="block text-sm font-medium mb-2" style={{ color: '#1A2535' }}>Scanner un QR code</label>
         <div className="flex gap-2">
-          <input className="flex-1 border rounded-lg px-4 py-2.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} placeholder="Token du billet..." value={token} onChange={e => setToken(e.target.value)} onKeyDown={e => e.key === 'Enter' && scanner(token)} autoFocus />
-          <button onClick={() => scanner(token)} disabled={chargement || !token.trim()} className="px-4 py-2.5 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
+          <input className="flex-1 min-w-0 border rounded-lg px-4 py-2.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} placeholder="Token du billet..." value={token} onChange={e => setToken(e.target.value)} onKeyDown={e => e.key === 'Enter' && scanner(token)} autoFocus />
+          <button onClick={() => scanner(token)} disabled={chargement || !token.trim()} className="flex-shrink-0 px-4 py-2.5 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
             {chargement ? '...' : 'Scanner'}
           </button>
         </div>
@@ -262,8 +262,8 @@ export default function ScanInterface({ compte, evenement, ville, evenements }: 
       <div className="bg-white rounded-2xl shadow p-4">
         <label className="block text-sm font-medium mb-2" style={{ color: '#1A2535' }}>Recherche manuelle (nom)</label>
         <div className="flex gap-2">
-          <input className="flex-1 border rounded-lg px-4 py-2.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} placeholder="Prénom ou nom du PCI..." value={recherche} onChange={e => setRecherche(e.target.value)} onKeyDown={e => e.key === 'Enter' && rechercherManuel()} />
-          <button onClick={rechercherManuel} disabled={chargement || !recherche.trim()} className="px-4 py-2.5 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#2E86C1' }}>
+          <input className="flex-1 min-w-0 border rounded-lg px-4 py-2.5 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} placeholder="Prénom ou nom du PCI..." value={recherche} onChange={e => setRecherche(e.target.value)} onKeyDown={e => e.key === 'Enter' && rechercherManuel()} />
+          <button onClick={rechercherManuel} disabled={chargement || !recherche.trim()} className="flex-shrink-0 px-4 py-2.5 rounded-lg text-white font-medium text-sm disabled:opacity-50" style={{ backgroundColor: '#2E86C1' }}>
             Chercher
           </button>
         </div>

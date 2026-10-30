@@ -45,12 +45,12 @@ export default async function DocumentsPage() {
           ) : (
             <div className="grid gap-3">
               {docsPci.map(doc => (
-                <div key={doc.id} className="bg-white rounded-2xl shadow p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
+                <div key={doc.id} className="bg-white rounded-2xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className="text-2xl">{icone(doc.type)}</span>
                     <p className="font-medium" style={{ color: '#1A2535' }}>{doc.titre}</p>
                   </div>
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg text-white text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#C9A84C' }}>
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-center px-4 py-2.5 sm:py-2 rounded-lg text-white text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#C9A84C' }}>
                     {labelBouton(doc.type)}
                   </a>
                 </div>
@@ -70,12 +70,12 @@ export default async function DocumentsPage() {
             ) : (
               <div className="grid gap-3">
                 {docsPlatine.map(doc => (
-                  <div key={doc.id} className="bg-white rounded-2xl shadow p-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
+                  <div key={doc.id} className="bg-white rounded-2xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
                       <span className="text-2xl">{icone(doc.type)}</span>
                       <p className="font-medium" style={{ color: '#1A2535' }}>{doc.titre}</p>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="px-4 py-2 rounded-lg text-white text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#2E86C1' }}>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-center px-4 py-2.5 sm:py-2 rounded-lg text-white text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#2E86C1' }}>
                       {labelBouton(doc.type)}
                     </a>
                   </div>

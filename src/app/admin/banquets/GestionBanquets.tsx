@@ -220,12 +220,12 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
       {/* Filtres + Boutons export */}
       <div className="bg-white rounded-t-2xl shadow px-4 pt-4 pb-3 border-b" style={{ borderColor: '#E0E0E0' }}>
         <div className="flex flex-wrap gap-3 items-center mb-3">
-          <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
+          <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreEvenement} onChange={e => setFiltreEvenement(e.target.value)}>
             <option value="">Tous les événements</option>
             {nomsEvenements.map(ev => <option key={ev} value={ev}>{ev}</option>)}
           </select>
 
-          <select className="border rounded-lg px-3 py-2 text-sm outline-none" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
+          <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreLeader} onChange={e => { setFiltreLeader(e.target.value); setFiltreGroupe('') }}>
             <option value="">Tous les leaders</option>
             {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
           </select>
@@ -256,7 +256,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
           <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun résultat</div>
         ) : (
           lignesFiltrees.map(({ billet, aBanquet, allergies, leaderNom }) => (
-            <div key={billet.id} className="p-4 border-b flex items-start justify-between gap-4" style={{ borderColor: '#E0E0E0' }}>
+            <div key={billet.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
               <div className="flex-1">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <p className="font-semibold" style={{ color: '#1A2535' }}>{billet.nom_pci}</p>

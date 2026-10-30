@@ -346,7 +346,7 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
                     </div>
                     <div className="flex items-center gap-2">
                       <label className="text-xs flex-shrink-0" style={{ color: '#666666' }}>Nom affiché</label>
-                      <input className="flex-1 border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={bracelets[type].nom} onChange={e => updateBracelet(type, 'nom', e.target.value)} placeholder="Ex: Rouge" />
+                      <input className="flex-1 min-w-0 border rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} value={bracelets[type].nom} onChange={e => updateBracelet(type, 'nom', e.target.value)} placeholder="Ex: Rouge" />
                     </div>
                   </div>
                 ))}

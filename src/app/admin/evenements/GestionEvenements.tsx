@@ -116,7 +116,7 @@ export default function GestionEvenements({ evenements }: Props) {
           </div>
         ) : (
           evenements.map(ev => (
-            <div key={ev.id} className="p-4 border-b flex items-start justify-between gap-4"
+            <div key={ev.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4"
               style={{ borderColor: '#E0E0E0' }}>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -144,7 +144,7 @@ export default function GestionEvenements({ evenements }: Props) {
                   {ev.a_banquet && ' · Banquet'}
                 </p>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 flex-wrap sm:flex-shrink-0">
                 <button
                   onClick={() => modifier(ev)}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium"
