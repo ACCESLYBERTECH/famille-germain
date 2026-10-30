@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
+import BoutonPartager from '@/components/BoutonPartager'
 
 export default async function DocumentsPage() {
   const supabase = await createClient()
@@ -75,9 +76,12 @@ export default async function DocumentsPage() {
                       <span className="text-2xl">{icone(doc.type)}</span>
                       <p className="font-medium" style={{ color: '#1A2535' }}>{doc.titre}</p>
                     </div>
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto text-center px-4 py-2.5 sm:py-2 rounded-lg text-white text-sm font-medium flex-shrink-0" style={{ backgroundColor: '#2E86C1' }}>
-                      {labelBouton(doc.type)}
-                    </a>
+                    <div className="flex gap-2 w-full sm:w-auto flex-shrink-0">
+                      <a href={doc.url} target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none text-center px-4 py-2.5 sm:py-2 rounded-lg text-white text-sm font-medium" style={{ backgroundColor: '#2E86C1' }}>
+                        {labelBouton(doc.type)}
+                      </a>
+                      <BoutonPartager titre={doc.titre} url={doc.url} />
+                    </div>
                   </div>
                 ))}
               </div>
