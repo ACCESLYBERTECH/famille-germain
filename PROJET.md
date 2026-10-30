@@ -420,7 +420,13 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Sections : Documents PCI, Documents Platine+
 - Types : pdf, lien, youtube
 
-### Emails (Resend)
+### Emails (Resend) — refonte Session 7
+- **Gabarit commun** `src/emails/Gabarit.tsx` : en-tête marine avec les 2 logos (`NEXT_PUBLIC_APP_URL/logo-*.png`), filet or, texte aéré, bouton or, pied de page
+- Composants : `Paragraphe`, `Bouton`, `Encadre`, `LigneEncadre`, `Note`, `Separateur` — tout nouveau courriel doit utiliser ce gabarit
+- **Mot de passe oublié envoyé par le site** (plus par Supabase) : `/api/auth/mot-de-passe-oublie` → `auth.admin.generateLink({ type: 'recovery' })` → courriel `ReinitialisationMotDePasse` → lien `/reinitialiser-mot-de-passe?token_hash=…&type=recovery` → `verifyOtp` au moment d'enregistrer
+- Protections : réponse toujours identique, 1 envoi/adresse/minute (table `demandes_mot_de_passe`), URL du lien jamais tirée de la requête
+- Aucun gabarit Supabase à configurer
+
 - Domaine `acceslybertech.com` vérifié dans WHC DNS
 - Templates : bienvenue PCI, confirmation billet, confirmation remboursement, billet offert, notification admin
 

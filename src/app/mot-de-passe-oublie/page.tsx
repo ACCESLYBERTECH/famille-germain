@@ -1,26 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 
 export default function MotDePasseOubliePage() {
   const [courriel, setCourriel] = useState('')
   const [envoye, setEnvoye] = useState(false)
   const [chargement, setChargement] = useState(false)
   const [erreur, setErreur] = useState('')
-  const supabase = createClient()
 
   async function handleEnvoyer() {
     if (!courriel) { setErreur('Veuillez entrer votre courriel.'); return }
     setChargement(true)
     setErreur('')
 
-    const { error } = await supabase.auth.resetPasswordForEmail(courriel, {
-      redirectTo: `${window.location.origin}/reinitialiser-mot-de-passe`,
+    // Le site envoie lui-même le courriel (gabarit en français avec logos)
+    const res = await fetch('/api/auth/mot-de-passe-oublie', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ courriel }),
     })
 
-    if (error) {
-      setErreur('Erreur lors de l\'envoi. Vérifiez votre courriel.')
+    if (!res.ok) {
+      setErreur('Adresse courriel invalide. Vérifiez votre saisie.')
       setChargement(false)
       return
     }

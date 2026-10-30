@@ -4,6 +4,8 @@ import ConfirmationBillet from '@/emails/ConfirmationBillet'
 import NotificationAdmin from '@/emails/NotificationAdmin'
 import ConfirmationRemboursement from '@/emails/ConfirmationRemboursement'
 import PromoEvenement from '@/emails/PromoEvenement'
+import RapportBanquets from '@/emails/RapportBanquets'
+import ReinitialisationMotDePasse from '@/emails/ReinitialisationMotDePasse'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.FROM_EMAIL!
@@ -68,7 +70,7 @@ export async function envoyerNotificationAdminNouveauBillet(prenomPCI: string, n
       prenomPCI,
       nomPCI,
       details: `Événement : ${evenement} – ${ville}`,
-      lienDashboard: `${APP_URL}/admin/evenements`,
+      lienDashboard: `${APP_URL}/admin/billets`,
     }),
   })
 }
@@ -139,13 +141,19 @@ export async function envoyerRapportBanquets(params: {
     from: FROM,
     to: params.email,
     subject: `Rapport banquets — ${params.sousTitre || 'Famille Germain – Yager Group'}`,
-    html: `<div style="font-family:Arial,sans-serif;color:#1A2535;font-size:15px;line-height:1.5">
-      <p>Bonjour,</p>
-      <p>Vous trouverez ci-joint le <strong>rapport des banquets</strong>${params.sousTitre ? ' (' + params.sousTitre.replace(/</g, '&lt;') + ')' : ''}.</p>
-      <p>Ce document est confidentiel. Merci de ne pas le partager.</p>
-      <p style="color:#C9A84C;font-weight:bold">Famille Germain – Yager Group</p>
-    </div>`,
+    react: RapportBanquets({ sousTitre: params.sousTitre }),
     attachments: [{ filename: params.nomFichier, content: params.pdf }],
+  })
+  if (error) throw new Error(error.message)
+}
+
+// Mot de passe oublié — envoyé par le site (et non par Supabase)
+export async function envoyerReinitialisationMotDePasse(params: { email: string; prenom: string; lien: string }) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: params.email,
+    subject: 'Réinitialisation de votre mot de passe',
+    react: ReinitialisationMotDePasse({ prenom: params.prenom, lien: params.lien }),
   })
   if (error) throw new Error(error.message)
 }

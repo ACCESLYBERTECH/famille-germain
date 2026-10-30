@@ -21,6 +21,19 @@ export default function ReinitialiserMotDePassePage() {
 
     setChargement(true)
 
+    // Lien reçu par courriel : ?token_hash=...&type=recovery
+    // Le lien n'est validé qu'au moment d'enregistrer (un aperçu automatique du courriel ne peut pas l'utiliser)
+    const params = new URLSearchParams(window.location.search)
+    const tokenHash = params.get('token_hash')
+    if (tokenHash) {
+      const { error: erreurLien } = await supabase.auth.verifyOtp({ type: 'recovery', token_hash: tokenHash })
+      if (erreurLien) {
+        setErreur('Ce lien est expiré ou a déjà été utilisé. Demandez un nouveau lien à la page « Mot de passe oublié ».')
+        setChargement(false)
+        return
+      }
+    }
+
     const { error } = await supabase.auth.updateUser({ password: motDePasse })
 
     if (error) {
