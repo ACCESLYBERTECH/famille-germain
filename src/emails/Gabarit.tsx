@@ -7,11 +7,12 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://famille-germa
 
 interface GabaritProps {
   apercu: string          // texte affiché dans la boîte de réception, sous le sujet
-  titre: string
+  titre?: string           // facultatif : un courriel peut afficher son propre titre
+  banniere?: { src: string; alt: string }  // image pleine largeur sous l'en-tête (ex. affiche d'un événement)
   children: React.ReactNode
 }
 
-export default function Gabarit({ apercu, titre, children }: GabaritProps) {
+export default function Gabarit({ apercu, titre, banniere, children }: GabaritProps) {
   return (
     <Html lang="fr">
       <Head />
@@ -31,10 +32,11 @@ export default function Gabarit({ apercu, titre, children }: GabaritProps) {
             </Row>
           </Section>
           <Section style={styles.filetOr} />
+          {banniere && <Img src={banniere.src} alt={banniere.alt} width={600} style={styles.banniere} />}
 
           {/* Contenu */}
           <Section style={styles.contenu}>
-            <Text style={styles.titre}>{titre}</Text>
+            {titre && <Text style={styles.titre}>{titre}</Text>}
             {children}
           </Section>
 
@@ -100,6 +102,7 @@ const styles: Record<string, React.CSSProperties> = {
   container: { maxWidth: '600px', margin: '0 auto', backgroundColor: '#FFFFFF', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
   entete: { backgroundColor: '#1A2535', padding: '28px 24px' },
   logo: { display: 'inline-block', margin: '0 auto' },
+  banniere: { width: '100%', maxWidth: '600px', display: 'block', height: 'auto' },
   filetOr: { backgroundColor: '#C9A84C', height: '4px', lineHeight: '4px', fontSize: '4px' },
   contenu: { padding: '40px 40px 24px' },
   titre: { color: '#1A2535', fontSize: '26px', fontWeight: 'bold', lineHeight: '34px', margin: '0 0 24px' },
