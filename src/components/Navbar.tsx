@@ -103,9 +103,11 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/evenements', label: 'Gestion événements' },
     { href: '/admin/billets', label: 'Gestion billets' },
     { href: '/admin/portiers', label: 'Portiers' },
+    { href: '/admin/documents', label: 'Gestion documents' },
+    { href: '/admin/audios', label: 'Audios' },
+    { href: '/admin/banquets', label: 'Rapport banquets' },
     { href: '/admin/carrousel', label: 'Carrousel' },
     { href: '/admin/marketing', label: 'Marketing' },
-    { href: '/admin/audios', label: 'Audios' },
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
     { href: '/scan', label: 'Scanner' },
@@ -122,55 +124,58 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const liensMobile = aMenuGestion ? liensAdminMobileFiltres : role === 'portier' ? liensPortier : role === 'leader' ? liensLeader : liensCommuns
 
   return (
-    <nav className="w-full px-6 py-3 sticky top-0 z-40" style={{ backgroundColor: '#1A2535' }}>
-      <div className="flex items-center justify-between relative">
+    <nav className="w-full px-3 sm:px-6 py-2 sm:py-3 sticky top-0 z-40" style={{ backgroundColor: '#1A2535' }}>
+      <div className="flex items-center justify-between gap-2 relative">
 
-        <a href="/" className="flex items-center gap-3">
-          <img src="/logo-germain.png" alt="La Famille Germain" className="h-16 w-auto" />
-          <img src="/logo-yager.png" alt="Yager Group" className="h-14 w-auto opacity-90" />
+        {/* Logos : plus petits sur cellulaire pour laisser la place au menu ☰ */}
+        <a href="/" className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
+          <img src="/logo-germain.png" alt="La Famille Germain" className="h-10 sm:h-14 xl:h-16 w-auto" />
+          <img src="/logo-yager.png" alt="Yager Group" className="h-8 sm:h-12 xl:h-14 w-auto opacity-90" />
         </a>
 
-        <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        {/* Menu complet : seulement sur grand écran (sinon il chevauche les logos) */}
+        <div className="hidden xl:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
           {aMenuGestion && (
             <div className="relative" ref={gestionRef}>
-              <button onClick={() => setGestionOuvert(!gestionOuvert)} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white hover:bg-opacity-10 flex items-center gap-1" style={{ color: gestionOuvert ? '#C9A84C' : '#E0E0E0' }}>
+              <button onClick={() => setGestionOuvert(!gestionOuvert)} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white/10 flex items-center gap-1" style={{ color: gestionOuvert ? '#C9A84C' : '#E0E0E0' }}>
                 Gestion <span className="text-xs">{gestionOuvert ? '▲' : '▼'}</span>
               </button>
               {gestionOuvert && (
                 <div className="absolute top-full left-0 mt-1 rounded-xl shadow-lg overflow-hidden z-50 min-w-48" style={{ backgroundColor: '#1A2535', border: '1px solid rgba(255,255,255,0.1)' }}>
                   {liensGestion.map(lien => (
-                    <a key={lien.href} href={lien.href} onClick={() => setGestionOuvert(false)} className="block px-4 py-2.5 text-sm transition-colors hover:bg-white hover:bg-opacity-10" style={{ color: '#E0E0E0' }}>{lien.label}</a>
+                    <a key={lien.href} href={lien.href} onClick={() => setGestionOuvert(false)} className="block px-4 py-2.5 text-sm transition-colors hover:bg-white/10" style={{ color: '#E0E0E0' }}>{lien.label}</a>
                   ))}
                 </div>
               )}
             </div>
           )}
           {(aMenuGestion ? liensAdminPrincipaux : liens).map(lien => (
-            <a key={lien.href} href={lien.href} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white hover:bg-opacity-10 whitespace-nowrap" style={{ color: '#E0E0E0' }}>{lien.label}</a>
+            <a key={lien.href} href={lien.href} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white/10 whitespace-nowrap" style={{ color: '#E0E0E0' }}>{lien.label}</a>
           ))}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
           <div className="text-right hidden sm:block max-w-56 leading-tight">
             <p className="text-white text-sm font-medium truncate" title={nomComplet}>{nomComplet}</p>
             {coPCI && <p className="text-xs truncate" style={{ color: '#B8C0CC' }} title={coPCI}>& {coPCI}</p>}
             <p className="text-xs capitalize mt-0.5" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>
           </div>
-          <button onClick={handleDeconnexion} className="text-sm px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-80" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>Déconnexion</button>
-          <button className="md:hidden text-white text-xl" onClick={() => setMenuOuvert(!menuOuvert)}>☰</button>
+          <button onClick={handleDeconnexion} className="hidden sm:inline-block text-sm px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-80" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>Déconnexion</button>
+          <button className="xl:hidden text-white text-2xl leading-none p-2 -mr-1 rounded-lg" aria-label="Menu" onClick={() => setMenuOuvert(!menuOuvert)}>{menuOuvert ? '✕' : '☰'}</button>
         </div>
       </div>
 
       {menuOuvert && (
-        <div className="md:hidden mt-3 pt-3 border-t border-white border-opacity-20">
-          <div className="sm:hidden px-3 pb-3 mb-2 border-b border-white border-opacity-10">
+        <div className="xl:hidden mt-2 pt-3 pb-1 border-t border-white/20 max-h-[75vh] overflow-y-auto">
+          <div className="sm:hidden px-3 pb-3 mb-2 border-b border-white/10">
             <p className="text-white text-sm font-medium">{nomComplet}</p>
             {coPCI && <p className="text-xs" style={{ color: '#B8C0CC' }}>& {coPCI}</p>}
             <p className="text-xs capitalize" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>
           </div>
           {liensMobile.map(lien => (
-            <a key={lien.href} href={lien.href} className="block px-3 py-2 rounded-lg text-sm font-medium" style={{ color: '#E0E0E0' }} onClick={() => setMenuOuvert(false)}>{lien.label}</a>
+            <a key={lien.href} href={lien.href} className="block px-3 py-2.5 rounded-lg text-base font-medium" style={{ color: '#E0E0E0' }} onClick={() => setMenuOuvert(false)}>{lien.label}</a>
           ))}
+          <button onClick={handleDeconnexion} className="sm:hidden w-full mt-3 py-2.5 rounded-lg font-medium text-base" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>Déconnexion</button>
         </div>
       )}
     </nav>
