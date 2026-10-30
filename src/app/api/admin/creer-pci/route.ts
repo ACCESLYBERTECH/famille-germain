@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { estAdminOuDeveloppeur, estDeveloppeur } from '@/lib/acces'
+import { normaliserCourriel, normaliserNumeroAmway, courrielValide, echapperIlike, MESSAGE_COURRIEL_UTILISE, MESSAGE_AMWAY_UTILISE, messageErreurCompte } from '@/lib/comptes'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,13 +21,25 @@ export async function POST(request: Request) {
     const body = await request.json()
     const {
       prenom_1, nom_1, prenom_2, nom_2,
-      courriel, telephone, adresse, ville,
+      telephone, adresse, ville,
       code_postal, province, pays,
-      numero_amway, date_inscription_amway,
+      date_inscription_amway,
       role, leader_id,
       periode_sf_debut, periode_sf_fin,
       groupe, mot_de_passe,
     } = body
+    const courriel = normaliserCourriel(body.courriel)
+    const numeroAmway = normaliserNumeroAmway(body.numero_amway)
+
+    if (!courrielValide(courriel)) return NextResponse.json({ error: 'Adresse courriel invalide.' }, { status: 400 })
+
+    // Doublons : courriel et numéro Amway
+    const { data: memeCourriel } = await supabaseAdmin.from('comptes').select('id').ilike('courriel', echapperIlike(courriel)).limit(1)
+    if (memeCourriel && memeCourriel.length > 0) return NextResponse.json({ error: MESSAGE_COURRIEL_UTILISE }, { status: 409 })
+    if (numeroAmway) {
+      const { data: memeAmway } = await supabaseAdmin.from('comptes').select('id').eq('numero_amway', numeroAmway).limit(1)
+      if (memeAmway && memeAmway.length > 0) return NextResponse.json({ error: MESSAGE_AMWAY_UTILISE }, { status: 409 })
+    }
 
     // Garde-fou : le développeur ne peut pas créer de compte admin/développeur
     if (estDeveloppeur(compte?.role) && ['admin', 'developpeur'].includes(role)) {
@@ -40,7 +53,7 @@ export async function POST(request: Request) {
       email_confirm: true,
     })
 
-    if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
+    if (authError) return NextResponse.json({ error: messageErreurCompte(authError.message) }, { status: 400 })
 
     const userId = authData.user.id
 
@@ -57,7 +70,7 @@ export async function POST(request: Request) {
       code_postal: code_postal || null,
       province: province || null,
       pays: pays || 'Canada',
-      numero_amway: numero_amway || null,
+      numero_amway: numeroAmway || null,
       date_inscription_amway: date_inscription_amway || null,
       role: role || 'pci',
       leader_id: leader_id || null,
@@ -70,7 +83,7 @@ export async function POST(request: Request) {
     if (compteError) {
       // Supprimer l'utilisateur Auth si le compte n'a pas pu être créé
       await supabaseAdmin.auth.admin.deleteUser(userId)
-      return NextResponse.json({ error: compteError.message }, { status: 400 })
+      return NextResponse.json({ error: messageErreurCompte(compteError.message) }, { status: 400 })
     }
 
     // Envoyer l'email de bienvenue

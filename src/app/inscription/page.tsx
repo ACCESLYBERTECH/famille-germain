@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
 const ETAPES = ['Compte', 'Coordonnées', 'Amway', 'Confirmation']
@@ -40,7 +39,6 @@ export default function InscriptionPage() {
   const [leaders, setLeaders] = useState<Leader[]>([])
   const [modalConditions, setModalConditions] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
   const [form, setForm] = useState({
     prenom_1: '', nom_1: '', courriel: '', mot_de_passe: '', telephone: '',
@@ -101,53 +99,20 @@ export default function InscriptionPage() {
     if (!validerEtape()) return
     setChargement(true)
 
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: form.courriel,
-      password: form.mot_de_passe,
-    })
-
-    if (authError || !authData.user) {
-      setErreur(authError?.message ?? 'Erreur lors de la création du compte.')
-      setChargement(false)
-      return
-    }
-
-    const { error: compteError } = await supabase.from('comptes').insert({
-      id: authData.user.id,
-      courriel: form.courriel,
-      prenom_1: form.prenom_1,
-      nom_1: form.nom_1,
-      prenom_2: form.prenom_2 || null,
-      nom_2: form.nom_2 || null,
-      telephone: form.telephone,
-      adresse: form.adresse,
-      ville: form.ville,
-      code_postal: form.code_postal,
-      province: form.province,
-      pays: form.pays,
-      numero_amway: form.numero_amway,
-      date_inscription_amway: form.date_inscription_amway,
-      leader_id: form.leader_id || null,
-      consentement_communications: form.consentement_communications,
-      statut: 'en_attente',
-      role: 'pci',
-    })
-
-    if (compteError) {
-      setErreur(compteError.message)
-      setChargement(false)
-      return
-    }
-
-    await fetch('/api/emails/notification-admin', {
+    // L'inscription se fait au complet sur le serveur : vérification des doublons
+    // (courriel, # Amway) et création du compte en une seule opération
+    const res = await fetch('/api/auth/inscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'nouveau_pci',
-        prenomPCI: form.prenom_1,
-        nomPCI: form.nom_1,
-      }),
+      body: JSON.stringify(form),
     })
+    const resultat = await res.json().catch(() => ({}))
+
+    if (!res.ok) {
+      setErreur(resultat.error ?? 'Erreur lors de la création du compte.')
+      setChargement(false)
+      return
+    }
 
     router.push('/inscription/merci')
   }

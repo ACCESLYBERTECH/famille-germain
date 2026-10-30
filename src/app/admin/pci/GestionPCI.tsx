@@ -176,7 +176,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
   async function sauvegarderModif() {
     if (!modalModif) return
     setSauvegarde(true)
-    await fetch('/api/admin/modifier-compte', {
+    const res = await fetch('/api/admin/modifier-compte', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -189,6 +189,12 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
         visible_inscription: form.visible_inscription,
       }),
     })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'Erreur lors de la sauvegarde.')
+      setSauvegarde(false)
+      return
+    }
     setSauvegarde(false)
     setModalModif(null)
     router.refresh()
