@@ -238,7 +238,9 @@ src/components/
 ├── QRCode.tsx
 ├── CarrouselAccueil.tsx
 ├── NonAccessibleDeveloppeur.tsx        — Page 🔒 « Non accessible au développeur »
-└── CompteNonActif.tsx                  — Message selon statut (en attente / inactif / refusé)
+├── CompteNonActif.tsx                  — Message selon statut (en attente / inactif / refusé)
+├── FiltreGroupe.tsx                    — Filtre par groupe (variantes regroupées)
+└── BoutonPartager.tsx                  — Partage d'un document (menu du téléphone / copie du lien)
 
 src/lib/
 ├── acces.ts                            — estAdmin, estDeveloppeur, estAdminOuDeveloppeur, peutScanner
@@ -419,6 +421,8 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Upload PDF dans Supabase Storage (bucket `documents`)
 - Sections : Documents PCI, Documents Platine+
 - Types : pdf, lien, youtube
+- **Bouton 📤 Partager — section Platine+ seulement** (`src/components/BoutonPartager.tsx`) : sur écran tactile, menu de partage du téléphone (`navigator.share`, https requis) ; sur ordinateur, copie le lien (« Lien copié ✓ »)
+- ⚠️ Le bucket `documents` est public : un lien partagé s'ouvre même sans compte
 
 ### Emails (Resend) — refonte Session 7
 - **Gabarit commun** `src/emails/Gabarit.tsx` : en-tête marine avec les 2 logos (`NEXT_PUBLIC_APP_URL/logo-*.png`), filet or, texte aéré, bouton or, pied de page
@@ -475,6 +479,8 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - JSX attributs sur une seule ligne (évite erreurs parser)
 - **Fichiers en fins de ligne Windows (CRLF)** — à conserver lors des modifications
 - Pas de mode accessibilité (retiré — trop complexe)
+- **Responsive (Session 7)** : toutes les pages vérifiées à 375 px (aucun défilement horizontal). Patterns : rangées de liste `flex flex-col sm:flex-row sm:items-center sm:justify-between` ; groupes de boutons `flex gap-2 flex-wrap` ; `select` avec `max-w-full` ; champs `flex-1` toujours avec `min-w-0` ; boutons `w-full sm:w-auto` sur cellulaire
+- Tailwind v4 : `bg-opacity-*` ne fonctionne plus → utiliser la syntaxe `/10`
 
 ---
 
@@ -519,20 +525,20 @@ git push
 
 ## À faire (liste prioritaire)
 
-1. **Adaptation responsive** — tablette et cellulaire (événements, achat, Mes billets, scanner en priorité)
-2. **Rapport financier détaillé événement** — détails à confirmer avec les admins
-3. **Apple Wallet / Google Wallet** — intégration passes numériques (comptes développeur Apple/Google requis)
-4. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
-5. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+1. **Rapport financier détaillé événement** — détails à confirmer avec les admins
+2. **Apple Wallet / Google Wallet** — intégration passes numériques (comptes développeur Apple/Google requis)
+3. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
+4. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
 
 ### Notés / reportés
 - Bouton Effacer un portier (reporté — Désactiver suffit)
 - Lien « Se désabonner » en un clic dans le courriel promo (actuellement : via page Contact)
 - Vercel Hobby = usage non commercial → probablement plan Pro avant le lancement à tous les PCI
 - Supabase gratuit : 1 Go stockage, 5 Go bande passante/mois (surveiller avec les audios)
+- Documents Platine confidentiels : si certains ne doivent jamais sortir du groupe, prévoir des liens qui expirent (bucket privé)
 
 ### Terminés (Session 7)
-- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar
+- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar · Unicité courriel / numéro Amway · Responsive complet (cellulaire et tablette) · Bouton Partager (documents Platine+)
 
 ---
 
@@ -546,4 +552,4 @@ git push
 
 ---
 
-*Dernière mise à jour : 28 octobre 2026 — Session 7*
+*Dernière mise à jour : 30 octobre 2026 — Session 7*
