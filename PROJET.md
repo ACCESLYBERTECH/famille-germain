@@ -523,12 +523,28 @@ git push
 
 ---
 
-## À faire (liste prioritaire)
+## 🚦 Prochaine étape — Préparer les tests LIVE avec les leaders
+
+**Décision de Mario (30 oct. 2026) : le domaine passe en premier. Stripe reste en mode TEST pendant les tests.**
+
+1. **Domaine acceslybertech.com → Vercel**
+   - Vercel : Settings → Domains → ajouter `acceslybertech.com` et `www.acceslybertech.com`
+   - WHC : entrer dans la zone DNS les valeurs exactes données par Vercel (A et CNAME)
+   - ⚠️ Ne pas toucher aux enregistrements MX si des courriels @acceslybertech.com existent chez WHC
+2. **`NEXT_PUBLIC_APP_URL` = `https://acceslybertech.com`** dans Vercel, puis redéployer (sinon liens et logos des courriels pointent vers l'ancienne adresse)
+3. **Supabase** : Authentication → URL Configuration → Site URL + Redirect URLs avec le nouveau domaine
+4. **Resend** : vérifier le domaine acceslybertech.com (enregistrements SPF/DKIM dans WHC), puis envoyer depuis une adresse @acceslybertech.com (meilleure livraison, moins de courriels indésirables)
+5. **Stripe — reste en TEST** : mettre à jour l'adresse des webhooks (mode test) vers le nouveau domaine, pour les **deux** comptes (Billets et Banquet). Paiements avec la carte test 4242 4242 4242 4242
+6. **Tests sur téléphone** (https requis) : bouton Partager (Platine+), Scanner, QR dans Mes billets, achat complet, mot de passe oublié
+7. **Comptes leaders** : vérifier rôles, groupes et hiérarchie (chaque leader ne voit que son groupe)
+8. À prévoir avant les vraies ventes : Stripe en mode réel (clés live + webhooks live), Vercel Pro (Hobby = non commercial)
+
+## À faire (liste — non urgent)
 
 1. **Rapport financier détaillé événement** — détails à confirmer avec les admins
 2. **Apple Wallet / Google Wallet** — intégration passes numériques (comptes développeur Apple/Google requis)
 3. **Traductions FR/EN** — passe finale avec next-intl (différé après toutes les features)
-4. **Domaine acceslybertech.com** — DNS WHC → Vercel (dernière étape absolue)
+4. **Ajustements demandés par les leaders** après la présentation
 
 ### Notés / reportés
 - Bouton Effacer un portier (reporté — Désactiver suffit)
