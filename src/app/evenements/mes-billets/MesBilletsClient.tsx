@@ -154,7 +154,7 @@ export default function MesBilletsClient({ billets, banquetsAchetes }: Props) {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 sm:p-8 flex flex-col items-center max-h-[95vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
 
             <div className="w-full text-center mb-4 sm:mb-6">
-              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#C9A84C' }}>Famille Germain – Yager Group</p>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#C9A84C' }}>Yager Group – Famille Germain</p>
               <h2 className="text-xl font-bold" style={{ color: '#1A2535' }}>{billetZoom.evenement?.nom}</h2>
               {billetZoom.evenement?.date_debut && (
                 <p className="text-sm mt-1" style={{ color: '#666666' }}>

@@ -11,7 +11,7 @@ export default function BienvenuePCI({ prenom = 'Prénom', nom = 'Nom' }: Bienve
     <Gabarit apercu="Votre compte est approuvé — bienvenue dans la Famille Germain!" titre={`Bienvenue, ${prenom}!`}>
       <Paragraphe>Bonjour {prenom} {nom},</Paragraphe>
       <Paragraphe>
-        Bonne nouvelle : votre compte PCI vient d&apos;être <strong>approuvé</strong>. Vous faites maintenant partie de la plateforme de la Famille Germain – Yager Group.
+        Bonne nouvelle : votre compte PCI vient d&apos;être <strong>approuvé</strong>. Vous faites maintenant partie de la plateforme du Yager Group – Famille Germain.
       </Paragraphe>
       <Encadre>
         <Paragraphe><strong>Sur la plateforme, vous pouvez :</strong></Paragraphe>

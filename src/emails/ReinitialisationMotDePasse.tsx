@@ -5,7 +5,7 @@ export default function ReinitialisationMotDePasse({ prenom = '', lien = '' }: {
   return (
     <Gabarit apercu="Choisissez un nouveau mot de passe pour votre compte" titre="Réinitialisation du mot de passe">
       <Paragraphe>Bonjour{prenom ? ` ${prenom}` : ''},</Paragraphe>
-      <Paragraphe>Vous avez demandé à réinitialiser le mot de passe de votre compte sur la plateforme de la Famille Germain – Yager Group.</Paragraphe>
+      <Paragraphe>Vous avez demandé à réinitialiser le mot de passe de votre compte sur la plateforme du Yager Group – Famille Germain.</Paragraphe>
       <Paragraphe>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe :</Paragraphe>
       <Bouton href={lien}>Choisir un nouveau mot de passe</Bouton>
       <Note>⏱️ Pour votre sécurité, ce lien expire dans 1 heure et ne peut être utilisé qu&apos;une seule fois.</Note>

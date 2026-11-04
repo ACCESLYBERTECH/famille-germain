@@ -8,7 +8,7 @@ export default function ConditionsPage() {
             Conditions d'utilisation
           </h1>
           <p className="text-sm" style={{ color: '#666666' }}>
-            Plateforme Famille Germain – Yager Group · Dernière mise à jour : juin 2026
+            Plateforme Yager Group – Famille Germain · Dernière mise à jour : juin 2026
           </p>
         </div>
 
@@ -34,7 +34,7 @@ export default function ConditionsPage() {
 
           <section>
             <h2 className="text-lg font-bold mb-3" style={{ color: '#C9A84C' }}>4. Utilisation de la plateforme</h2>
-            <p>La plateforme ACCESLYBERTECH est réservée exclusivement aux PCIs membres du réseau Famille Germain – Yager Group. Elle est destinée à la gestion d'événements, à la communication interne et à la consultation de documents liés à vos activités Amway.</p>
+            <p>La plateforme ACCESLYBERTECH est réservée exclusivement aux PCIs membres du réseau Yager Group – Famille Germain. Elle est destinée à la gestion d'événements, à la communication interne et à la consultation de documents liés à vos activités Amway.</p>
             <p className="mt-2">Il vous est strictement interdit de :</p>
             <ul className="list-disc ml-6 mt-2 space-y-1">
               <li>Partager votre accès avec des tiers non autorisés</li>
@@ -52,7 +52,7 @@ export default function ConditionsPage() {
 
           <section>
             <h2 className="text-lg font-bold mb-3" style={{ color: '#C9A84C' }}>6. Protection des renseignements personnels</h2>
-            <p>Les informations personnelles collectées lors de votre inscription sont utilisées exclusivement pour la gestion de votre compte, la communication d'événements et les activités liées au réseau Famille Germain – Yager Group.</p>
+            <p>Les informations personnelles collectées lors de votre inscription sont utilisées exclusivement pour la gestion de votre compte, la communication d'événements et les activités liées au réseau Yager Group – Famille Germain.</p>
             <p className="mt-2">Vos données ne seront pas vendues, louées ou partagées avec des tiers à des fins commerciales. Elles sont stockées de manière sécurisée conformément aux lois applicables en matière de protection des renseignements personnels au Canada (Loi 25) et dans votre juridiction de résidence.</p>
           </section>
 
@@ -76,7 +76,7 @@ export default function ConditionsPage() {
           <div className="border-t pt-6 mt-6 text-center" style={{ borderColor: '#E0E0E0' }}>
             <p className="text-xs" style={{ color: '#999999' }}>
               © 2026 ACCESLYBERTECH INC. — Tous droits réservés<br />
-              Plateforme exclusive au réseau Famille Germain – Yager Group
+              Plateforme exclusive au réseau Yager Group – Famille Germain
             </p>
           </div>
 

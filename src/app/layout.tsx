@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Famille Germain – Yager Group",
-  description: "Plateforme des PCI de la Famille Germain – Yager Group : événements, billets, documents.",
+  title: "Yager Group – Famille Germain",
+  description: "Plateforme des PCI du Yager Group – Famille Germain : événements, billets, documents.",
 };
 
 export default function RootLayout({

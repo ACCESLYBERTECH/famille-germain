@@ -127,10 +127,14 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     <nav className="w-full px-3 sm:px-6 py-2 sm:py-3 sticky top-0 z-40" style={{ backgroundColor: '#1A2535' }}>
       <div className="flex items-center justify-between gap-2 relative">
 
-        {/* Logos : plus petits sur cellulaire pour laisser la place au menu ☰ */}
-        <a href="/" className="flex items-center gap-2 sm:gap-3 min-w-0 flex-shrink">
-          <img src="/logo-germain.png" alt="La Famille Germain" className="h-10 sm:h-14 xl:h-16 w-auto" />
-          <img src="/logo-yager.png" alt="Yager Group" className="h-8 sm:h-12 xl:h-14 w-auto opacity-90" />
+        {/* Logos : Yager Group en premier et plus gros, puis Famille Germain « Membre du Yager Group » */}
+        <a href="/" className="flex items-center gap-2 sm:gap-4 min-w-0 flex-shrink">
+          <img src="/logo-yager.png" alt="Yager Group" className="h-9 sm:h-12 xl:h-14 w-auto" />
+          <span className="self-stretch w-px flex-shrink-0" style={{ backgroundColor: 'rgba(201,168,76,0.5)' }} />
+          <span className="flex flex-col items-center min-w-0">
+            <img src="/logo-germain.png" alt="La Famille Germain" className="h-5 sm:h-7 xl:h-8 w-auto" />
+            <span className="text-[8px] sm:text-[10px] xl:text-[11px] tracking-wide whitespace-nowrap mt-0.5" style={{ color: '#C9A84C' }}>Membre du Yager Group</span>
+          </span>
         </a>
 
         {/* Menu complet : seulement sur grand écran (sinon il chevauche les logos) */}

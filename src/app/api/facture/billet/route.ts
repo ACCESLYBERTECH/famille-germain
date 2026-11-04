@@ -37,7 +37,7 @@ function FacturePDF({ data }: { data: any }) {
       // En-tête
       React.createElement(View, { style: styles.header },
         React.createElement(Text, { style: styles.titre }, 'ACCESLYBERTECH'),
-        React.createElement(Text, { style: styles.sousTitre }, 'Famille Germain – Yager Group'),
+        React.createElement(Text, { style: styles.sousTitre }, 'Yager Group – Famille Germain'),
         React.createElement(Text, { style: styles.numFacture }, `Facture #${data.numeroFacture}`)
       ),
 

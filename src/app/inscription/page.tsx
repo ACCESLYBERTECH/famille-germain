@@ -166,7 +166,7 @@ export default function InscriptionPage() {
 
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold" style={{ color: '#1A2535' }}>Créer un compte</h1>
-          <p className="text-sm mt-1" style={{ color: '#666666' }}>Famille Germain – Yager Group</p>
+          <p className="text-sm mt-1" style={{ color: '#666666' }}>Yager Group – Famille Germain</p>
         </div>
 
         <div className="flex items-center justify-between mb-8">
@@ -308,7 +308,7 @@ export default function InscriptionPage() {
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" className="mt-1 flex-shrink-0" checked={form.consentement_communications} onChange={e => update('consentement_communications', e.target.checked)} />
                   <span className="text-sm" style={{ color: '#1A2535' }}>
-                    J'accepte de recevoir des communications de Famille Germain – Yager Group.
+                    J'accepte de recevoir des communications du Yager Group – Famille Germain.
                   </span>
                 </label>
 
@@ -375,7 +375,7 @@ export default function InscriptionPage() {
             {/* Contenu défilable */}
             <div className="overflow-y-auto px-6 py-4 flex-1 text-sm leading-relaxed space-y-6" style={{ color: '#1A2535' }}>
 
-              <p className="text-xs" style={{ color: '#999999' }}>Plateforme Famille Germain – Yager Group · Dernière mise à jour : juin 2026</p>
+              <p className="text-xs" style={{ color: '#999999' }}>Plateforme Yager Group – Famille Germain · Dernière mise à jour : juin 2026</p>
 
               <section>
                 <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>1. Admissibilité et affiliation Amway</h3>
@@ -397,7 +397,7 @@ export default function InscriptionPage() {
 
               <section>
                 <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>4. Utilisation de la plateforme</h3>
-                <p>La plateforme ACCESLYBERTECH est réservée exclusivement aux PCIs membres du réseau Famille Germain – Yager Group. Elle est destinée à la gestion d'événements, à la communication interne et à la consultation de documents liés à vos activités Amway.</p>
+                <p>La plateforme ACCESLYBERTECH est réservée exclusivement aux PCIs membres du réseau Yager Group – Famille Germain. Elle est destinée à la gestion d'événements, à la communication interne et à la consultation de documents liés à vos activités Amway.</p>
                 <p className="mt-2">Il vous est strictement interdit de :</p>
                 <ul className="list-disc ml-5 mt-2 space-y-1">
                   <li>Partager votre accès avec des tiers non autorisés</li>
@@ -415,7 +415,7 @@ export default function InscriptionPage() {
 
               <section>
                 <h3 className="font-bold mb-2" style={{ color: '#C9A84C' }}>6. Protection des renseignements personnels</h3>
-                <p>Les informations personnelles collectées lors de votre inscription sont utilisées exclusivement pour la gestion de votre compte, la communication d'événements et les activités liées au réseau Famille Germain – Yager Group.</p>
+                <p>Les informations personnelles collectées lors de votre inscription sont utilisées exclusivement pour la gestion de votre compte, la communication d'événements et les activités liées au réseau Yager Group – Famille Germain.</p>
                 <p className="mt-2">Vos données ne seront pas vendues, louées ou partagées avec des tiers à des fins commerciales. Elles sont stockées de manière sécurisée conformément aux lois applicables en matière de protection des renseignements personnels au Canada (Loi 25) et dans votre juridiction de résidence.</p>
               </section>
 

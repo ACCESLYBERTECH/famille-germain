@@ -26,7 +26,7 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
   if (photoLeader) {
     slides.push({ url: photoLeader.url, legende: photoLeader.nom, estLeader: true, lien: null })
   } else {
-    slides.push({ url: '/bienvenue.jpg', legende: 'Famille Germain – Yager Group', estLeader: true, lien: null })
+    slides.push({ url: '/bienvenue.jpg', legende: 'Yager Group – Famille Germain', estLeader: true, lien: null })
   }
 
   images.forEach(img => slides.push({ url: img.url, lien: img.lien }))
@@ -85,7 +85,7 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
               </p>
               <p className="text-2xl sm:text-3xl font-bold text-white mb-4">{slide.legende}</p>
               <div className="w-12 h-0.5 mb-4" style={{ backgroundColor: '#C9A84C' }}></div>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Famille Germain – Yager Group</p>
+              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Yager Group – Famille Germain</p>
             </div>
           </div>
         ) : (

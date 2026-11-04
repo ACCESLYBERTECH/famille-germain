@@ -53,11 +53,14 @@ export default function ConnexionPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: '#F5F3EE' }}>
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden w-full max-w-md">
 
-        {/* En-tête navy avec logos */}
-        {/* Sur cellulaire, les logos rapetissent pour tenir côte à côte sans être coupés */}
-        <div className="flex items-center justify-center gap-3 sm:gap-4 py-5 sm:py-6 px-4 sm:px-8" style={{ backgroundColor: '#1A2535' }}>
-          <img src="/logo-germain.png" alt="La Famille Germain" className="h-12 sm:h-20 w-auto max-w-[47%] object-contain" />
-          <img src="/logo-yager.png" alt="Yager Group" className="h-10 sm:h-18 w-auto max-w-[47%] object-contain" />
+        {/* En-tête navy : Yager Group en premier et plus gros, puis Famille Germain « Membre du Yager Group » */}
+        <div className="flex flex-col items-center gap-3 sm:gap-4 py-6 sm:py-7 px-4 sm:px-8" style={{ backgroundColor: '#1A2535' }}>
+          <img src="/logo-yager.png" alt="Yager Group" className="h-16 sm:h-20 w-auto max-w-full object-contain" />
+          <div className="w-3/5 h-px" style={{ backgroundColor: 'rgba(201,168,76,0.5)' }} />
+          <div className="flex flex-col items-center">
+            <img src="/logo-germain.png" alt="La Famille Germain" className="h-9 sm:h-11 w-auto object-contain" />
+            <span className="text-xs tracking-wide mt-1" style={{ color: '#C9A84C' }}>Membre du Yager Group</span>
+          </div>
         </div>
 
         {/* Contenu */}

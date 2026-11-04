@@ -16,7 +16,7 @@ export async function envoyerBienvenuePCI(prenom: string, nom: string, email: st
   await resend.emails.send({
     from: FROM,
     to: email,
-    subject: 'Bienvenue dans la famille Germain – Yager Group!',
+    subject: 'Bienvenue dans le Yager Group – Famille Germain!',
     react: BienvenuePCI({ prenom, nom }),
   })
 }
@@ -140,7 +140,7 @@ export async function envoyerRapportBanquets(params: {
   const { error } = await resend.emails.send({
     from: FROM,
     to: params.email,
-    subject: `Rapport banquets — ${params.sousTitre || 'Famille Germain – Yager Group'}`,
+    subject: `Rapport banquets — ${params.sousTitre || 'Yager Group – Famille Germain'}`,
     react: RapportBanquets({ sousTitre: params.sousTitre }),
     attachments: [{ filename: params.nomFichier, content: params.pdf }],
   })

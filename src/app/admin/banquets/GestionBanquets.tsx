@@ -139,7 +139,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
 
       const resume = [
         ['RAPPORT BANQUETS — ACCESLYBERTECH', ''],
-        ['Famille Germain – Yager Group', ''],
+        ['Yager Group – Famille Germain', ''],
         ['', ''],
         ['Filtres appliqués', ''],
         ['Événement', nomEv],

@@ -167,7 +167,7 @@ export default function PromoEvenement({
 
       <Separateur />
       <Note>
-        Vous recevez ce courriel parce que vous avez accepté de recevoir les communications de la Famille Germain – Yager Group.
+        Vous recevez ce courriel parce que vous avez accepté de recevoir les communications du Yager Group – Famille Germain.
         Pour ne plus les recevoir, écrivez-nous par la page Contact du site.
       </Note>
     </Gabarit>

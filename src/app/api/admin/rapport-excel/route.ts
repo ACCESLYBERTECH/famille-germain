@@ -74,14 +74,14 @@ export async function POST(request: Request) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #1A2535; padding: 24px 32px;">
-            <h2 style="color: #C9A84C; margin: 0;">Famille Germain – Yager Group</h2>
+            <h2 style="color: #C9A84C; margin: 0;">Yager Group – Famille Germain</h2>
           </div>
           <div style="padding: 32px;">
             <h3 style="color: #1A2535;">Rapport de billets</h3>
             <p style="color: #333333;">Veuillez trouver en pièce jointe le rapport Excel des billets pour l'événement <strong>${nomEvenement}</strong>.</p>
             <p style="color: #333333;">Ce rapport contient <strong>${billets.length} billet${billets.length > 1 ? 's' : ''}</strong>.</p>
             <hr style="border-color: #C9A84C; margin: 24px 0;" />
-            <p style="color: #888888; font-size: 12px; text-align: center;">Famille Germain – Yager Group | ACCESLYBERTECH INC.</p>
+            <p style="color: #888888; font-size: 12px; text-align: center;">Yager Group – Famille Germain | ACCESLYBERTECH INC.</p>
           </div>
         </div>
       `,

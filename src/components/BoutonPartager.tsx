@@ -37,7 +37,7 @@ export default function BoutonPartager({ titre, url }: { titre: string; url: str
       try {
         await navigator.share({
           title: titre,
-          text: `${titre} — Famille Germain – Yager Group`,
+          text: `${titre} — Yager Group – Famille Germain`,
           url,
         })
       } catch (e) {

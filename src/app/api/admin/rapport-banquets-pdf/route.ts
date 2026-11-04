@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
 <div class="page">
 <div class="header">
   <h1>🍽️ Rapport Banquets</h1>
-  <p>Famille Germain – Yager Group${r.sousTitre ? ' · ' + esc(r.sousTitre) : ''}</p>
+  <p>Yager Group – Famille Germain${r.sousTitre ? ' · ' + esc(r.sousTitre) : ''}</p>
   <p class="date">Généré le ${esc(r.dateGeneration)}</p>
 </div>
 
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
     </tr>`).join('')}
   </tbody>
 </table>
-<p class="pied">${r.lignes.length} billet${r.lignes.length !== 1 ? 's' : ''} · Document confidentiel — Famille Germain – Yager Group</p>
+<p class="pied">${r.lignes.length} billet${r.lignes.length !== 1 ? 's' : ''} · Document confidentiel — Yager Group – Famille Germain</p>
 </div>
 
 <script>

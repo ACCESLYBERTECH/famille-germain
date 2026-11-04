@@ -53,7 +53,7 @@ function RapportPDF({ r }: { r: RapportBanquets }) {
     React.createElement(Page, { size: 'LETTER', orientation: 'landscape', style: s.page },
       React.createElement(View, { style: s.entete },
         React.createElement(Text, { style: s.titre }, 'Rapport Banquets'),
-        React.createElement(Text, { style: s.sousTitre }, nettoyer(`Famille Germain – Yager Group${r.sousTitre ? ' · ' + r.sousTitre : ''}`)),
+        React.createElement(Text, { style: s.sousTitre }, nettoyer(`Yager Group – Famille Germain${r.sousTitre ? ' · ' + r.sousTitre : ''}`)),
         React.createElement(Text, { style: s.date }, `Généré le ${r.dateGeneration}`)),
 
       React.createElement(View, { style: s.stats },
@@ -81,7 +81,7 @@ function RapportPDF({ r }: { r: RapportBanquets }) {
           cellule(s.colAllergies, l.allergies, { style: { color: l.allergies !== 'Aucune' ? '#E57373' : '#999999' } }))),
 
       React.createElement(View, { style: s.pied, fixed: true },
-        React.createElement(Text, null, 'Document confidentiel — Famille Germain – Yager Group'),
+        React.createElement(Text, null, 'Document confidentiel — Yager Group – Famille Germain'),
         React.createElement(Text, { render: ({ pageNumber, totalPages }: any) => `Page ${pageNumber} / ${totalPages}` })),
     ))
 }
