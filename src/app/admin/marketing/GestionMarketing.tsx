@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { createClient } from '@/utils/supabase/client'
+
+const TYPES_IMAGE = ['image/jpeg', 'image/png', 'image/webp']
+const TAILLE_MAX = 5 * 1024 * 1024 // 5 Mo
 
 interface Palier { id: string; prix: number; date_fin: string; ordre: number }
 interface Ville { id: string; nom_ville: string }
@@ -33,6 +37,8 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
   const [evenementId, setEvenementId] = useState('')
   const [sujet, setSujet] = useState('')
   const [imageUrl, setImageUrl] = useState('')
+  const [imageFichier, setImageFichier] = useState<string | null>(null) // chemin dans le bucket
+  const [televersement, setTeleversement] = useState(false)
   const [chargementTest, setChargementTest] = useState(false)
   const [chargementEnvoi, setChargementEnvoi] = useState(false)
   const [message, setMessage] = useState<{ type: 'succes' | 'erreur'; texte: string } | null>(null)
@@ -52,6 +58,46 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
     setMessage(null)
     const ev = evenements.find(e => e.id === id)
     setSujet(ev ? `🎉 ${ev.nom} arrive bientôt !` : '')
+  }
+
+  async function choisirImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const fichier = e.target.files?.[0]
+    e.target.value = ''
+    if (!fichier) return
+    setMessage(null)
+    if (!TYPES_IMAGE.includes(fichier.type)) {
+      setMessage({ type: 'erreur', texte: 'Format non accepté. Choisissez une image JPG, PNG ou WebP.' })
+      return
+    }
+    if (fichier.size > TAILLE_MAX) {
+      setMessage({ type: 'erreur', texte: `Image trop lourde (${(fichier.size / 1024 / 1024).toFixed(1)} Mo). Maximum : 5 Mo.` })
+      return
+    }
+    setTeleversement(true)
+    const supabase = createClient()
+    const extension = fichier.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const chemin = `banniere-${Date.now()}.${extension}`
+    const { error } = await supabase.storage.from('marketing').upload(chemin, fichier, { contentType: fichier.type })
+    if (error) {
+      setTeleversement(false)
+      setMessage({ type: 'erreur', texte: "Impossible d'ajouter l'image. Réessayez." })
+      return
+    }
+    // On retire l'ancienne image si elle n'a pas encore été envoyée
+    if (imageFichier) await supabase.storage.from('marketing').remove([imageFichier])
+    const { data } = supabase.storage.from('marketing').getPublicUrl(chemin)
+    setImageUrl(data.publicUrl)
+    setImageFichier(chemin)
+    setTeleversement(false)
+  }
+
+  async function retirerImage() {
+    if (imageFichier) {
+      const supabase = createClient()
+      await supabase.storage.from('marketing').remove([imageFichier])
+    }
+    setImageUrl('')
+    setImageFichier(null)
   }
 
   async function envoyerTest() {
@@ -94,6 +140,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
     }
     setMessage({ type: 'succes', texte: `Envoyé avec succès à ${data.nombre} destinataires.` })
     setImageUrl('')
+    setImageFichier(null)
     window.location.reload()
   }
 
@@ -142,15 +189,27 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
           placeholder="Sujet du courriel"
         />
 
-        <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Image bannière (URL, optionnel)</label>
-        <input
-          type="text"
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          className="w-full p-2.5 rounded-lg border mb-4"
-          style={{ borderColor: '#E0E0E0' }}
-          placeholder="https://..."
-        />
+        <label className="block text-sm font-medium mb-1" style={{ color: '#1A2535' }}>Image bannière (optionnel)</label>
+        {imageUrl ? (
+          <div className="mb-4">
+            <img src={imageUrl} alt="Aperçu de la bannière" className="w-full max-w-xl rounded-lg border" style={{ borderColor: '#E0E0E0' }} />
+            <div className="flex flex-wrap gap-2 mt-2">
+              <label className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer border bg-white" style={{ borderColor: '#C9A84C', color: '#1A2535' }}>
+                {televersement ? 'Ajout en cours...' : "🔄 Changer l'image"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={choisirImage} disabled={televersement} />
+              </label>
+              <button type="button" onClick={retirerImage} disabled={televersement} className="px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: '#FDECEA', color: '#E57373' }}>
+                ✕ Retirer
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label className="mb-4 flex flex-col items-center justify-center gap-1 w-full p-6 rounded-lg border-2 border-dashed cursor-pointer text-center hover:bg-gray-50" style={{ borderColor: '#C9A84C' }}>
+            <span className="font-medium" style={{ color: '#1A2535' }}>{televersement ? "Ajout de l'image en cours..." : '🖼️ Choisir une image'}</span>
+            <span className="text-xs" style={{ color: '#999999' }}>JPG, PNG ou WebP · 5 Mo maximum · idéalement 1200 px de large</span>
+            <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={choisirImage} disabled={televersement} />
+          </label>
+        )}
 
         {message && (
           <div
@@ -167,7 +226,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
         <div className="flex flex-wrap gap-3">
           <button
             onClick={envoyerTest}
-            disabled={!evenementId || !sujet || chargementTest || chargementEnvoi}
+            disabled={!evenementId || !sujet || chargementTest || chargementEnvoi || televersement}
             className="px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50"
             style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}
           >
@@ -175,7 +234,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
           </button>
           <button
             onClick={envoyerATous}
-            disabled={!evenementId || !sujet || chargementTest || chargementEnvoi}
+            disabled={!evenementId || !sujet || chargementTest || chargementEnvoi || televersement}
             className="px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: '#C9A84C' }}
           >
