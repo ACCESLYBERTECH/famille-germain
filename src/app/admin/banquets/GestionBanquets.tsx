@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import * as XLSX from 'xlsx'
 import { formaterAllergies } from '@/lib/allergies'
 import FiltreGroupe from '@/components/FiltreGroupe'
-import { correspondGroupe } from '@/lib/groupes'
+import { correspondGroupe, libelleFiltreGroupe } from '@/lib/groupes'
 
 interface Evenement {
   id: string
@@ -77,7 +77,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
       const matchEvenement = filtreEvenement === '' ? true : l.billet.evenements?.nom === filtreEvenement
       const matchLeader = filtreLeader === '' ? true : l.billet.comptes?.leader_id === filtreLeader
       const matchBanquet = filtreBanquet === 'tous' ? true : filtreBanquet === 'avec' ? l.aBanquet : !l.aBanquet
-      const matchGroupe = correspondGroupe(l.billet.comptes?.groupe, filtreGroupe)
+      const matchGroupe = correspondGroupe(l.billet.comptes?.groupe, filtreGroupe, l.billet.comptes?.leader_id)
       return matchEvenement && matchLeader && matchBanquet && matchGroupe
     })
   }, [lignes, filtreEvenement, filtreLeader, filtreBanquet, filtreGroupe])
@@ -144,7 +144,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
         ['Filtres appliqués', ''],
         ['Événement', nomEv],
         ['Leader', nomLeader],
-        ['Groupe', filtreGroupe ? (filtreGroupe === '__aucun__' ? 'Sans groupe' : filtreGroupe) : 'Tous les groupes'],
+        ['Groupe', libelleFiltreGroupe(filtreGroupe)],
         ['', ''],
         ['Statistiques', ''],
         ['Total billets', statsTotal],
@@ -230,7 +230,7 @@ export default function GestionBanquets({ evenements, billets, banquetsAchetes, 
             {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
           </select>
 
-          <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} />
+          <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} nomLeader={id => { const l = leaders.find(x => x.id === id); return l ? `${l.prenom_1} ${l.nom_1}` : null }} />
 
           {(filtreEvenement || filtreLeader || filtreGroupe || filtreBanquet !== 'tous') && (
             <button onClick={() => { setFiltreEvenement(''); setFiltreLeader(''); setFiltreGroupe(''); setFiltreBanquet('tous') }} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#666666' }}>

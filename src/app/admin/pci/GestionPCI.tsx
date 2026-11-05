@@ -216,7 +216,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
         filtreLeader === 'aucun' ? !pci.leader_id :
         pci.leader_id === filtreLeader
 
-      const matchGroupe = correspondGroupe((pci as any).groupe, filtreGroupe)
+      const matchGroupe = correspondGroupe((pci as any).groupe, filtreGroupe, pci.leader_id)
       return matchRecherche && matchLeader && matchGroupe
     })
   }, [listeCourante, recherche, filtreLeader, filtreGroupe])
@@ -272,7 +272,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
                 <option value="aucun">⚠️ Aucun leader assigné ({orphelins})</option>
                 {leaders.map(l => <option key={l.id} value={l.id}>{nomLeaderOption(l)}</option>)}
               </select>
-              <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={listeCourante.map(p => ({ groupe: (p as any).groupe, leader_id: p.leader_id }))} filtreLeader={filtreLeader === 'aucun' ? '' : filtreLeader} />
+              <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={listeCourante.map(p => ({ groupe: (p as any).groupe, leader_id: p.leader_id }))} filtreLeader={filtreLeader === 'aucun' ? '' : filtreLeader} nomLeader={id => { const l = leaders.find(x => x.id === id); return l ? `${l.prenom_1} ${l.nom_1}` : null }} />
               {(recherche || filtreLeader || filtreGroupe) && (
                 <button onClick={() => { setRecherche(''); setFiltreLeader(''); setFiltreGroupe('') }} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#F5F3EE', color: '#666666' }}>
                   ✕ Effacer les filtres
@@ -474,7 +474,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Groupe (tag libre)</label>
-                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={formAjout.groupe} onChange={e => updateAjout('groupe', e.target.value)} />
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: MORIN ou MORIN / TREMBLAY" value={formAjout.groupe} onChange={e => updateAjout('groupe', e.target.value)} />
               </div>
 
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Période sans frais</p>
@@ -677,7 +677,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Groupe</p>
               <div>
                 <label className={labelClass} style={{ color: '#1A2535' }}>Groupe (tag libre)</label>
-                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={form.groupe} onChange={e => update('groupe', e.target.value)} />
+                <input className={inputClass} style={{ borderColor: '#E0E0E0' }} placeholder="Ex: MORIN ou MORIN / TREMBLAY" value={form.groupe} onChange={e => update('groupe', e.target.value)} />
               </div>
 
               <p className="text-xs font-bold uppercase tracking-wide pt-2" style={{ color: '#C9A84C' }}>Période sans frais</p>

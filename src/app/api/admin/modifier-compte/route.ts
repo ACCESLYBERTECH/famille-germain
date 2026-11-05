@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { cleGroupe } from '@/lib/groupes'
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { estAdminOuDeveloppeur, estDeveloppeur } from '@/lib/acces'
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         leader_id: leader_id || null,
         periode_sf_debut: periode_sf_debut || null,
         periode_sf_fin: periode_sf_fin || null,
-        groupe: groupe || null,
+        groupe: cleGroupe(groupe) || null,
         photo_url: photo_url || null,
         visible_inscription: visible_inscription !== undefined ? visible_inscription : true,
         // Statut modifiable seulement entre actif et inactif (l'historique des billets n'est pas touché)

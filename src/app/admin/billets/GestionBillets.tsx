@@ -99,7 +99,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       const matchEvenement = filtreEvenement === '' ? true : b.evenements?.nom === filtreEvenement
       const matchLeader = filtreLeader === '' ? true : b.comptes?.leader_id === filtreLeader
       const matchMode = filtreMode === '' ? true : (b.mode_participation ?? 'sur_place') === filtreMode
-      const matchGroupe = correspondGroupe(b.comptes?.groupe, filtreGroupe)
+      const matchGroupe = correspondGroupe(b.comptes?.groupe, filtreGroupe, b.comptes?.leader_id)
       const matchRecherche = recherche.length < 2 ? true :
         b.nom_pci.toLowerCase().includes(recherche.toLowerCase()) ||
         b.comptes?.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
@@ -328,7 +328,7 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
               {leaders.map(l => <option key={l.id} value={l.id}>{l.prenom_1} {l.nom_1}</option>)}
             </select>
           )}
-          <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} />
+          <FiltreGroupe valeur={filtreGroupe} onChange={setFiltreGroupe} elements={billets.map(b => ({ groupe: b.comptes?.groupe, leader_id: b.comptes?.leader_id }))} filtreLeader={filtreLeader} nomLeader={id => { const l = leaders.find(x => x.id === id); return l ? `${l.prenom_1} ${l.nom_1}` : null }} />
           <select className="border rounded-lg px-3 py-2 text-sm outline-none max-w-full" style={{ borderColor: '#E0E0E0' }} value={filtreMode} onChange={e => setFiltreMode(e.target.value)}>
             <option value="">Sur place + Virtuel</option>
             <option value="sur_place">🏛️ Sur place seulement</option>

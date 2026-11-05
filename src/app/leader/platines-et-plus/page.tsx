@@ -75,6 +75,7 @@ export default async function PlatinesEtPlusPage() {
           leadersGroupe={leadersGroupe}
           leaderConnecteId={user.id}
           banquetsAchetes={banquetsAchetes ?? []}
+          estAdmin={compte?.role === 'admin'}
         />
       </div>
     </div>

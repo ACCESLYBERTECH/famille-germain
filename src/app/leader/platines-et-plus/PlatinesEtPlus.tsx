@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import FiltreGroupe from '@/components/FiltreGroupe'
-import { correspondGroupe } from '@/lib/groupes'
+import { correspondGroupe, cheminsGroupes, libelleFiltreGroupe } from '@/lib/groupes'
 
 interface PCI {
   id: string
@@ -53,12 +53,13 @@ interface Props {
   leadersGroupe: Leader[]
   leaderConnecteId: string
   banquetsAchetes: BanquetAchete[]
+  estAdmin?: boolean
 }
 
 type TriBillets = 'nom' | 'evenement' | 'statut' | 'date'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
-export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes }: Props) {
+export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes, estAdmin = false }: Props) {
   const [onglet, setOnglet] = useState<'billets' | 'profils' | 'inactifs'>('billets')
   const [statutEdit, setStatutEdit] = useState('actif')
   const [statutChargement, setStatutChargement] = useState(false)
@@ -78,6 +79,26 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   const [groupeEdit, setGroupeEdit] = useState('')
   const [sauvegroupeChargement, setSauveGroupeChargement] = useState(false)
   const [groupeSauvegarde, setGroupeSauvegarde] = useState(false)
+  const [groupeErreur, setGroupeErreur] = useState<string | null>(null)
+
+  // Classement de plusieurs PCI d'un coup
+  const [selection, setSelection] = useState<Set<string>>(new Set())
+  const [groupeLot, setGroupeLot] = useState('')
+  const [lotChargement, setLotChargement] = useState(false)
+  const [lotMessage, setLotMessage] = useState<{ type: 'succes' | 'erreur'; texte: string } | null>(null)
+
+  // Un leader classe seulement SES PCI (ceux qui l'ont choisi comme leader)
+  const peutClasser = (p: PCI) => estAdmin || p.leader_id === leaderConnecteId
+
+  // Groupes existants proposés pendant qu'on tape
+  const elementsGroupes = useMemo(() => pcis.map(p => ({ groupe: p.groupe, leader_id: p.leader_id })), [pcis])
+  const suggestionsPour = (leaderId: string | null) => cheminsGroupes(elementsGroupes, leaderId ?? '')
+  const suggestionsLot = useMemo(
+    () => estAdmin
+      ? Array.from(new Set(leadersGroupe.map(l => l.id).concat(leaderConnecteId).flatMap(id => cheminsGroupes(elementsGroupes, id)))).sort()
+      : cheminsGroupes(elementsGroupes, leaderConnecteId),
+    [elementsGroupes, estAdmin, leadersGroupe, leaderConnecteId]
+  )
 
   const evenements = useMemo(() => {
     const noms = new Map<string, string>()
@@ -112,7 +133,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
   const idsPCIFiltresParGroupe = useMemo(() => {
     if (!filtreGroupe) return null
-    return new Set(pcis.filter(p => correspondGroupe(p.groupe, filtreGroupe)).map(p => p.id))
+    return new Set(pcis.filter(p => correspondGroupe(p.groupe, filtreGroupe, p.leader_id)).map(p => p.id))
   }, [pcis, filtreGroupe])
 
   const billetsFiltres = useMemo(() => {
@@ -147,7 +168,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         p.courriel.toLowerCase().includes(recherche.toLowerCase()) ||
         p.numero_amway.toLowerCase().includes(recherche.toLowerCase())
       const matchLeader = filtreLeader === '' ? true : p.leader_id === filtreLeader
-      const matchGroupe = correspondGroupe(p.groupe, filtreGroupe)
+      const matchGroupe = correspondGroupe(p.groupe, filtreGroupe, p.leader_id)
       return matchRecherche && matchLeader && matchGroupe
     })
 
@@ -164,17 +185,66 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   async function sauvegarderGroupe() {
     if (!profilOuvert) return
     setSauveGroupeChargement(true)
+    setGroupeErreur(null)
 
-    await fetch('/api/leader/modifier-groupe', {
+    const res = await fetch('/api/leader/modifier-groupe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: profilOuvert.id, groupe: groupeEdit }),
     })
-
+    const data = await res.json().catch(() => ({}))
     setSauveGroupeChargement(false)
+
+    if (!res.ok) {
+      setGroupeErreur(data.error ?? 'Erreur lors de la sauvegarde')
+      return
+    }
+    profilOuvert.groupe = data.groupe ?? null
+    setGroupeEdit(data.groupe ?? '')
     setGroupeSauvegarde(true)
     setTimeout(() => setGroupeSauvegarde(false), 2000)
-    profilOuvert.groupe = groupeEdit || null
+    router.refresh()
+  }
+
+  function basculerSelection(id: string) {
+    setSelection(prev => {
+      const suivant = new Set(prev)
+      if (suivant.has(id)) suivant.delete(id)
+      else suivant.add(id)
+      return suivant
+    })
+    setLotMessage(null)
+  }
+
+  async function appliquerGroupeLot(retirer: boolean) {
+    if (selection.size === 0) return
+    if (!retirer && !groupeLot.trim()) {
+      setLotMessage({ type: 'erreur', texte: 'Choisissez ou écrivez un groupe.' })
+      return
+    }
+    setLotChargement(true)
+    setLotMessage(null)
+    const res = await fetch('/api/leader/modifier-groupe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: Array.from(selection), groupe: retirer ? '' : groupeLot }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setLotChargement(false)
+    if (!res.ok) {
+      setLotMessage({ type: 'erreur', texte: data.error ?? 'Erreur lors de la sauvegarde' })
+      return
+    }
+    const nombre = selection.size
+    setLotMessage({
+      type: 'succes',
+      texte: retirer
+        ? `✓ ${nombre} PCI retiré${nombre > 1 ? 's' : ''} de leur groupe`
+        : `✓ ${nombre} PCI placé${nombre > 1 ? 's' : ''} dans ${data.groupe}`,
+    })
+    setSelection(new Set())
+    setGroupeLot('')
+    router.refresh()
   }
 
   function exporterCSV() {
@@ -207,7 +277,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     const nomFichier = filtreEvenement
       ? `mon-groupe-${filtreEvenement.replace(/\s+/g, '-')}.csv`
       : filtreGroupe
-      ? `mon-groupe-${filtreGroupe.replace(/\s+/g, '-')}.csv`
+      ? `mon-groupe-${libelleFiltreGroupe(filtreGroupe).replace(/\s*\/\s*/g, '_').replace(/\s+/g, '-')}.csv`
       : 'mon-groupe.csv'
     lien.download = nomFichier
     lien.click()
@@ -218,6 +288,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     setProfilOuvert(pci)
     setGroupeEdit(pci.groupe ?? '')
     setGroupeSauvegarde(false)
+    setGroupeErreur(null)
     setStatutEdit(pci.statut)
     setStatutSauvegarde(false)
   }
@@ -346,7 +417,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
               </select>
             )}
 
-            <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={pcis.map(p => ({ groupe: p.groupe, leader_id: p.leader_id }))} filtreLeader={filtreLeader} />
+            <FiltreGroupe className="border rounded-lg px-3 py-1.5 text-sm outline-none max-w-full" valeur={filtreGroupe} onChange={setFiltreGroupe} elements={elementsGroupes} filtreLeader={filtreLeader} nomLeader={nomLeader} moiId={estAdmin ? undefined : leaderConnecteId} />
 
             {onglet === 'billets' && (
               <div className="flex gap-1 ml-auto flex-wrap">
@@ -424,14 +495,66 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         {/* ONGLET PROFILS */}
         {(onglet === 'profils' || onglet === 'inactifs') && (
           <div>
+            {/* Classer plusieurs PCI d'un coup (seulement ses propres PCI) */}
+            {(() => {
+              const classables = pcisFiltres.filter(peutClasser)
+              if (classables.length === 0) return null
+              const tousCoches = classables.every(p => selection.has(p.id))
+              return (
+                <div className="sticky top-16 sm:top-20 z-10">
+                  {selection.size > 0 ? (
+                    <div className="p-3 flex flex-wrap items-center gap-2" style={{ backgroundColor: '#1A2535' }}>
+                      <span className="text-sm font-semibold text-white mr-1">{selection.size} PCI sélectionné{selection.size > 1 ? 's' : ''}</span>
+                      <input list="suggestions-groupes-lot" className="flex-1 min-w-[180px] rounded-lg px-3 py-2 text-sm outline-none bg-white" placeholder="Groupe : ex. MORIN / TREMBLAY" value={groupeLot} onChange={e => setGroupeLot(e.target.value)} />
+                      <datalist id="suggestions-groupes-lot">
+                        {suggestionsLot.map(g => <option key={g} value={g} />)}
+                      </datalist>
+                      <button onClick={() => appliquerGroupeLot(false)} disabled={lotChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
+                        {lotChargement ? '...' : 'Placer dans ce groupe'}
+                      </button>
+                      <button onClick={() => appliquerGroupeLot(true)} disabled={lotChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-white/10 hover:bg-white/20">
+                        Retirer du groupe
+                      </button>
+                      <button onClick={() => { setSelection(new Set()); setLotMessage(null) }} className="px-2 py-2 text-sm text-white/70 hover:text-white">✕ Annuler</button>
+                    </div>
+                  ) : (
+                    <div className="px-4 py-2.5 border-b text-sm bg-white" style={{ borderColor: '#E0E0E0', color: '#666666' }}>
+                      ☑️ Cochez des PCI pour les placer dans un groupe d&apos;un seul coup.
+                    </div>
+                  )}
+                  <label className="px-4 py-2 border-b flex items-center gap-3 text-xs cursor-pointer bg-white" style={{ borderColor: '#E0E0E0', color: '#666666' }}>
+                    <input type="checkbox" className="w-4 h-4 accent-yellow-600" checked={tousCoches} onChange={() => {
+                      setSelection(prev => {
+                        const suivant = new Set(prev)
+                        classables.forEach(p => { if (tousCoches) suivant.delete(p.id); else suivant.add(p.id) })
+                        return suivant
+                      })
+                      setLotMessage(null)
+                    }} />
+                    Tout sélectionner ({classables.length} {estAdmin ? 'PCI affichés' : 'de mes PCI affichés'})
+                  </label>
+                  {lotMessage && (
+                    <div className="px-4 py-2 text-sm" style={lotMessage.type === 'succes' ? { backgroundColor: '#E8F5E9', color: '#2E7D32' } : { backgroundColor: '#FDECEA', color: '#C62828' }}>
+                      {lotMessage.texte}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             {pcisFiltres.length === 0 ? (
               <div className="p-8 text-center" style={{ color: '#666666' }}>Aucun PCI trouvé</div>
             ) : (
               pcisFiltres.map(pci => {
                 const leader = nomLeader(pci.leader_id)
                 return (
-                  <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0' }}>
-                    <div className="flex-1">
+                  <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0', backgroundColor: selection.has(pci.id) ? '#FBF6E8' : undefined }}>
+                    <div className="flex-1 flex gap-3 min-w-0">
+                    {peutClasser(pci) ? (
+                      <input type="checkbox" aria-label={`Sélectionner ${pci.prenom_1} ${pci.nom_1}`} className="w-5 h-5 mt-0.5 flex-shrink-0 accent-yellow-600 cursor-pointer" checked={selection.has(pci.id)} onChange={() => basculerSelection(pci.id)} />
+                    ) : (
+                      <span className="w-5 flex-shrink-0 text-center text-sm mt-0.5" title={leader ? `Groupe géré par ${leader}` : 'Groupe géré par son leader'}>🔒</span>
+                    )}
+                    <div className="flex-1 min-w-0">
                       <p className="font-semibold" style={{ color: '#1A2535' }}>
                         {pci.prenom_1} {pci.nom_1}
                         {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
@@ -444,6 +567,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                       <p className="text-xs mt-1" style={{ color: '#4CAF7D' }}>
                         Sans frais jusqu'au {pci.periode_sf_fin ? new Date(pci.periode_sf_fin).toLocaleDateString('fr-CA') : 'N/A'}
                       </p>
+                    </div>
                     </div>
                     <button onClick={() => ouvrirProfil(pci)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: '#E3F2FD', color: '#2E86C1' }}>
                       ℹ️ Profil
@@ -488,7 +612,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: '#666666' }}>Leader</span>
-                  <span style={{ color: '#2E86C1' }}>{nomLeader(profilOuvert.leader_id) ?? 'Aucun'}</span>
+                  <span style={{ color: '#2E86C1' }}>{!estAdmin && profilOuvert.leader_id === leaderConnecteId ? 'Vous' : nomLeader(profilOuvert.leader_id) ?? 'Aucun'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span style={{ color: '#666666' }}>Sans frais jusqu'au</span>
@@ -502,12 +626,26 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
               <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#C9A84C' }}>Groupe</label>
-                <div className="flex gap-2 flex-wrap">
-                  <input className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: GROUPEA, EQUIPE-1..." value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
-                  <button onClick={sauvegarderGroupe} disabled={sauvegroupeChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: groupeSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
-                    {sauvegroupeChargement ? '...' : groupeSauvegarde ? '✓' : 'Sauver'}
-                  </button>
-                </div>
+                {peutClasser(profilOuvert) ? (
+                  <>
+                    <div className="flex gap-2 flex-wrap">
+                      <input list="suggestions-groupes-profil" className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }} placeholder="Ex: MORIN ou MORIN / TREMBLAY" value={groupeEdit} onChange={e => setGroupeEdit(e.target.value)} />
+                      <datalist id="suggestions-groupes-profil">
+                        {suggestionsPour(profilOuvert.leader_id).map(g => <option key={g} value={g} />)}
+                      </datalist>
+                      <button onClick={sauvegarderGroupe} disabled={sauvegroupeChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: groupeSauvegarde ? '#4CAF7D' : '#C9A84C' }}>
+                        {sauvegroupeChargement ? '...' : groupeSauvegarde ? '✓' : 'Sauver'}
+                      </button>
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: '#999999' }}>Sous-groupe : séparez avec « / » (ex. MORIN / TREMBLAY)</p>
+                    {groupeErreur && <p className="text-xs mt-1" style={{ color: '#C62828' }}>{groupeErreur}</p>}
+                  </>
+                ) : (
+                  <p className="text-sm" style={{ color: '#1A2535' }}>
+                    {profilOuvert.groupe ?? <span style={{ color: '#999999' }}>Aucun groupe</span>}
+                    <span className="block text-xs mt-1" style={{ color: '#999999' }}>🔒 Le groupe de ce PCI est géré par son leader{nomLeader(profilOuvert.leader_id) ? ` (${nomLeader(profilOuvert.leader_id)})` : ''}.</span>
+                  </p>
+                )}
               </div>
 
               {/* Statut Actif / Inactif — pas pour soi-même ni pour une demande en attente */}

@@ -1,6 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { formaterAllergies } from '@/lib/allergies'
-import { correspondGroupe, SANS_GROUPE } from '@/lib/groupes'
+import { correspondGroupe, libelleFiltreGroupe } from '@/lib/groupes'
 
 // Données du Rapport banquets — partagées entre la page imprimable et l'envoi par courriel
 // (côté serveur seulement : utilise la clé service_role)
@@ -68,7 +68,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
 
   let billetsFiltres = billets ?? []
   if (leaderId) billetsFiltres = billetsFiltres.filter((b: any) => b.comptes?.leader_id === leaderId)
-  if (groupe) billetsFiltres = billetsFiltres.filter((b: any) => correspondGroupe(b.comptes?.groupe, groupe))
+  if (groupe) billetsFiltres = billetsFiltres.filter((b: any) => correspondGroupe(b.comptes?.groupe, groupe, b.comptes?.leader_id))
 
   const lignes: LigneRapportBanquets[] = billetsFiltres.map((billet: any) => {
     const banquetAchete = billet.est_sans_frais
@@ -98,7 +98,7 @@ export async function chargerRapportBanquets({ evenementId, leaderId, filtreBanq
   const sousTitre = [
     nomEvenement,
     leaderFiltre ? `Leader : ${leaderFiltre.prenom_1} ${leaderFiltre.nom_1}` : '',
-    groupe ? `Groupe : ${groupe === SANS_GROUPE ? 'Sans groupe' : groupe}` : '',
+    groupe ? `Groupe : ${libelleFiltreGroupe(groupe)}` : '',
     filtreBanquet === 'avec' ? 'Avec banquet seulement' : filtreBanquet === 'sans' ? 'Sans banquet seulement' : '',
   ].filter(Boolean).join(' · ')
 
