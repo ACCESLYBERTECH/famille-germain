@@ -36,6 +36,11 @@ export default async function MesBilletsPage() {
     dateFin.setDate(dateFin.getDate() + 30)
     return dateFin >= maintenant
   })
+  // Du prochain événement au plus loin en date (puis par nom pour plusieurs billets du même événement)
+  .sort((a, b) =>
+    new Date(a.evenement.date_debut).getTime() - new Date(b.evenement.date_debut).getTime() ||
+    (a.nom_pci ?? '').localeCompare(b.nom_pci ?? '', 'fr-CA')
+  )
 
   // Charger les banquets achetés par le PCI
   const billetIds = billetsFiltres.map(b => b.id)

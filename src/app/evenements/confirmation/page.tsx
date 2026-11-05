@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Stripe from 'stripe'
 import { envoyerConfirmationBillet } from '@/lib/email'
+import { genererFacture } from '@/lib/facturePDF'
 import { formaterAllergies } from '@/lib/allergies'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -72,6 +73,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
 
   const nomsDejaCrees = (billetsExistants ?? []).map((b: { nom_pci: string }) => b.nom_pci)
   const quantite = nomsListe.length || 1
+  const idsBilletsCrees: string[] = []
 
   for (const nom of nomsListe) {
     if (nomsDejaCrees.includes(nom)) continue
@@ -79,7 +81,7 @@ export default async function ConfirmationPage({ searchParams }: Props) {
     const token = crypto.randomUUID()
     const modeNom = modesParticipation[nom] ?? 'sur_place'
 
-    await supabase.from('billets').insert({
+    const { data: billetCree } = await supabase.from('billets').insert({
       evenement_id,
       compte_id: user.id,
       nom_pci: nom,
@@ -95,11 +97,23 @@ export default async function ConfirmationPage({ searchParams }: Props) {
       stripe_payment_intent_id: payment_intent,
       qr_code_token: token,
       statut: 'vendu',
-    })
+    }).select('id').single()
+    if (billetCree?.id) idsBilletsCrees.push(billetCree.id)
   }
 
   if (compte?.courriel && evenement && nomsDejaCrees.length === 0) {
+    // Les factures PDF sont jointes au courriel (si une facture échoue, le courriel part quand même)
+    const factures: { nomFichier: string; pdf: Buffer }[] = []
+    for (const id of idsBilletsCrees) {
+      try {
+        const f = await genererFacture('billet', id, user.id)
+        if (!('erreur' in f)) factures.push({ nomFichier: f.nomFichier, pdf: f.pdf })
+      } catch (e) {
+        console.error('Facture PDF non jointe:', e)
+      }
+    }
     await envoyerConfirmationBillet({
+      factures,
       prenom: compte.prenom_1,
       nom: compte.nom_1,
       email: compte.courriel,

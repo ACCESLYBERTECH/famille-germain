@@ -61,6 +61,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const liensCommuns = [
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
+    { href: '/factures', label: 'Mes factures' },
     ...lienAudios,
     { href: '/documents', label: 'Documents' },
     { href: '/contact', label: 'Contact' },
@@ -69,6 +70,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
   const liensLeader = [
     { href: '/evenements', label: 'Événements' },
     { href: '/evenements/mes-billets', label: 'Mes billets' },
+    { href: '/factures', label: 'Mes factures' },
     { href: '/leader/platines-et-plus', label: 'Platines et plus' },
     ...lienAudios,
     { href: '/documents', label: 'Documents' },
@@ -137,11 +139,11 @@ export default function Navbar({ prenom, role }: NavbarProps) {
           </span>
         </a>
 
-        {/* Menu complet : seulement sur grand écran (sinon il chevauche les logos) */}
-        <div className="hidden xl:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+        {/* Menu complet : seulement sur grand écran — il prend l'espace entre les logos et le nom (jamais par-dessus) */}
+        <div className="hidden xl:flex flex-1 min-w-0 justify-center items-center gap-0.5 2xl:gap-1">
           {aMenuGestion && (
             <div className="relative" ref={gestionRef}>
-              <button onClick={() => setGestionOuvert(!gestionOuvert)} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white/10 flex items-center gap-1" style={{ color: gestionOuvert ? '#C9A84C' : '#E0E0E0' }}>
+              <button onClick={() => setGestionOuvert(!gestionOuvert)} className="px-2.5 2xl:px-3 py-2 rounded-lg text-[15px] 2xl:text-base font-medium transition-colors hover:bg-white/10 flex items-center gap-1 whitespace-nowrap" style={{ color: gestionOuvert ? '#C9A84C' : '#E0E0E0' }}>
                 Gestion <span className="text-xs">{gestionOuvert ? '▲' : '▼'}</span>
               </button>
               {gestionOuvert && (
@@ -154,12 +156,12 @@ export default function Navbar({ prenom, role }: NavbarProps) {
             </div>
           )}
           {(aMenuGestion ? liensAdminPrincipaux : liens).map(lien => (
-            <a key={lien.href} href={lien.href} className="px-3 py-2 rounded-lg text-base font-medium transition-colors hover:bg-white/10 whitespace-nowrap" style={{ color: '#E0E0E0' }}>{lien.label}</a>
+            <a key={lien.href} href={lien.href} className="px-2.5 2xl:px-3 py-2 rounded-lg text-[15px] 2xl:text-base font-medium transition-colors hover:bg-white/10 whitespace-nowrap" style={{ color: '#E0E0E0' }}>{lien.label}</a>
           ))}
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-          <div className="text-right hidden sm:block max-w-56 leading-tight">
+          <div className="text-right hidden sm:block xl:hidden 2xl:block max-w-56 leading-tight">
             <p className="text-white text-sm font-medium truncate" title={nomComplet}>{nomComplet}</p>
             {coPCI && <p className="text-xs truncate" style={{ color: '#B8C0CC' }} title={coPCI}>& {coPCI}</p>}
             <p className="text-xs capitalize mt-0.5" style={{ color: '#C9A84C' }}>{estDev ? 'Développeur' : role}</p>

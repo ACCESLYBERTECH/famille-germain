@@ -29,11 +29,16 @@ export async function envoyerConfirmationBillet(params: {
   ville: string
   date: string
   prix: string
+  typeAchat?: 'billet' | 'banquet'
+  factures?: { nomFichier: string; pdf: Buffer }[]
 }) {
+  const factures = params.factures ?? []
   await resend.emails.send({
     from: FROM,
     to: params.email,
-    subject: `Votre billet pour ${params.evenement} est confirmé!`,
+    subject: params.typeAchat === 'banquet'
+      ? `Votre place au banquet est confirmée — ${params.evenement}`
+      : `Votre billet pour ${params.evenement} est confirmé!`,
     react: ConfirmationBillet({
       prenom: params.prenom,
       nom: params.nom,
@@ -42,7 +47,10 @@ export async function envoyerConfirmationBillet(params: {
       date: params.date,
       prix: params.prix,
       codeQR: '',
+      typeAchat: params.typeAchat ?? 'billet',
+      facturesJointes: factures.length,
     }),
+    ...(factures.length > 0 ? { attachments: factures.map(f => ({ filename: f.nomFichier, content: f.pdf })) } : {}),
   })
 }
 

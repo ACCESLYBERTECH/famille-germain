@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Stripe from 'stripe'
 import { formaterAllergies } from '@/lib/allergies'
+import { envoyerConfirmationBillet } from '@/lib/email'
+import { genererFacture } from '@/lib/facturePDF'
 
 const stripeBanquet = new Stripe(process.env.STRIPE_BANQUET_SECRET_KEY!)
 
@@ -66,7 +68,7 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
 
   if (!banquetExistant) {
     const token = crypto.randomUUID()
-    await supabaseAdmin.from('billets_banquets').insert({
+    const { data: banquetCree } = await supabaseAdmin.from('billets_banquets').insert({
       billet_id,
       banquet_id,
       compte_id: user.id,
@@ -80,7 +82,27 @@ export default async function ConfirmationBanquetPage({ searchParams }: Props) {
       stripe_payment_intent_id: payment_intent,
       qr_code_token: token,
       statut: 'vendu',
-    })
+    }).select('id').single()
+
+    // Courriel de confirmation avec la facture PDF jointe
+    if (compte?.courriel && banquetCree?.id) {
+      try {
+        const f = await genererFacture('banquet', banquetCree.id, user.id)
+        await envoyerConfirmationBillet({
+          prenom: compte.prenom_1,
+          nom: compte.nom_1,
+          email: compte.courriel,
+          evenement: `${banquet?.nom ?? 'Banquet'} — ${banquet?.evenement?.nom ?? ''}`,
+          ville: '',
+          date: banquet?.evenement?.date_debut ? new Date(banquet.evenement.date_debut).toLocaleDateString('fr-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '',
+          prix: prixTotal.toFixed(2),
+          typeAchat: 'banquet',
+          factures: 'erreur' in f ? [] : [{ nomFichier: f.nomFichier, pdf: f.pdf }],
+        })
+      } catch (e) {
+        console.error('Courriel confirmation banquet:', e)
+      }
+    }
   }
 
   return (
