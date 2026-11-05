@@ -80,7 +80,10 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
     const { error } = await supabase.storage.from('marketing').upload(chemin, fichier, { contentType: fichier.type })
     if (error) {
       setTeleversement(false)
-      setMessage({ type: 'erreur', texte: "Impossible d'ajouter l'image. Réessayez." })
+      const detail = error.message?.toLowerCase().includes('bucket')
+        ? "l'espace « marketing » n'existe pas encore dans Supabase (script sql/marketing-images.sql)"
+        : error.message
+      setMessage({ type: 'erreur', texte: `Impossible d'ajouter l'image : ${detail}` })
       return
     }
     // On retire l'ancienne image si elle n'a pas encore été envoyée
