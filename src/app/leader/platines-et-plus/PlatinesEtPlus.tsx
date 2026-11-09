@@ -85,6 +85,15 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
   const [filtreLeader, setFiltreLeader] = useState('')
   const [filtreGroupe, setFiltreGroupe] = useState('')
   const [triBillets, setTriBillets] = useState<TriBillets>('nom')
+
+  // Rapport PDF : aperçu, téléchargement, envoi par courriel (seulement après l'aperçu)
+  const [rapport, setRapport] = useState<{ url: string; nomFichier: string } | null>(null)
+  const [rapportOuvert, setRapportOuvert] = useState(false)
+  const [rapportChargement, setRapportChargement] = useState(false)
+  const [rapportErreur, setRapportErreur] = useState<string | null>(null)
+  const [rapportCourriel, setRapportCourriel] = useState('')
+  const [rapportMessage, setRapportMessage] = useState('')
+  const [rapportEnvoi, setRapportEnvoi] = useState<'non' | 'envoi' | 'envoye'>('non')
   const [triProfils, setTriProfils] = useState<TriProfils>('nom')
   const [profilOuvert, setProfilOuvert] = useState<PCI | null>(null)
   const [groupeEdit, setGroupeEdit] = useState('')
@@ -260,6 +269,58 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     router.refresh()
   }
 
+  function demandeRapport() {
+    return {
+      billetIds: billetsFiltres.map(b => b.id),
+      evenement: filtreEvenement,
+      leaderFiltre: filtreLeader,
+      groupe: filtreGroupe,
+    }
+  }
+
+  async function ouvrirRapport() {
+    setRapportOuvert(true)
+    setRapportErreur(null)
+    setRapportEnvoi('non')
+    setRapportChargement(true)
+    if (rapport) URL.revokeObjectURL(rapport.url)
+    setRapport(null)
+    const res = await fetch('/api/leader/rapport-billets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pdf', ...demandeRapport() }),
+    })
+    setRapportChargement(false)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setRapportErreur(data.error ?? 'Erreur lors de la création du rapport')
+      return
+    }
+    const nomFichier = res.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? 'rapport-billets.pdf'
+    const blob = await res.blob()
+    setRapport({ url: URL.createObjectURL(blob), nomFichier })
+  }
+
+  function fermerRapport() {
+    setRapportOuvert(false)
+    if (rapport) URL.revokeObjectURL(rapport.url)
+    setRapport(null)
+  }
+
+  async function envoyerRapport() {
+    setRapportErreur(null)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rapportCourriel.trim())) { setRapportErreur('Adresse courriel invalide'); return }
+    setRapportEnvoi('envoi')
+    const res = await fetch('/api/leader/rapport-billets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'envoyer', destinataire: rapportCourriel.trim(), message: rapportMessage, ...demandeRapport() }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setRapportEnvoi('non'); setRapportErreur(data.error ?? "Erreur lors de l'envoi"); return }
+    setRapportEnvoi('envoye')
+  }
+
   function exporterCSV() {
     const entetes = ['Date achat', 'Nom PCI', '# Amway', 'Groupe', 'Leader', 'Événement', 'Statut', 'Mode', 'Banquet']
 
@@ -391,8 +452,11 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         </div>
       )}
 
-      {/* Bouton export CSV */}
-      <div className={`flex justify-end mb-2 ${onglet === 'reconnaissances' ? 'invisible' : ''}`}>
+      {/* Rapport PDF + export CSV */}
+      <div className={`flex justify-end gap-2 flex-wrap mb-2 ${onglet === 'reconnaissances' ? 'invisible' : ''}`}>
+        <button onClick={ouvrirRapport} disabled={billetsFiltres.length === 0} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#1A2535' }}>
+          📄 Rapport PDF ({billetsFiltres.length})
+        </button>
         <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
           ⬇️ CSV ({billetsFiltres.length})
         </button>
@@ -613,6 +677,63 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
           </div>
         )}
       </div>
+      )}
+
+      {/* Rapport PDF : aperçu → télécharger ou envoyer par courriel */}
+      {rapportOuvert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4" style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[96vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b" style={{ borderColor: '#E0E0E0' }}>
+              <div>
+                <h2 className="text-lg font-bold" style={{ color: '#1A2535' }}>📄 Rapport des ventes de billets</h2>
+                <p className="text-xs" style={{ color: '#666666' }}>
+                  {filtreEvenement || 'Tous les événements'}{filtreGroupe ? ` · Groupe : ${libelleFiltreGroupe(filtreGroupe)}` : ''} · {billetsFiltres.length} billet{billetsFiltres.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button onClick={fermerRapport} className="text-2xl leading-none px-2" style={{ color: '#999999' }} aria-label="Fermer">×</button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              {rapportChargement && <p className="p-10 text-center text-sm" style={{ color: '#666666' }}>⏳ Préparation du rapport...</p>}
+              {rapport && (
+                <>
+                  {/* Aperçu : ordinateur et tablette (sur cellulaire, bouton pour l'ouvrir) */}
+                  <iframe src={rapport.url} title="Aperçu du rapport" className="hidden sm:block w-full border-0" style={{ height: '58vh', backgroundColor: '#F5F3EE' }} />
+                  <div className="sm:hidden p-4">
+                    <a href={rapport.url} target="_blank" rel="noopener noreferrer" className="block text-center px-4 py-3 rounded-xl text-sm font-medium" style={{ backgroundColor: '#F5F3EE', color: '#1A2535' }}>👁️ Voir le rapport</a>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {rapport && (
+              <div className="border-t px-4 sm:px-6 py-4 space-y-3" style={{ borderColor: '#E0E0E0', backgroundColor: '#FCFBF8' }}>
+                {rapportEnvoi === 'envoye' ? (
+                  <p className="text-sm font-medium" style={{ color: '#2E7D32' }}>✓ Rapport envoyé à {rapportCourriel}. Vous pouvez fermer cette fenêtre.</p>
+                ) : (
+                  <>
+                    <p className="text-xs" style={{ color: '#666666' }}>Vérifiez le rapport ci-dessus, puis téléchargez-le ou envoyez-le par courriel.</p>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input type="email" className="flex-1 min-w-0 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }}
+                        placeholder="Courriel du destinataire (ex. responsable du sous-groupe)" value={rapportCourriel} onChange={e => setRapportCourriel(e.target.value)} />
+                      <button onClick={envoyerRapport} disabled={rapportEnvoi === 'envoi' || !rapportCourriel.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50" style={{ backgroundColor: '#C9A84C' }}>
+                        {rapportEnvoi === 'envoi' ? 'Envoi...' : '📧 Envoyer par courriel'}
+                      </button>
+                    </div>
+                    <input className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }}
+                      placeholder="Petit message (optionnel)" maxLength={500} value={rapportMessage} onChange={e => setRapportMessage(e.target.value)} />
+                  </>
+                )}
+                {rapportErreur && <p className="text-sm" style={{ color: '#C62828' }}>{rapportErreur}</p>}
+                <div className="flex justify-end gap-2">
+                  <a href={rapport.url} download={rapport.nomFichier} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: '#1A2535', color: 'white' }}>⬇️ Télécharger le PDF</a>
+                  <button onClick={fermerRapport} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: '#F5F3EE', color: '#666666' }}>Fermer</button>
+                </div>
+              </div>
+            )}
+            {!rapport && rapportErreur && <p className="px-6 pb-6 text-sm" style={{ color: '#C62828' }}>{rapportErreur}</p>}
+          </div>
+        </div>
       )}
 
       {/* Modal profil PCI */}

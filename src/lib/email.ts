@@ -5,6 +5,7 @@ import NotificationAdmin from '@/emails/NotificationAdmin'
 import ConfirmationRemboursement from '@/emails/ConfirmationRemboursement'
 import PromoEvenement from '@/emails/PromoEvenement'
 import RapportBanquets from '@/emails/RapportBanquets'
+import RapportBillets from '@/emails/RapportBillets'
 import ReinitialisationMotDePasse from '@/emails/ReinitialisationMotDePasse'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -150,6 +151,29 @@ export async function envoyerRapportBanquets(params: {
     to: params.email,
     subject: `Rapport banquets — ${params.sousTitre || 'Yager Group – Famille Germain'}`,
     react: RapportBanquets({ sousTitre: params.sousTitre }),
+    attachments: [{ filename: params.nomFichier, content: params.pdf }],
+  })
+  if (error) throw new Error(error.message)
+}
+
+// Rapport des ventes de billets envoyé par un leader (PDF joint) — la réponse revient au leader
+export async function envoyerRapportBilletsLeader(params: {
+  email: string
+  leader: string
+  courrielLeader: string | null
+  evenement: string
+  groupe: string
+  nombreBillets: number
+  message: string
+  pdf: Buffer
+  nomFichier: string
+}) {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: params.email,
+    ...(params.courrielLeader ? { replyTo: params.courrielLeader } : {}),
+    subject: `Rapport des ventes de billets — ${params.evenement}${params.groupe !== 'Tous les groupes' ? ` — ${params.groupe}` : ''}`,
+    react: RapportBillets({ leader: params.leader, evenement: params.evenement, groupe: params.groupe, nombreBillets: params.nombreBillets, message: params.message }),
     attachments: [{ filename: params.nomFichier, content: params.pdf }],
   })
   if (error) throw new Error(error.message)
