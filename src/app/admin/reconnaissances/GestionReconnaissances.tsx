@@ -58,12 +58,8 @@ export default function GestionReconnaissances({ typesInitiaux }: { typesInitiau
   }
 
   return (
-    <div className="px-4 py-6 sm:p-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-1" style={{ color: '#1A2535' }}>🏆 Reconnaissances</h1>
-        <p className="text-gray-500 text-sm sm:text-base mb-6">
-          Les leaders entrent leurs reconnaissances dans Platines et plus, pour chaque événement où la case « Reconnaissances sur scène » est cochée (Gestion événements).
-        </p>
+    <div className="px-4 pb-10 sm:px-8">
+      <div className="max-w-5xl mx-auto">
 
         {message && (
           <div className={`mb-4 p-3 rounded-lg text-sm font-medium ${message.type === 'succes' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
@@ -71,13 +67,8 @@ export default function GestionReconnaissances({ typesInitiaux }: { typesInitiau
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-1" style={{ color: '#1A2535' }}>Rapport et feuilles de scène</h2>
-          <p className="text-sm text-gray-400">À venir à la prochaine étape : le rapport par conférence et la feuille PDF pour chaque salle.</p>
-        </div>
-
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6">
-          <h2 className="text-lg font-semibold" style={{ color: '#1A2535' }}>Liste des reconnaissances ({types.filter(t => t.actif).length} actives)</h2>
+          <h2 className="text-lg font-semibold" style={{ color: '#1A2535' }}>⚙️ Liste des reconnaissances ({types.filter(t => t.actif).length} actives)</h2>
           <p className="text-sm text-gray-400 mb-4">L&apos;ordre de cette liste est l&apos;ordre de la feuille de scène. Une reconnaissance désactivée disparaît des formulaires, mais reste dans les anciennes entrées.</p>
 
           <div className="flex gap-2 mb-4">
