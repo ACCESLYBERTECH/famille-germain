@@ -259,7 +259,11 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
 
           <div>
             <label className={labelClass} style={{ color: '#1A2535' }}>Description</label>
-            <textarea className={inputClass} style={{ borderColor: '#E0E0E0' }} rows={3} value={form.description} onChange={e => update('description', e.target.value)} />
+            <textarea className={inputClass} style={{ borderColor: '#E0E0E0' }} rows={8} value={form.description} onChange={e => update('description', e.target.value)}
+              placeholder={'Ex.\nLongueuil\nThéâtre de la Providence, 1425 rue Patenaude\nConférenciers : Dave et Alexandrine Germain\nHôte : Nathalie Barrette\n\nDrummondville\n80 rue Belleville\nConférenciers : Sylvain Carrier et Jadysse Nault'} />
+            <p className="text-xs mt-1" style={{ color: '#999999' }}>
+              Écrivez comme dans un courriel : chaque retour à la ligne est gardé. Une ligne courte seule (ex. « Longueuil ») devient un sous-titre, et « Conférenciers : » s&apos;écrit en gras dans le courriel promo.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

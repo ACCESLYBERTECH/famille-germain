@@ -20,16 +20,14 @@ export default function Gabarit({ apercu, titre, banniere, children }: GabaritPr
       <Body style={styles.body}>
         <Container style={styles.container}>
 
-          {/* En-tête : Yager Group en premier et plus gros, puis Famille Germain « Membre du Yager Group » */}
+          {/* En-tête : côte à côte — Yager Group en premier et plus gros | Famille Germain « Membre du Yager Group » */}
           <Section style={styles.entete}>
             <Row>
-              <Column align="center">
-                <Img src={`${APP_URL}/logo-yager.png`} alt="Yager Group" height={60} style={styles.logo} />
+              <Column align="right" style={{ width: '50%', paddingRight: '18px', verticalAlign: 'middle' }}>
+                <Img src={`${APP_URL}/logo-yager.png`} alt="Yager Group" height={50} style={styles.logoDroite} />
               </Column>
-            </Row>
-            <Row>
-              <Column align="center" style={{ paddingTop: '16px' }}>
-                <Img src={`${APP_URL}/logo-germain.png`} alt="La Famille Germain" height={38} style={styles.logo} />
+              <Column align="left" style={{ width: '50%', paddingLeft: '18px', borderLeft: '1px solid rgba(201,168,76,0.55)', verticalAlign: 'middle' }}>
+                <Img src={`${APP_URL}/logo-germain.png`} alt="La Famille Germain" height={32} style={styles.logoGauche} />
                 <Text style={styles.membre}>Membre du Yager Group</Text>
               </Column>
             </Row>
@@ -103,9 +101,11 @@ export function Note({ children }: { children: React.ReactNode }) {
 const styles: Record<string, React.CSSProperties> = {
   body: { backgroundColor: '#F5F3EE', fontFamily: 'Arial, Helvetica, sans-serif', margin: 0, padding: '32px 0' },
   container: { maxWidth: '600px', margin: '0 auto', backgroundColor: '#FFFFFF', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
-  entete: { backgroundColor: '#1A2535', padding: '28px 24px' },
+  entete: { backgroundColor: '#1A2535', padding: '22px 24px' },
   logo: { display: 'inline-block', margin: '0 auto' },
-  membre: { color: '#C9A84C', fontSize: '11px', letterSpacing: '0.04em', margin: '4px 0 0', textAlign: 'center' as const },
+  logoDroite: { display: 'block', marginLeft: 'auto' },
+  logoGauche: { display: 'block' },
+  membre: { color: '#C9A84C', fontSize: '11px', letterSpacing: '0.04em', margin: '4px 0 0', textAlign: 'left' as const },
   banniere: { width: '100%', maxWidth: '600px', display: 'block', height: 'auto' },
   filetOr: { backgroundColor: '#C9A84C', height: '4px', lineHeight: '4px', fontSize: '4px' },
   contenu: { padding: '40px 40px 24px' },

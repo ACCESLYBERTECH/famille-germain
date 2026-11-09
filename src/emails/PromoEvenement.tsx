@@ -93,7 +93,7 @@ export default function PromoEvenement({
       <Text style={titre}>{nomEvenement}</Text>
 
       <Paragraphe>Bonjour {prenom},</Paragraphe>
-      {description && <Paragraphe>{description}</Paragraphe>}
+      {description && <Description texte={description} />}
 
       {/* Quand / Où */}
       <Section style={blocInfos}>
@@ -174,6 +174,40 @@ export default function PromoEvenement({
   )
 }
 
+// Description de l'événement, mise en forme simplement à partir du texte de l'admin :
+//  - chaque retour à la ligne est conservé ; une ligne vide sépare deux paragraphes
+//  - une ligne courte toute seule (ex. « Longueuil ») devient un sous-titre
+//  - « Conférenciers : ... » → « Conférenciers : » en gras
+function Description({ texte }: { texte: string }) {
+  const lignes = texte.replace(/\r/g, '').split('\n').map(l => l.trim())
+  const estSousTitre = (l: string) => l.length > 0 && l.length <= 32 && !l.includes(':') && !/[.,!?]$/.test(l)
+  const elements: React.ReactNode[] = []
+  let paragraphe: React.ReactNode[] = []
+  const fermer = () => {
+    if (paragraphe.length > 0) elements.push(<Text key={`p${elements.length}`} style={descTexte}>{paragraphe}</Text>)
+    paragraphe = []
+  }
+  lignes.forEach((l, i) => {
+    if (!l) { fermer(); return }
+    // Un sous-titre seulement s'il est suivi d'autres lignes (sinon c'est une phrase courte)
+    if (estSousTitre(l) && lignes[i + 1]) {
+      fermer()
+      elements.push(<Text key={`t${i}`} style={descSousTitre}>{l}</Text>)
+      return
+    }
+    const deuxPoints = l.indexOf(':')
+    const contenu = deuxPoints > 0 && deuxPoints <= 30
+      ? <><strong style={{ color: '#1A2535' }}>{l.slice(0, deuxPoints + 1)}</strong>{l.slice(deuxPoints + 1)}</>
+      : l
+    if (paragraphe.length > 0) paragraphe.push(<br key={`b${i}`} />)
+    paragraphe.push(<React.Fragment key={`l${i}`}>{contenu}</React.Fragment>)
+  })
+  fermer()
+  return <Section style={{ margin: '0 0 22px' }}>{elements}</Section>
+}
+
+const descTexte: React.CSSProperties = { color: '#444444', fontSize: '15px', lineHeight: '24px', margin: '0 0 14px' }
+const descSousTitre: React.CSSProperties = { color: '#C9A84C', fontSize: '13px', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', margin: '18px 0 4px', borderBottom: '1px solid #EEE7D4', paddingBottom: '4px' }
 const titre: React.CSSProperties = { color: '#1A2535', fontSize: '28px', fontWeight: 'bold', lineHeight: '36px', margin: '0 0 22px' }
 const badge: React.CSSProperties = { display: 'inline-block', padding: '5px 12px', borderRadius: '999px', fontSize: '11px', fontWeight: 'bold', letterSpacing: '0.8px', backgroundColor: '#1A2535', color: '#C9A84C', marginRight: '6px' }
 const badgeOr: React.CSSProperties = { backgroundColor: '#C9A84C', color: '#1A2535' }
