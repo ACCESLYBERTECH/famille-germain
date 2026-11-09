@@ -160,11 +160,13 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       return matchRecherche && matchEvenement && matchLeader && matchGroupe
     })
 
+    // À égalité (même statut, même nom...) : toujours du plus récent achat au plus ancien
+    const plusRecent = (a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     result = [...result].sort((a, b) => {
-      if (triBillets === 'nom') return a.nom_pci.localeCompare(b.nom_pci)
-      if (triBillets === 'evenement') return (a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')
-      if (triBillets === 'statut') return a.statut.localeCompare(b.statut)
-      if (triBillets === 'date') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (triBillets === 'nom') return (a.nom_pci.localeCompare(b.nom_pci)) || plusRecent(a, b)
+      if (triBillets === 'evenement') return ((a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')) || plusRecent(a, b)
+      if (triBillets === 'statut') return (a.statut.localeCompare(b.statut)) || plusRecent(a, b)
+      if (triBillets === 'date') return plusRecent(a, b)
       return 0
     })
 

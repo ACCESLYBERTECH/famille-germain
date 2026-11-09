@@ -107,12 +107,14 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
       return matchStatut && matchEvenement && matchLeader && matchMode && matchGroupe && matchRecherche
     })
 
+    // À égalité (même statut, même nom...) : toujours du plus récent achat au plus ancien
+    const plusRecent = (a: { created_at: string }, b: { created_at: string }) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     result = [...result].sort((a, b) => {
-      if (tri === 'nom') return a.nom_pci.localeCompare(b.nom_pci)
-      if (tri === 'evenement') return (a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')
-      if (tri === 'statut') return a.statut.localeCompare(b.statut)
-      if (tri === 'numero_amway') return (a.comptes?.numero_amway ?? '').localeCompare(b.comptes?.numero_amway ?? '')
-      if (tri === 'date') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      if (tri === 'nom') return (a.nom_pci.localeCompare(b.nom_pci)) || plusRecent(a, b)
+      if (tri === 'evenement') return ((a.evenements?.nom ?? '').localeCompare(b.evenements?.nom ?? '')) || plusRecent(a, b)
+      if (tri === 'statut') return (a.statut.localeCompare(b.statut)) || plusRecent(a, b)
+      if (tri === 'numero_amway') return ((a.comptes?.numero_amway ?? '').localeCompare(b.comptes?.numero_amway ?? '')) || plusRecent(a, b)
+      if (tri === 'date') return plusRecent(a, b)
       return 0
     })
 
