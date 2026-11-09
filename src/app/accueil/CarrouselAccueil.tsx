@@ -8,6 +8,7 @@ interface CarrouselImage {
   url: string
   ordre: number
   lien: string | null
+  texte_bouton?: string | null
 }
 
 interface Props {
@@ -21,7 +22,7 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
   const [enPause, setEnPause] = useState(false)
   const router = useRouter()
 
-  const slides: { url: string; legende?: string; estLeader?: boolean; lien?: string | null }[] = []
+  const slides: { url: string; legende?: string; estLeader?: boolean; lien?: string | null; texteBouton?: string | null }[] = []
 
   if (photoLeader) {
     slides.push({ url: photoLeader.url, legende: photoLeader.nom, estLeader: true, lien: null })
@@ -29,7 +30,7 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
     slides.push({ url: '/bienvenue.jpg', legende: 'Yager Group – Famille Germain', estLeader: true, lien: null })
   }
 
-  images.forEach(img => slides.push({ url: img.url, lien: img.lien }))
+  images.forEach(img => slides.push({ url: img.url, lien: img.lien, texteBouton: img.texte_bouton }))
 
   const total = slides.length
 
@@ -89,15 +90,19 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
             </div>
           </div>
         ) : (
-          <img key={indexActif} src={slide.url} alt={`Slide ${indexActif + 1}`} className="w-full h-full object-cover" />
+          <img key={indexActif} src={slide.url} alt={`Slide ${indexActif + 1}`} className="w-full h-full object-contain" />
         )}
 
-        {/* Indicateur lien */}
-        {slide.lien && !estSlideLeader && (
+        {/* Bouton d'appel choisi par l'admin, sinon petit indicateur de lien */}
+        {slide.lien && !estSlideLeader && (slide.texteBouton ? (
+          <div className="hidden sm:block absolute bottom-5 right-5 px-5 py-2.5 rounded-xl text-base font-bold shadow-lg transition-transform hover:scale-105" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>
+            {slide.texteBouton} →
+          </div>
+        ) : (
           <div className="absolute top-3 right-3 px-2 py-1 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: 'rgba(26,37,53,0.7)' }}>
             🔗 Cliquer pour ouvrir
           </div>
-        )}
+        ))}
 
         {/* Flèches navigation */}
         {total > 1 && (
@@ -140,6 +145,13 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
           </div>
         )}
       </div>
+
+      {/* Cellulaire : le bouton passe sous l'image (trop petite pour le mettre par-dessus) */}
+      {slide.lien && !estSlideLeader && slide.texteBouton && (
+        <button onClick={handleClickSlide} className="sm:hidden w-full mt-3 px-4 py-3 rounded-xl text-base font-bold shadow" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>
+          {slide.texteBouton} →
+        </button>
+      )}
 
       {/* Miniatures */}
       {total > 1 && (

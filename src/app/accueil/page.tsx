@@ -1,4 +1,5 @@
 import { createClient } from '@/utils/supabase/server'
+import { aujourdhuiQuebec, etatAffichage, lireLien } from '@/lib/carrousel'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -55,11 +56,34 @@ export default async function AccueilPage() {
     photoLeader = { url: compte.photo_url, nom: nomComplet, estCouple }
   }
 
-  // Charger les images du carrousel
-  const { data: carrouselImages } = await supabaseAdmin
+  // Charger les images du carrousel : seulement celles visibles aujourd'hui
+  const aujourdhui = aujourdhuiQuebec()
+  const { data: toutesImages } = await supabaseAdmin
     .from('carrousel_images')
     .select('*')
     .order('ordre', { ascending: true })
+  const imagesVisibles = (toutesImages ?? []).filter(img => etatAffichage(img, aujourdhui) === 'visible')
+
+  // Une image liée à un événement terminé ou désactivé redevient non cliquable
+  const idsEvenementsLies = imagesVisibles
+    .map(img => lireLien(img.lien))
+    .filter(l => l.type === 'evenement')
+    .map(l => l.valeur)
+  let evenementsOuverts = new Set<string>()
+  if (idsEvenementsLies.length > 0) {
+    const { data: evs } = await supabaseAdmin
+      .from('evenements')
+      .select('id')
+      .in('id', idsEvenementsLies)
+      .eq('statut', 'actif')
+      .gte('date_fin', new Date().toISOString())
+    evenementsOuverts = new Set((evs ?? []).map(e => e.id))
+  }
+  const carrouselImages = imagesVisibles.map(img => {
+    const l = lireLien(img.lien)
+    const lienValide = l.type !== 'evenement' || evenementsOuverts.has(l.valeur)
+    return { id: img.id, url: img.url, ordre: img.ordre, lien: lienValide ? img.lien : null, texte_bouton: lienValide ? img.texte_bouton ?? null : null }
+  })
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>

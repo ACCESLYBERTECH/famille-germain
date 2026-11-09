@@ -18,10 +18,18 @@ export default async function AdminCarrouselPage() {
 
   if (!estAdminOuDeveloppeur(compte?.role)) redirect('/')
 
+  // Événements actifs et pas encore terminés : ceux qu'on peut lier à une image
+  const { data: evenements } = await supabase
+    .from('evenements')
+    .select('id, nom, date_debut')
+    .eq('statut', 'actif')
+    .gte('date_fin', new Date().toISOString())
+    .order('date_debut', { ascending: true })
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
-      <AdminCarrouselClient />
+      <AdminCarrouselClient evenements={evenements ?? []} />
     </div>
   )
 }

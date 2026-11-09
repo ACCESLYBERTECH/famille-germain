@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Compte, Evenement, EvenementPalier } from '@/lib/types'
 
 interface BilletPCI {
@@ -87,11 +87,12 @@ function joursRestantsSF(dateStr: string): number {
 
 const LONGUEUR_MAX = 200
 
-function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
+function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes, enAvant = false }: {
   ev: Evenement
   compte: Compte
   billetsPCI: BilletPCI[]
   banquetsAchetes: BanquetAchete[]
+  enAvant?: boolean
 }) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const sf = estSansFrais(compte, ev)
@@ -111,7 +112,7 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
   const banquetDisponible = ev.a_banquet && banquet && billetsSFPourCetEv.length > 0
 
   return (
-    <div className="rounded-2xl shadow-lg overflow-hidden" style={{ border: '1px solid #E0E0E0' }}>
+    <div className="rounded-2xl shadow-lg overflow-hidden transition-shadow" style={{ border: enAvant ? '3px solid #C9A84C' : '1px solid #E0E0E0', boxShadow: enAvant ? '0 0 0 6px rgba(201,168,76,0.25)' : undefined }}>
 
       {/* En-tête navy */}
       <div className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3" style={{ backgroundColor: '#1A2535' }}>
@@ -251,6 +252,16 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes }: {
 }
 
 export default function ListeEvenements({ evenements, compte, billetsPCI, banquetsAchetes }: Props) {
+  // Arrivée depuis une image du carrousel (/evenements#ev-<id>) : on descend jusqu'à la carte et on la met en évidence
+  const [evenementCible, setEvenementCible] = useState<string | null>(null)
+  useEffect(() => {
+    const id = window.location.hash.startsWith('#ev-') ? window.location.hash.slice(4) : null
+    if (!id) return
+    setEvenementCible(id)
+    const t = setTimeout(() => document.getElementById(`ev-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    return () => clearTimeout(t)
+  }, [])
+
   if (evenements.length === 0) {
     return (
       <div className="bg-white rounded-2xl shadow p-8 text-center" style={{ color: '#666666' }}>
@@ -292,7 +303,9 @@ export default function ListeEvenements({ evenements, compte, billetsPCI, banque
 
       <div className="grid gap-6">
         {evenements.map(ev => (
-          <CarteEvenement key={ev.id} ev={ev} compte={compte} billetsPCI={billetsPCI} banquetsAchetes={banquetsAchetes} />
+          <div key={ev.id} id={`ev-${ev.id}`} className="scroll-mt-24 sm:scroll-mt-28">
+            <CarteEvenement ev={ev} compte={compte} billetsPCI={billetsPCI} banquetsAchetes={banquetsAchetes} enAvant={ev.id === evenementCible} />
+          </div>
         ))}
       </div>
     </div>
