@@ -721,7 +721,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                       </button>
                     </div>
                     <input className="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }}
-                      placeholder="Petit message (optionnel)" maxLength={500} value={rapportMessage} onChange={e => setRapportMessage(e.target.value)} />
+                      placeholder="Court message (optionnel)" maxLength={500} value={rapportMessage} onChange={e => setRapportMessage(e.target.value)} />
                   </>
                 )}
                 {rapportErreur && <p className="text-sm" style={{ color: '#C62828' }}>{rapportErreur}</p>}

@@ -173,7 +173,7 @@ export async function envoyerRapportBilletsLeader(params: {
     to: params.email,
     ...(params.courrielLeader ? { replyTo: params.courrielLeader } : {}),
     subject: `Rapport des ventes de billets — ${params.evenement}${params.groupe !== 'Tous les groupes' ? ` — ${params.groupe}` : ''}`,
-    react: RapportBillets({ leader: params.leader, evenement: params.evenement, groupe: params.groupe, nombreBillets: params.nombreBillets, message: params.message }),
+    react: RapportBillets({ leader: params.leader, courrielLeader: params.courrielLeader ?? '', evenement: params.evenement, groupe: params.groupe, nombreBillets: params.nombreBillets, message: params.message }),
     attachments: [{ filename: params.nomFichier, content: params.pdf }],
   })
   if (error) throw new Error(error.message)
