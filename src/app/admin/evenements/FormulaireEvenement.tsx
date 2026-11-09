@@ -31,6 +31,8 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
     prix_banquet: banquetExistant?.prix ?? '',
     nom_banquet: banquetExistant?.nom ?? 'Banquet',
     a_bracelets: (evenement as any)?.a_bracelets ?? true,
+    a_reconnaissances: (evenement as any)?.a_reconnaissances ?? false,
+    reconnaissances_date_limite: (evenement as any)?.reconnaissances_date_limite ?? '',
   })
 
   // Couleurs des bracelets (événement avec banquet)
@@ -130,6 +132,8 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         stripe_account: form.stripe_account,
         a_bracelets: form.a_bracelets,
         ...champsBracelets(),
+        a_reconnaissances: form.a_reconnaissances,
+        reconnaissances_date_limite: form.a_reconnaissances && form.reconnaissances_date_limite ? form.reconnaissances_date_limite : null,
       }).eq('id', evenement.id)
 
       await supabase.from('evenement_paliers').delete().eq('evenement_id', evenement.id)
@@ -195,6 +199,8 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
         stripe_account: form.stripe_account,
         a_bracelets: form.a_bracelets,
         ...champsBracelets(),
+        a_reconnaissances: form.a_reconnaissances,
+        reconnaissances_date_limite: form.a_reconnaissances && form.reconnaissances_date_limite ? form.reconnaissances_date_limite : null,
         statut: 'inactif',
       }).select().single()
 
@@ -298,6 +304,21 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
               <input type="checkbox" checked={form.a_banquet} onChange={e => update('a_banquet', e.target.checked)} />
               <span className="text-sm" style={{ color: '#1A2535' }}>Avec banquet</span>
             </label>
+          </div>
+
+          {/* Reconnaissances sur scène (entrées par les leaders dans Platines et plus) */}
+          <div className="rounded-xl p-3 space-y-2" style={{ backgroundColor: '#FBF6E8' }}>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.a_reconnaissances} onChange={e => update('a_reconnaissances', e.target.checked)} />
+              <span className="text-sm font-medium" style={{ color: '#1A2535' }}>🏆 Reconnaissances sur scène</span>
+            </label>
+            {form.a_reconnaissances && (
+              <label className="block">
+                <span className="text-xs" style={{ color: '#666666' }}>Date limite pour les leaders (inclusivement) — vide = jusqu&apos;à la veille de l&apos;événement</span>
+                <input type="date" className="mt-1 block border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-yellow-400" style={{ borderColor: '#E0E0E0' }}
+                  value={form.reconnaissances_date_limite} onChange={e => update('reconnaissances_date_limite', e.target.value)} />
+              </label>
+            )}
           </div>
 
           {form.a_banquet && (

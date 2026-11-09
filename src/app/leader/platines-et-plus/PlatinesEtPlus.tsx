@@ -3,6 +3,8 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import FiltreGroupe from '@/components/FiltreGroupe'
+import Reconnaissances, { type PersonneChoix } from './Reconnaissances'
+import type { EvenementReconnaissances, TypeReconnaissance, EntreeVirtuel, LigneSurPlace, LeaderOrdonne } from '@/lib/reconnaissances'
 import { correspondGroupe, cheminsGroupes, libelleFiltreGroupe } from '@/lib/groupes'
 
 interface PCI {
@@ -54,13 +56,22 @@ interface Props {
   leaderConnecteId: string
   banquetsAchetes: BanquetAchete[]
   estAdmin?: boolean
+  reconnaissances?: {
+    evenements: EvenementReconnaissances[]
+    types: TypeReconnaissance[]
+    erreurTypes?: string | null
+    ordreLeaders?: LeaderOrdonne[]
+    virtuel: EntreeVirtuel[]
+    surPlace: LigneSurPlace[]
+    personnes: PersonneChoix[]
+  }
 }
 
 type TriBillets = 'nom' | 'evenement' | 'statut' | 'date'
 type TriProfils = 'nom' | 'numero_amway' | 'ville'
 
-export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes, estAdmin = false }: Props) {
-  const [onglet, setOnglet] = useState<'billets' | 'profils' | 'inactifs'>('billets')
+export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderConnecteId, banquetsAchetes, estAdmin = false, reconnaissances }: Props) {
+  const [onglet, setOnglet] = useState<'billets' | 'profils' | 'inactifs' | 'reconnaissances'>('billets')
   const [statutEdit, setStatutEdit] = useState('actif')
   const [statutChargement, setStatutChargement] = useState(false)
   const [statutSauvegarde, setStatutSauvegarde] = useState(false)
@@ -378,14 +389,14 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       )}
 
       {/* Bouton export CSV */}
-      <div className="flex justify-end mb-2">
+      <div className={`flex justify-end mb-2 ${onglet === 'reconnaissances' ? 'invisible' : ''}`}>
         <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
           ⬇️ CSV ({billetsFiltres.length})
         </button>
       </div>
 
       {/* Onglets */}
-      <div className="flex gap-2 mb-0">
+      <div className="flex gap-2 mb-0 flex-wrap">
         <button onClick={() => setOnglet('billets')} className={ongletClass(onglet === 'billets')} style={onglet === 'billets' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
           Billets ({billets.length})
         </button>
@@ -395,8 +406,28 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         <button onClick={() => setOnglet('inactifs')} className={ongletClass(onglet === 'inactifs')} style={onglet === 'inactifs' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
           PCI inactifs ({pcisInactifs.length})
         </button>
+        {reconnaissances && (
+          <button onClick={() => setOnglet('reconnaissances')} className={ongletClass(onglet === 'reconnaissances')} style={onglet === 'reconnaissances' ? { backgroundColor: '#C9A84C' } : { backgroundColor: '#E0E0E0' }}>
+            🏆 Reconnaissances
+          </button>
+        )}
       </div>
 
+      {onglet === 'reconnaissances' && reconnaissances ? (
+        <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
+          <Reconnaissances
+            evenements={reconnaissances.evenements}
+            types={reconnaissances.types}
+            erreurTypes={reconnaissances.erreurTypes}
+            ordreLeaders={reconnaissances.ordreLeaders ?? []}
+            virtuel={reconnaissances.virtuel}
+            surPlace={reconnaissances.surPlace}
+            personnes={reconnaissances.personnes}
+            moiId={leaderConnecteId}
+            nomLeader={nomLeader}
+          />
+        </div>
+      ) : (
       <div className="bg-white rounded-b-2xl rounded-tr-2xl shadow">
         {/* Barre de filtres */}
         <div className="p-4 border-b space-y-3" style={{ borderColor: '#E0E0E0' }}>
@@ -579,6 +610,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
           </div>
         )}
       </div>
+      )}
 
       {/* Modal profil PCI */}
       {profilOuvert && (

@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import CompteNonActif from '@/components/CompteNonActif'
 import NonAccessibleDeveloppeur from '@/components/NonAccessibleDeveloppeur'
 import PlatinesEtPlus from './PlatinesEtPlus'
+import { ordonnerLeaders } from '@/lib/reconnaissances'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,7 @@ export default async function PlatinesEtPlusPage() {
   const { data: membres } = idsGroupe.length > 0
     ? await supabaseAdmin
         .from('comptes')
-        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, numero_amway, periode_sf_fin, statut, role, leader_id, groupe')
+        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, pays, numero_amway, periode_sf_fin, statut, role, leader_id, groupe')
         .in('id', idsGroupe)
         .order('nom_1', { ascending: true })
     : { data: [] }
@@ -63,6 +64,34 @@ export default async function PlatinesEtPlusPage() {
         .neq('statut', 'rembourse')
     : { data: [] }
 
+  // Reconnaissances : conférences actives (et celles des 12 derniers mois, en lecture seule)
+  const ilYaUnAn = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()
+  const { data: evenementsReco } = await supabaseAdmin
+    .from('evenements')
+    .select('id, nom, date_debut, date_fin, reconnaissances_date_limite, villes:evenement_villes(id, nom_ville, ordre)')
+    .eq('a_reconnaissances', true)
+    .eq('statut', 'actif')
+    .gte('date_fin', ilYaUnAn)
+    .order('date_debut', { ascending: true })
+  const idsEvReco = (evenementsReco ?? []).map((e: any) => e.id)
+  // Comme les billets : ses entrées + celles des leaders en dessous (lecture seule)
+  const idsLeadersVisibles = [user.id, ...leadersGroupe.map((l: any) => l.id)]
+  const [{ data: typesReco, error: erreurTypesReco }, { data: virtuelReco }, { data: surPlaceReco }] = await Promise.all([
+    supabaseAdmin.from('reconnaissance_types').select('id, nom, ordre, actif').order('ordre', { ascending: true }),
+    idsEvReco.length > 0
+      ? supabaseAdmin.from('reconnaissances_virtuel').select('*').in('evenement_id', idsEvReco).in('leader_id', idsLeadersVisibles).order('created_at', { ascending: true })
+      : Promise.resolve({ data: [] as any[] }),
+    idsEvReco.length > 0
+      ? supabaseAdmin.from('reconnaissances_sur_place').select('evenement_id, leader_id, ville_id, type_id, nombre').in('evenement_id', idsEvReco).in('leader_id', idsLeadersVisibles)
+      : Promise.resolve({ data: [] as any[] }),
+  ])
+  if (erreurTypesReco) console.error('Reconnaissances — lecture des types :', erreurTypesReco)
+  const ordreLeadersReco = ordonnerLeaders(user.id, leadersGroupe as any)
+  const personnesReco = [
+    { id: user.id, prenom_1: compte?.prenom_1, nom_1: compte?.nom_1, prenom_2: compte?.prenom_2, nom_2: compte?.nom_2, numero_amway: compte?.numero_amway, ville: compte?.ville, province: compte?.province, pays: compte?.pays },
+    ...pcis.filter((p: any) => p.statut === 'actif').map((p: any) => ({ id: p.id, prenom_1: p.prenom_1, nom_1: p.nom_1, prenom_2: p.prenom_2, nom_2: p.nom_2, numero_amway: p.numero_amway, ville: p.ville, province: p.province, pays: p.pays })),
+  ]
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
       <Navbar prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} />
@@ -76,6 +105,15 @@ export default async function PlatinesEtPlusPage() {
           leaderConnecteId={user.id}
           banquetsAchetes={banquetsAchetes ?? []}
           estAdmin={compte?.role === 'admin'}
+          reconnaissances={{
+            evenements: (evenementsReco ?? []) as any,
+            types: typesReco ?? [],
+            erreurTypes: erreurTypesReco?.message ?? null,
+            ordreLeaders: ordreLeadersReco,
+            virtuel: (virtuelReco ?? []) as any,
+            surPlace: (surPlaceReco ?? []) as any,
+            personnes: personnesReco as any,
+          }}
         />
       </div>
     </div>

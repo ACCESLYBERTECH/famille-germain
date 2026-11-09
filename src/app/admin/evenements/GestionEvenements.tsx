@@ -38,6 +38,7 @@ export default function GestionEvenements({ evenements }: Props) {
       a_banquet: evenement.a_banquet,
       stripe_account: evenement.stripe_account,
       a_bracelets: (evenement as any).a_bracelets ?? true,
+      a_reconnaissances: (evenement as any).a_reconnaissances ?? false,
       bracelet_regulier_couleur: (evenement as any).bracelet_regulier_couleur ?? null,
       bracelet_regulier_nom: (evenement as any).bracelet_regulier_nom ?? null,
       bracelet_sf_banquet_couleur: (evenement as any).bracelet_sf_banquet_couleur ?? null,

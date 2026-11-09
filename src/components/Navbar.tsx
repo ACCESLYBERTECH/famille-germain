@@ -95,6 +95,7 @@ export default function Navbar({ prenom, role }: NavbarProps) {
     { href: '/admin/documents', label: '📄 Documents' },
     { href: '/admin/audios', label: '🎧 Audios' },
     { href: '/admin/banquets', label: '🍽️ Rapport banquets' },
+    { href: '/admin/reconnaissances', label: '🏆 Reconnaissances' },
     { href: '/admin/carrousel', label: '🖼️ Carrousel' },
     { href: '/admin/marketing', label: '📣 Marketing' },
   ]
