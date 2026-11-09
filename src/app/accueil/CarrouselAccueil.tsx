@@ -67,7 +67,7 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
 
       {/* Carrousel principal */}
       <div
-        className={`relative w-full rounded-2xl overflow-hidden shadow-lg ${estSlideLeader ? 'sm:h-[480px]' : 'aspect-video'}`}
+        className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg"
         style={{
           backgroundColor: '#1A2535',
           cursor: slide.lien ? 'pointer' : 'default',
@@ -75,18 +75,18 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
         onClick={handleClickSlide}
       >
         {estSlideLeader ? (
-          // Cellulaire : photo en haut, nom en dessous. Plus grand écran : côte à côte
-          <div className="flex flex-col sm:flex-row h-full">
-            <div className="w-full sm:w-1/2 h-80 sm:h-full relative">
+          // Même format 16:9 que les autres images (le carrousel ne change jamais de hauteur) : photo à gauche, nom à droite
+          <div className="flex flex-row h-full">
+            <div className="w-1/2 h-full relative">
               <img src={slide.url} alt={slide.legende} className="w-full h-full object-cover object-top" />
             </div>
-            <div className="w-full sm:w-1/2 sm:h-full flex flex-col justify-center px-6 pt-6 pb-14 sm:px-10 sm:py-0" style={{ backgroundColor: '#1A2535' }}>
-              <p className="text-xs uppercase tracking-widest mb-3" style={{ color: '#C9A84C' }}>
+            <div className="w-1/2 h-full flex flex-col justify-center pl-3 pr-12 pb-6 sm:px-10 sm:pb-0" style={{ backgroundColor: '#1A2535' }}>
+              <p className="text-[10px] sm:text-xs uppercase tracking-widest mb-1.5 sm:mb-3" style={{ color: '#C9A84C' }}>
                 {photoLeader?.estCouple ? 'Vos leaders' : 'Votre leader'}
               </p>
-              <p className="text-2xl sm:text-3xl font-bold text-white mb-4">{slide.legende}</p>
-              <div className="w-12 h-0.5 mb-4" style={{ backgroundColor: '#C9A84C' }}></div>
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Yager Group – Famille Germain</p>
+              <p className="text-sm sm:text-3xl font-bold text-white sm:mb-4 leading-tight">{slide.legende}</p>
+              <div className="hidden sm:block w-12 h-0.5 mb-4" style={{ backgroundColor: '#C9A84C' }}></div>
+              <p className="hidden sm:block text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Yager Group – Famille Germain</p>
             </div>
           </div>
         ) : (
@@ -107,8 +107,8 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
         {/* Flèches navigation */}
         {total > 1 && (
           <>
-            <button onClick={e => { e.stopPropagation(); precedent() }} className={`absolute left-3 ${estSlideLeader ? 'top-40 sm:top-1/2' : 'top-1/2'} -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>‹</button>
-            <button onClick={e => { e.stopPropagation(); suivant() }} className={`absolute right-3 ${estSlideLeader ? 'top-40 sm:top-1/2' : 'top-1/2'} -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>›</button>
+            <button onClick={e => { e.stopPropagation(); precedent() }} className={`absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>‹</button>
+            <button onClick={e => { e.stopPropagation(); suivant() }} className={`absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold transition-all hover:scale-110 text-xl`} style={{ backgroundColor: 'rgba(26,37,53,0.6)' }}>›</button>
           </>
         )}
 
@@ -146,11 +146,16 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
         )}
       </div>
 
-      {/* Cellulaire : le bouton passe sous l'image (trop petite pour le mettre par-dessus) */}
-      {slide.lien && !estSlideLeader && slide.texteBouton && (
-        <button onClick={handleClickSlide} className="sm:hidden w-full mt-3 px-4 py-3 rounded-xl text-base font-bold shadow" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>
-          {slide.texteBouton} →
-        </button>
+      {/* Cellulaire : le bouton passe sous l'image (trop petite pour le mettre par-dessus).
+          L'espace est toujours réservé pour que rien ne bouge d'une image à l'autre. */}
+      {slides.some(s => s.lien && s.texteBouton) && (
+        <div className="sm:hidden mt-3 h-12">
+          {slide.lien && !estSlideLeader && slide.texteBouton && (
+            <button onClick={handleClickSlide} className="w-full h-full px-4 rounded-xl text-base font-bold shadow" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>
+              {slide.texteBouton} →
+            </button>
+          )}
+        </div>
       )}
 
       {/* Miniatures */}
