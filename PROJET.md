@@ -144,8 +144,9 @@ evenement_id, evenement_ville_id, created_at
 
 ### carrousel_images
 ```sql
-id UUID, url, ordre, lien, cree_at
+id UUID, url, ordre, lien, texte_bouton, date_debut DATE, date_fin DATE, visible BOOLEAN DEFAULT true, cree_at
 ```
+SQL : `sql/carrousel-options.sql`
 
 ---
 
@@ -341,10 +342,14 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Sans bracelets : couleurs standard (bleu/vert/or), « Légende des billets », aucune mention de bracelet
 - Logique : `src/lib/bracelets.ts`
 
-### Groupes (sous-groupes des leaders)
-- Champ libre `comptes.groupe` (modifiable par le leader dans Platines et plus). Exemple affiché : « Ex: GROUPEA, EQUIPE-1... »
-- Filtre Groupe (liste déroulante, liée au filtre Leader) : Gestion billets (+ colonne CSV), Rapport banquets (+ PDF, envoi, Excel), Gestion PCI, Platines et plus
-- Variantes regroupées (casse/espaces) : `src/lib/groupes.ts` + composant `src/components/FiltreGroupe.tsx`
+### Groupes et sous-groupes des leaders
+- Champ libre `comptes.groupe`. Sous-groupe avec « / » : `MORIN / TREMBLAY / LATOUR` (le trait d'union ne crée PAS de sous-groupe)
+- Forme unique enregistrée : majuscules + « / » entouré d'espaces (`cleGroupe()` dans `src/lib/groupes.ts`), aussi côté admin (creer-pci, modifier-compte)
+- **Un groupe appartient au leader du PCI** (`comptes.leader_id`) : valeur du filtre = `idLeader::CHEMIN` ; le MORIN d'un leader n'est jamais mélangé avec celui d'un autre
+- Filtrer MORIN inclut tous ses sous-groupes ; liste en arbre avec totaux, une section par leader (« Mes groupes » en premier, 🔒 pour les autres) — `src/components/FiltreGroupe.tsx`
+- **Hiérarchie A** : un leader classe SEULEMENT ses propres PCI (vérifié par le serveur dans `/api/leader/modifier-groupe`) ; les PCI des leaders en dessous sont visibles avec 🔒 ; l'admin peut tout modifier
+- Platines et plus : cases à cocher + « Placer dans ce groupe / Retirer du groupe » en lot, suggestions des groupes existants (datalist)
+- Filtre utilisé dans : Platines et plus, Gestion PCI, Gestion billets, Rapport banquets (+ PDF, envoi, Excel)
 
 ### Audios (nouveaux PCI)
 - Page `/audios` visible seulement par un PCI/leader **actif en période sans frais** (lien du menu caché sinon) — `src/lib/audios.ts` (`aAccesAudios`)
@@ -363,16 +368,19 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Stats par ville (admin seulement)
 
 ### Mes billets (PCI)
-- Liste billets actifs (30 jours après l'événement)
+- Liste billets actifs (30 jours après l'événement), **triés par date d'événement** (le prochain en premier)
 - Zoom QR code en modal
 - Bouton 📄 Télécharger la facture (billets payants)
 - Bouton 📄 Facture pour banquets achetés
 
 ### Factures PDF
-- Générées à la volée avec `@react-pdf/renderer`
+- Générées à la volée avec `@react-pdf/renderer` — **aucun fichier stocké**, rien ne disparaît (les montants restent dans la BD)
+- Code partagé : `src/lib/facturePDF.ts` (`genererFacture(type, id, compteId)`)
 - Numéro : `BIL-XXXXXXXX` ou `BAN-XXXXXXXX`
-- Détail : sous-total, TPS, TVQ, frais Stripe, total, badge PAYÉ
+- Détail : sous-total, TPS, TVQ, frais Stripe, total, badge PAYÉ ou **REMBOURSÉ**
 - API : `/api/facture/billet?billet_id=X&type=billet|banquet`
+- **Page `/factures` « Mes factures »** (PCI et leaders) : achats payés seulement (billets + banquets), du plus récent au plus ancien, regroupés par année avec total
+- **PDF joint au courriel de confirmation** : un PDF par billet acheté ; courriel « Votre place au banquet est confirmée » + PDF après l'achat d'un banquet
 
 ### Rapport Banquets (Admin)
 - Page `/admin/banquets` dans menu Gestion
@@ -385,12 +393,18 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 
 ### Page d'accueil
 - Carrousel avec photo leader côte-à-côte (fond navy)
-- Images admin uploadables avec liens cliquables
+- Images affichées **en entier** (`object-contain`, fond marine) — aucun texte d'affiche coupé
+- Seulement les images visibles aujourd'hui (visible + dates d'affichage, heure du Québec)
+- Bouton d'appel or sur l'image (« Acheter mon billet → ») ; sur cellulaire, sous l'image
+- Image liée à un événement terminé ou désactivé → non cliquable automatiquement
 - Bouton Pause/Play
 - Leader invisible → pas de photo affichée
 
 ### Admin Carrousel
-- Upload, drag-and-drop ordre, liens par image
+- Upload (JPG/PNG/WebP, 3 Mo), ordre par glisser-déposer ou flèches ▲ ▼ (cellulaire)
+- ⚙️ Réglages par image : lien en 4 choix (Aucun / Un événement / Une page du site / Un site externe), texte du bouton, dates « À partir du / Jusqu'au »
+- 🙈 Cacher / 👁 Remettre sans supprimer ; état affiché (Visible, Cachée, ⏳ Programmée, ⌛ Terminée)
+- Format du lien (`carrousel_images.lien`) : `/evenements#ev-<id>` (carte de l'événement, encadrée en or), `/documents`..., `https://...` — `src/lib/carrousel.ts`
 - Bucket `carrousel` dans Supabase Storage
 
 ### Platines et plus (Leader)
@@ -436,7 +450,7 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 
 ### Marketing (Admin)
 - Page `/admin/marketing` — envoi de courriels promo en un clic par événement
-- Sélection événement, sujet et image bannière modifiables, envoi de test à soi-même avant l'envoi réel
+- Sélection événement, sujet, **image bannière choisie depuis l'ordinateur** (bucket public `marketing`, 5 Mo, JPG/PNG/WebP — `sql/marketing-images.sql`), envoi de test à soi-même avant l'envoi réel
 - Envoi aux PCI/leaders actifs et consentants (`consentement_communications`), par lots de 100 via Resend
 - Template `PromoEvenement` : logos, badges (Session/Congrès/Platine/Banquet), paliers de prix avec dates, section banquet, gère aussi les événements sans billets (informatif) et multi-villes
 - Historique des envois (table `campagnes_email`) affiché dans l'admin
@@ -498,6 +512,8 @@ const publicRoutes = [
 - `leaders-photos` — photos des leaders
 - `documents` — documents PCI/Platine (public)
 - `carrousel` — images du carrousel page d'accueil
+- `marketing` — images bannières des courriels promo (public)
+- `audios` — audios des nouveaux PCI (privé, liens signés)
 
 ---
 
@@ -568,4 +584,10 @@ git push
 
 ---
 
-*Dernière mise à jour : 30 octobre 2026 — Session 7*
+### Identité visuelle (novembre 2026)
+- **Yager Group en priorité partout** : logo Yager Group en premier et plus gros, puis logo Famille Germain plus petit avec « Membre du Yager Group » (barre du haut, connexion, en-tête des courriels)
+- Nom en texte : **« Yager Group – Famille Germain »** (jamais l'ancien ordre)
+
+---
+
+*Dernière mise à jour : 8 novembre 2026 — Session 7*
