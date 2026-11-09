@@ -9,10 +9,11 @@ interface GabaritProps {
   apercu: string          // texte affiché dans la boîte de réception, sous le sujet
   titre?: string           // facultatif : un courriel peut afficher son propre titre
   banniere?: { src: string; alt: string }  // image pleine largeur sous l'en-tête (ex. affiche d'un événement)
+  reponseLeader?: boolean  // vrai : on peut répondre au courriel (il part au leader) — pas de « ne pas répondre »
   children: React.ReactNode
 }
 
-export default function Gabarit({ apercu, titre, banniere, children }: GabaritProps) {
+export default function Gabarit({ apercu, titre, banniere, reponseLeader = false, children }: GabaritProps) {
   return (
     <Html lang="fr">
       <Head />
@@ -49,9 +50,15 @@ export default function Gabarit({ apercu, titre, banniere, children }: GabaritPr
               <Link href={APP_URL} style={styles.piedLien}>{APP_URL.replace(/^https?:\/\//, '')}</Link>
             </Text>
             <Text style={styles.piedPetit}>
-              Ce courriel vous est envoyé automatiquement, merci de ne pas y répondre.
-              <br />
-              Pour toute question : page Contact du site.
+              {reponseLeader ? (
+                <>Pour toute question, répondez simplement à ce courriel : votre réponse ira directement à votre leader.</>
+              ) : (
+                <>
+                  Ce courriel vous est envoyé automatiquement, merci de ne pas y répondre.
+                  <br />
+                  Pour toute question : page Contact du site.
+                </>
+              )}
               <br />
               ACCESLYBERTECH INC.
             </Text>

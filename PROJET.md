@@ -396,10 +396,13 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Générées à la volée avec `@react-pdf/renderer` — **aucun fichier stocké**, rien ne disparaît (les montants restent dans la BD)
 - Code partagé : `src/lib/facturePDF.ts` (`genererFacture(type, id, compteId)`)
 - Numéro : `BIL-XXXXXXXX` ou `BAN-XXXXXXXX`
-- Détail : sous-total, TPS, TVQ, frais Stripe, total, badge PAYÉ ou **REMBOURSÉ**
+- En-tête : logo Famille Germain + « Membre du Yager Group » (c'est Accès Lybertech qui facture), adresse, courriel, **TPS 143732154 / TVQ 1023774131 TQ 0001** en haut à droite
+- Bloc « FACTURÉ À » : nom + co-PCI, # PCI, adresse complète, courriel, téléphone
+- **Une seule facture par achat** (même `stripe_payment_intent_id`) : une ligne par billet (ex. 2 billets pour le couple)
+- Détail : sous-total, TPS, TVQ, frais de service, total payé ; si remboursé : montant remboursé + net payé ; badge PAYÉE, REMBOURSÉE ou PARTIELLEMENT REMBOURSÉE — **jamais de solde à payer**
 - API : `/api/facture/billet?billet_id=X&type=billet|banquet`
 - **Page `/factures` « Mes factures »** (PCI et leaders) : achats payés seulement (billets + banquets), du plus récent au plus ancien, regroupés par année avec total
-- **PDF joint au courriel de confirmation** : un PDF par billet acheté ; courriel « Votre place au banquet est confirmée » + PDF après l'achat d'un banquet
+- **PDF joint au courriel de confirmation** : une seule facture par achat ; courriel « Votre place au banquet est confirmée » + PDF après l'achat d'un banquet
 
 ### Rapport Banquets (Admin)
 - Page `/admin/banquets` dans menu Gestion
@@ -433,6 +436,9 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Indicateur banquet + mode participation
 - Stats Sur place/Virtuel par événement
 - Export CSV avec colonnes Banquet et Mode — **séparateur point-virgule** (Excel en français l'ouvre en colonnes)
+- Tri : « Date achat » et « Statut » → toujours du plus récent au plus ancien achat
+- **📄 Rapport PDF** (billets affichés, selon les filtres) : aperçu obligatoire avant tout envoi, ⬇️ Télécharger, 📧 Envoyer par courriel avec « Court message » optionnel — PDF Lettre paysage, logos, nom du leader, événement, groupe (sous-groupes inclus), résumé, tableau ; chaque billet revalidé côté serveur dans l'arbre du leader (`src/lib/rapportBilletsLeader.ts`, `/api/leader/rapport-billets`)
+- Courriel du rapport (`RapportBillets`) : signature « VOTRE LEADER » (nom + courriel), `replyTo` = le leader, pied « répondez à ce courriel » (au lieu de « ne pas répondre »)
 - Onglet Profils PCI avec modification du groupe
 - **Onglet PCI inactifs** + statut Actif/Inactif dans le Profil (pas pour soi-même ; vérification du groupe côté serveur)
 - Billets des PCI inactifs toujours affichés et comptés
@@ -475,7 +481,7 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - ⚠️ Le bucket `documents` est public : un lien partagé s'ouvre même sans compte
 
 ### Emails (Resend) — refonte Session 7
-- **Gabarit commun** `src/emails/Gabarit.tsx` : en-tête marine avec les 2 logos (`NEXT_PUBLIC_APP_URL/logo-*.png`), filet or, texte aéré, bouton or, pied de page
+- **Gabarit commun** `src/emails/Gabarit.tsx` : en-tête marine, logos **côte à côte** (Yager Group à gauche, plus gros | filet or | Famille Germain + « Membre du Yager Group »), filet or, texte aéré, bouton or, pied de page (option `reponseLeader`)
 - Composants : `Paragraphe`, `Bouton`, `Encadre`, `LigneEncadre`, `Note`, `Separateur` — tout nouveau courriel doit utiliser ce gabarit
 - **Mot de passe oublié envoyé par le site** (plus par Supabase) : `/api/auth/mot-de-passe-oublie` → `auth.admin.generateLink({ type: 'recovery' })` → courriel `ReinitialisationMotDePasse` → lien `/reinitialiser-mot-de-passe?token_hash=…&type=recovery` → `verifyOtp` au moment d'enregistrer
 - Protections : réponse toujours identique, 1 envoi/adresse/minute (table `demandes_mot_de_passe`), URL du lien jamais tirée de la requête
@@ -488,6 +494,7 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Page `/admin/marketing` — envoi de courriels promo en un clic par événement
 - Sélection événement, sujet, **image bannière choisie depuis l'ordinateur** (bucket public `marketing`, 5 Mo, JPG/PNG/WebP — `sql/marketing-images.sql`), envoi de test à soi-même avant l'envoi réel
 - Envoi aux PCI/leaders actifs et consentants (`consentement_communications`), par lots de 100 via Resend
+- Description de l'événement mise en forme automatiquement dans le courriel : retours de ligne gardés, ligne vide = paragraphe, ligne courte seule (ex. « Longueuil ») = sous-titre or, « Libellé : » en gras — aide affichée sous la boîte Description du formulaire
 - Template `PromoEvenement` : logos, badges (Session/Congrès/Platine/Banquet), paliers de prix avec dates, section banquet, gère aussi les événements sans billets (informatif) et multi-villes
 - Historique des envois (table `campagnes_email`) affiché dans l'admin
 
@@ -610,7 +617,7 @@ git push
 - Reconnaissances : permettre à l'admin de corriger ou retirer une entrée directement dans le rapport (aujourd'hui : via le leader)
 
 ### Terminés (Session 7)
-- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar · Unicité courriel / numéro Amway · Responsive complet (cellulaire et tablette) · Bouton Partager (documents Platine+) · Image bannière Marketing · Yager Group en priorité · Sous-groupes des leaders · Mes factures + PDF joint aux courriels · Carrousel (liens faciles, bouton, dates, cacher, 16:9 fixe) · Reconnaissances sur scène (saisie, rapport, feuilles de scène) · CSV admin retiré, CSV leaders en points-virgules
+- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar · Unicité courriel / numéro Amway · Responsive complet (cellulaire et tablette) · Bouton Partager (documents Platine+) · Image bannière Marketing · Yager Group en priorité · Sous-groupes des leaders · Mes factures + PDF joint aux courriels · Carrousel (liens faciles, bouton, dates, cacher, 16:9 fixe) · Reconnaissances sur scène (saisie, rapport, feuilles de scène) · CSV admin retiré, CSV leaders en points-virgules · Nouvelle facture (une par achat, TPS/TVQ, adresse) · Rapport PDF des leaders (aperçu, téléchargement, envoi) · Tri date d'achat · Courriels : en-tête côte à côte + description promo lisible
 
 ---
 
@@ -630,4 +637,4 @@ git push
 
 ---
 
-*Dernière mise à jour : 9 novembre 2026 — Session 7*
+*Dernière mise à jour : 9 novembre 2026 — Session 7 (factures, rapport PDF leaders, courriels)*

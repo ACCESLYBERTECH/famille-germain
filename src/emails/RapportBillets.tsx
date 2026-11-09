@@ -6,7 +6,7 @@ export default function RapportBillets({ leader = 'Votre leader', courrielLeader
   leader?: string; courrielLeader?: string; evenement?: string; groupe?: string; nombreBillets?: number; message?: string
 }) {
   return (
-    <Gabarit apercu={`${leader} vous envoie le rapport des ventes de billets`} titre="Rapport des ventes de billets">
+    <Gabarit apercu={`${leader} vous envoie le rapport des ventes de billets`} titre="Rapport des ventes de billets" reponseLeader>
       <Paragraphe>Bonjour,</Paragraphe>
       <Paragraphe><strong>{leader}</strong> vous envoie le rapport des ventes de billets, en format PDF, en pièce jointe.</Paragraphe>
       {message && <Paragraphe>« {message} »</Paragraphe>}
