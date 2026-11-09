@@ -278,8 +278,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     })
 
     const contenu = [entetes, ...lignes]
-      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
+      // Point-virgule : Excel en français ouvre alors chaque information dans sa propre colonne
+      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\r\n')
 
     const blob = new Blob(['\uFEFF' + contenu], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)

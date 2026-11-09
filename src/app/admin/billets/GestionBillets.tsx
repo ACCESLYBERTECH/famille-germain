@@ -119,37 +119,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
     return result
   }, [billets, filtreStatut, filtreEvenement, filtreLeader, filtreMode, filtreGroupe, recherche, tri])
 
-  function exporterCSV() {
-    const entetes = ['Date achat', '# Amway', 'Nom PCI', 'Courriel', 'Groupe', 'Événement', 'Statut', 'Prix', 'Mode', 'Banquet']
-    const lignes = billetsFiltres.map(b => {
-      const date = new Date(b.created_at).toLocaleString('fr-CA', { dateStyle: 'short', timeStyle: 'short' })
-      const amway = b.comptes?.numero_amway ?? ''
-      const nom = b.nom_pci
-      const courriel = b.comptes?.courriel ?? ''
-      const evenement = b.evenements?.nom ?? ''
-      const statut = b.statut === 'vendu' ? 'Vendu' : b.statut === 'utilise' ? 'Utilisé' : 'Remboursé'
-      const prix = b.est_sans_frais ? 'Sans frais' : b.prix_paye === 0 ? 'Billet offert' : `${b.prix_paye.toFixed(2)} $`
-      const mode = b.mode_participation === 'virtuel' ? 'Virtuel' : 'Sur place'
-      const banquet = b.est_sans_frais && b.evenements?.a_banquet
-        ? (banquetsAchetes.some(ba => ba.billet_id === b.id) ? 'Avec banquet' : 'Sans banquet')
-        : ''
-      return [date, amway, nom, courriel, b.comptes?.groupe ?? '', evenement, statut, prix, mode, banquet]
-    })
-
-    const contenu = [entetes, ...lignes]
-      .map(ligne => ligne.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-
-    const blob = new Blob(['\uFEFF' + contenu], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const lien = document.createElement('a')
-    lien.href = url
-    const nomFichier = filtreEvenement ? `billets-${filtreEvenement.replace(/\s+/g, '-')}.csv` : 'billets-tous.csv'
-    lien.download = nomFichier
-    lien.click()
-    URL.revokeObjectURL(url)
-  }
-
   async function envoyerRapport() {
     setErreurRapport('')
     if (!rapportEvenement) { setErreurRapport('Veuillez sélectionner un événement.'); return }
@@ -300,9 +269,6 @@ export default function GestionBillets({ billets, evenements, pcis, leaders, ban
           ))}
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={exporterCSV} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#2E86C1' }}>
-            ⬇️ CSV ({billetsFiltres.length})
-          </button>
           <button onClick={() => { setModalRapport(true); setErreurRapport(''); setRapportEnvoye(false) }} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ backgroundColor: '#1A2535' }}>
             📧 Rapport Excel
           </button>
