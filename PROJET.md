@@ -100,7 +100,8 @@ created_at
 ```sql
 id UUID, nom, description, date_debut, date_fin, lieu,
 acces ('public'|'platine'), a_billets, a_banquet,
-stripe_account ('principal'|'banquet'), statut, created_at
+stripe_account ('principal'|'banquet'), statut, created_at,
+a_reconnaissances BOOLEAN DEFAULT false, reconnaissances_date_limite DATE
 ```
 
 ### evenement_paliers
@@ -147,6 +148,24 @@ evenement_id, evenement_ville_id, created_at
 id UUID, url, ordre, lien, texte_bouton, date_debut DATE, date_fin DATE, visible BOOLEAN DEFAULT true, cree_at
 ```
 SQL : `sql/carrousel-options.sql`
+
+### reconnaissance_types
+```sql
+id UUID, nom, ordre INT (= ordre sur la scène), actif BOOLEAN, created_at
+```
+
+### reconnaissances_virtuel
+```sql
+id UUID, evenement_id, leader_id (propriétaire), compte_id (PCI choisi, sinon NULL),
+nom, nom_2 (co-PCI), numero_amway, ville, province, pays,
+type_ids UUID[], autre, created_at, modifie_le
+```
+
+### reconnaissances_sur_place
+```sql
+id UUID, evenement_id, leader_id, ville_id (NULL = salle unique), type_id, nombre INT > 0, modifie_le
+```
+SQL : `sql/reconnaissances.sql` (+ GRANT) et `sql/reconnaissances-numero.sql` — RLS : admin et développeur seulement ; les leaders passent par `/api/reconnaissances/*`
 
 ---
 
@@ -392,10 +411,11 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Données partagées : `src/lib/rapportBanquets.ts` ; PDF : `src/lib/rapportBanquetsPDF.ts` (retire les émojis, police Helvetica)
 
 ### Page d'accueil
-- Carrousel avec photo leader côte-à-côte (fond navy)
+- Carrousel **toujours en 16:9** (aucun saut de hauteur d'une diapo à l'autre), défilement automatique aux 5 secondes + Pause/Play
+- Diapo des leaders : photo à gauche, nom à droite, même cadre 16:9 (sur cellulaire : seulement « Vos leaders » + noms)
 - Images affichées **en entier** (`object-contain`, fond marine) — aucun texte d'affiche coupé
 - Seulement les images visibles aujourd'hui (visible + dates d'affichage, heure du Québec)
-- Bouton d'appel or sur l'image (« Acheter mon billet → ») ; sur cellulaire, sous l'image
+- Bouton d'appel or sur l'image (« Acheter mon billet → ») ; sur cellulaire, sous l'image (espace toujours réservé : rien ne bouge)
 - Image liée à un événement terminé ou désactivé → non cliquable automatiquement
 - Bouton Pause/Play
 - Leader invisible → pas de photo affichée
@@ -412,18 +432,34 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Filtre par leader, événement, groupe
 - Indicateur banquet + mode participation
 - Stats Sur place/Virtuel par événement
-- Export CSV avec colonnes Banquet et Mode
+- Export CSV avec colonnes Banquet et Mode — **séparateur point-virgule** (Excel en français l'ouvre en colonnes)
 - Onglet Profils PCI avec modification du groupe
 - **Onglet PCI inactifs** + statut Actif/Inactif dans le Profil (pas pour soi-même ; vérification du groupe côté serveur)
 - Billets des PCI inactifs toujours affichés et comptés
+- **Onglet 🏆 Reconnaissances** (voir section Reconnaissances sur scène)
 
 ### Gestion Billets (Admin)
 - Filtres : statut, événement, leader, mode participation
 - Recherche par nom/courriel/# Amway
 - Stats Sur place/Virtuel par événement
-- Export CSV + Rapport Excel par email
+- Rapport Excel par email (le bouton CSV a été retiré : inutile pour les admins)
 - Offrir un billet (avec email de confirmation)
 - Remboursement Stripe
+
+### Reconnaissances sur scène (congrès et sessions payantes)
+- **Admin — Gestion événements** : case « 🏆 Reconnaissances sur scène » + date limite (vide = veille de l'événement) ; copiée à la duplication
+- **Admin — Gestion → 🏆 Reconnaissances** :
+  - Liste des reconnaissances (ajouter, renommer, désactiver, ordre ▲ ▼ = ordre sur la scène) — 20 au départ
+  - Rapport par conférence : résumé, **sur place = total par salle et par reconnaissance** (+ détail par leader), virtuel classé par reconnaissance, « Autre » à la fin
+  - ⚠️ Doublons signalés (même numéro de PCI inscrit par deux organisations — possible seulement par l'écriture à la main)
+  - **Feuilles de scène** : une par salle (ou toutes), page imprimable `/admin/reconnaissances/scene` (Lettre portrait, gros caractères) → Imprimer / Enregistrer en PDF ; pour chaque reconnaissance : « Sur place : X » puis les noms en virtuel (ville, province, pays) ou **AUCUN** ; une personne n'est nommée qu'une fois ; date d'impression en bas
+- **Leader — Platines et plus → 🏆 Reconnaissances** :
+  - **Virtuel** (nommés dans toutes les salles) : une fiche par personne ; recherche dans ses PCI actifs **et lui-même** (remplissage auto du nom, co-PCI, numéro de PCI, ville, province, pays) ; écriture à la main = bouée de sauvetage seulement
+  - **Sur place** : un nombre par salle et par reconnaissance (« sur place », jamais « présentiel »)
+  - Modifiable jusqu'à la date limite, ensuite verrouillé
+  - Hiérarchie comme les billets : entrées des leaders en dessous en lecture seule 🔒, **classées en arbre** (« équipe de… »)
+  - **Doublons bloqués par le NUMÉRO DE PCI** (jamais par le nom : deux Julie Tremblay peuvent exister), seulement dans sa propre organisation : fiche existante rouverte, ou bloqué avec le nom du leader en dessous ; rien n'est révélé entre organisations
+- Code : `src/lib/reconnaissances.ts`, `src/lib/reconnaissancesServeur.ts`, `src/lib/rapportReconnaissances.ts`, `src/app/api/reconnaissances/virtuel` et `sur-place`
 
 ### Portiers
 - Comptes indépendants (table `portiers_comptes`)
@@ -470,7 +506,10 @@ sql/                                    — Scripts SQL exécutés dans Supabase
 - Vérification des rôles centralisée dans `src/lib/acces.ts`
 - **Villes d'un événement : mises à jour en place** (update par id), jamais effacer-puis-recréer — `portiers_comptes.evenement_ville_id` et `billets.scanne_ville_id` y sont liés (ancien bogue : villes dupliquées à chaque sauvegarde)
 - Listes de leaders pour affichage historique : `.in('statut', ['actif', 'inactif'])` (sinon le nom d'un leader inactif disparaît)
-- GRANT explicites requis pour chaque table
+- **GRANT explicites requis pour chaque nouvelle table** (sinon « permission denied » même avec la clé de serveur) — toujours les inclure dans le script SQL :
+  `GRANT ALL ON TABLE ... TO service_role;` + `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE ... TO authenticated;`
+- Après un `ALTER TABLE` : si « Could not find the column ... in the schema cache » → `NOTIFY pgrst, 'reload schema';`
+- L'éditeur SQL de Supabase n'affiche que le résultat de la **dernière** requête
 
 ### Next.js / TypeScript
 - **Pas de `admin/layout.tsx`** — double navbar
@@ -568,9 +607,10 @@ git push
 - Vercel Hobby = usage non commercial → probablement plan Pro avant le lancement à tous les PCI
 - Supabase gratuit : 1 Go stockage, 5 Go bande passante/mois (surveiller avec les audios)
 - Documents Platine confidentiels : si certains ne doivent jamais sortir du groupe, prévoir des liens qui expirent (bucket privé)
+- Reconnaissances : permettre à l'admin de corriger ou retirer une entrée directement dans le rapport (aujourd'hui : via le leader)
 
 ### Terminés (Session 7)
-- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar · Unicité courriel / numéro Amway · Responsive complet (cellulaire et tablette) · Bouton Partager (documents Platine+)
+- Rôle développeur · RLS durcies · Statut Actif/Inactif + refusé · Rapport banquets (imprimer/envoyer) · Correction allergies · Bracelets par événement · Correction villes dupliquées · Filtre Groupe · Page Audios · Courriels professionnels + mot de passe oublié en français · Courriel promo · Nom complet + co-PCI dans la navbar · Unicité courriel / numéro Amway · Responsive complet (cellulaire et tablette) · Bouton Partager (documents Platine+) · Image bannière Marketing · Yager Group en priorité · Sous-groupes des leaders · Mes factures + PDF joint aux courriels · Carrousel (liens faciles, bouton, dates, cacher, 16:9 fixe) · Reconnaissances sur scène (saisie, rapport, feuilles de scène) · CSV admin retiré, CSV leaders en points-virgules
 
 ---
 
@@ -590,4 +630,4 @@ git push
 
 ---
 
-*Dernière mise à jour : 8 novembre 2026 — Session 7*
+*Dernière mise à jour : 9 novembre 2026 — Session 7*
