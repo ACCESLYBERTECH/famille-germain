@@ -104,9 +104,10 @@ export default async function ConfirmationPage({ searchParams }: Props) {
   if (compte?.courriel && evenement && nomsDejaCrees.length === 0) {
     // Les factures PDF sont jointes au courriel (si une facture échoue, le courriel part quand même)
     const factures: { nomFichier: string; pdf: Buffer }[] = []
-    for (const id of idsBilletsCrees) {
+    // Un seul achat = une seule facture (une ligne par billet)
+    if (idsBilletsCrees.length > 0) {
       try {
-        const f = await genererFacture('billet', id, user.id)
+        const f = await genererFacture('billet', idsBilletsCrees[0], user.id)
         if (!('erreur' in f)) factures.push({ nomFichier: f.nomFichier, pdf: f.pdf })
       } catch (e) {
         console.error('Facture PDF non jointe:', e)

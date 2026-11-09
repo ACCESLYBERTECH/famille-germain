@@ -10,6 +10,8 @@ export interface Facture {
   titre: string
   dateEvenement: string | null
   pour: string
+  nbBillets: number
+  partiel: boolean
   montant: number
   rembourse: boolean
 }
@@ -75,7 +77,7 @@ export default function MesFactures({ factures }: { factures: Facture[] }) {
                       {f.type === 'banquet' ? '🍽️ ' : '🎫 '}{f.titre}
                     </p>
                     <p className="text-sm" style={{ color: '#666666' }}>
-                      {f.type === 'banquet' ? 'Banquet pour' : 'Billet pour'} : {f.pour}
+                      {f.type === 'banquet' ? 'Banquet pour' : f.nbBillets > 1 ? `${f.nbBillets} billets pour` : 'Billet pour'} : {f.pour}
                       {f.dateEvenement && <> · événement le {dateCourte(f.dateEvenement)}</>}
                     </p>
                   </div>
@@ -83,6 +85,8 @@ export default function MesFactures({ factures }: { factures: Facture[] }) {
                     <span className="text-sm font-semibold" style={{ color: f.rembourse ? '#999999' : '#1A2535', textDecoration: f.rembourse ? 'line-through' : undefined }}>{f.montant.toFixed(2)} $</span>
                     {f.rembourse
                       ? <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>Remboursé</span>
+                      : f.partiel
+                      ? <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>Remb. en partie</span>
                       : <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#E8F5E9', color: '#4CAF7D' }}>Payé</span>}
                     <button onClick={() => telecharger(f)} disabled={chargement === f.id} className="ml-auto sm:ml-0 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: '#F5F3EE', color: '#1A2535' }}>
                       {chargement === f.id ? '⏳ ...' : '📄 PDF'}
