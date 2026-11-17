@@ -27,10 +27,11 @@ export default async function AccueilPage() {
     return <CompteNonActif prenom={compte?.prenom_1 ?? ''} role={compte?.role ?? ''} statut={compte?.statut} />
   }
 
-  // Charger la photo du leader assigné
+  // Charger la photo du leader assigné (« Votre leader ») — jamais sa propre photo :
+  // le leader tout en haut, qui n'a pas de leader, n'a simplement pas cette diapo
   let photoLeader: { url: string; nom: string; estCouple?: boolean } | null = null
 
-  if (compte?.leader_id) {
+  if (compte?.leader_id && compte.leader_id !== compte.id) {
     const { data: leader } = await supabaseAdmin
       .from('comptes')
       .select('prenom_1, nom_1, prenom_2, nom_2, photo_url, visible_inscription')
@@ -45,15 +46,6 @@ export default async function AccueilPage() {
       const estCouple = !!(leader.prenom_2 && leader.nom_2)
       photoLeader = { url: leader.photo_url, nom: nomComplet, estCouple }
     }
-  }
-
-  // Si c'est un leader, afficher sa propre photo seulement s'il est visible
-  if (!photoLeader && compte?.role === 'leader' && compte?.photo_url && compte?.visible_inscription !== false) {
-    const nomComplet = compte.prenom_2 && compte.nom_2
-      ? `${compte.prenom_1} ${compte.nom_1} & ${compte.prenom_2} ${compte.nom_2}`
-      : `${compte.prenom_1} ${compte.nom_1}`
-    const estCouple = !!(compte.prenom_2 && compte.nom_2)
-    photoLeader = { url: compte.photo_url, nom: nomComplet, estCouple }
   }
 
   // Charger les images du carrousel : seulement celles visibles aujourd'hui
