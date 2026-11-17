@@ -24,10 +24,9 @@ export default function CarrouselAccueil({ photoLeader, images, prenom }: Props)
 
   const slides: { url: string; legende?: string; estLeader?: boolean; lien?: string | null; texteBouton?: string | null }[] = []
 
+  // Diapo « Votre leader » seulement s'il y a un leader à montrer (sinon on commence avec les images de l'admin)
   if (photoLeader) {
     slides.push({ url: photoLeader.url, legende: photoLeader.nom, estLeader: true, lien: null })
-  } else {
-    slides.push({ url: '/bienvenue.jpg', legende: 'Yager Group – Famille Germain', estLeader: true, lien: null })
   }
 
   images.forEach(img => slides.push({ url: img.url, lien: img.lien, texteBouton: img.texte_bouton }))
