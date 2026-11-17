@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { maintenantQuebec } from '@/lib/heureQuebec'
 
 const TYPES_IMAGE = ['image/jpeg', 'image/png', 'image/webp']
 const TAILLE_MAX = 5 * 1024 * 1024 // 5 Mo
@@ -53,7 +54,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires: nomb
 
   const prixActuel = useMemo(() => {
     if (!evenement || evenement.paliers.length === 0) return null
-    const maintenant = new Date()
+    const maintenant = maintenantQuebec()
     const paliersTries = [...evenement.paliers].sort((a, b) => a.ordre - b.ordre)
     const palierActuel = paliersTries.find(p => new Date(p.date_fin) > maintenant)
     return palierActuel ? palierActuel.prix : paliersTries[paliersTries.length - 1].prix

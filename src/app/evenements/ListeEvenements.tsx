@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import type { Compte, Evenement, EvenementPalier } from '@/lib/types'
+import { maintenantQuebec, dateHeureQuebec } from '@/lib/heureQuebec'
 
 interface BilletPCI {
   id: string
@@ -23,15 +24,16 @@ interface Props {
   banquetsAchetes: BanquetAchete[]
 }
 
-function getPrixActuel(paliers: EvenementPalier[]): { prix: number; prochainPalier?: EvenementPalier } {
+// Prix en vigueur + date où il augmente (= fin du palier actuel, s'il y a un palier après)
+function getPrixActuel(paliers: EvenementPalier[]): { prix: number; finPalier?: string } {
   if (!paliers || paliers.length === 0) return { prix: 0 }
-  const maintenant = new Date()
+  const maintenant = maintenantQuebec()
   const paliersTriés = [...paliers].sort((a, b) => a.ordre - b.ordre)
   const palierActuel = paliersTriés.find(p => new Date(p.date_fin) > maintenant)
   if (!palierActuel) return { prix: paliersTriés[paliersTriés.length - 1].prix }
   const indexActuel = paliersTriés.indexOf(palierActuel)
   const prochainPalier = paliersTriés[indexActuel + 1]
-  return { prix: palierActuel.prix, prochainPalier }
+  return { prix: palierActuel.prix, finPalier: prochainPalier ? palierActuel.date_fin : undefined }
 }
 
 function estSansFrais(compte: Compte, evenement: Evenement): boolean {
@@ -96,7 +98,7 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes, enAvant = fal
 }) {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const sf = estSansFrais(compte, ev)
-  const { prix, prochainPalier } = getPrixActuel(ev.paliers ?? [])
+  const { prix, finPalier } = getPrixActuel(ev.paliers ?? [])
   const urlAchat = '/evenements/achat?evenement_id=' + ev.id
   const memeJourEv = memeJour(ev.date_debut, ev.date_fin)
   const jours = joursAvantEvenement(ev.date_debut)
@@ -163,8 +165,8 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes, enAvant = fal
               ) : (
                 <div>
                   <p className="text-3xl font-bold whitespace-nowrap" style={{ color: '#1A2535' }}>{prix === 0 ? 'Sans frais' : prix.toFixed(2) + ' $'}</p>
-                  {prochainPalier && (
-                    <p className="text-xs mt-1 font-medium" style={{ color: '#E57373' }}>⏰ Prix augmente le {new Date(prochainPalier.date_fin).toLocaleDateString('fr-CA')}</p>
+                  {finPalier && (
+                    <p className="text-xs mt-1 font-medium" style={{ color: '#E57373' }}>⏰ Prix augmente le {dateHeureQuebec(finPalier)}</p>
                   )}
                 </div>
               )}

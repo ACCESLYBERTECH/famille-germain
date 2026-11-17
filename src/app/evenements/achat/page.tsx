@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import FormulaireAchat from './FormulaireAchat'
 import { peutVoirEvenement } from '@/lib/leadership'
+import { maintenantQuebec } from '@/lib/heureQuebec'
 
 interface Props {
   searchParams: Promise<{ evenement_id?: string }>
@@ -52,7 +53,7 @@ export default async function AchatPage({ searchParams }: Props) {
     : false
 
   // Calculer prix actuel
-  const maintenant = new Date()
+  const maintenant = maintenantQuebec()
   const paliers = (evenement.paliers ?? []).sort((a: { ordre: number }, b: { ordre: number }) => a.ordre - b.ordre)
   const palierActuel = paliers.find((p: { date_fin: string }) => new Date(p.date_fin) > maintenant)
   const prix = palierActuel ? palierActuel.prix : paliers[paliers.length - 1]?.prix ?? 0

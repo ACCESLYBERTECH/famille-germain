@@ -1,6 +1,7 @@
 import { Text, Section, Row, Column } from '@react-email/components'
 import * as React from 'react'
 import Gabarit, { Paragraphe, Bouton, Separateur, Note } from './Gabarit'
+import { maintenantQuebec } from '@/lib/heureQuebec'
 
 interface Palier {
   prix: number
@@ -72,7 +73,7 @@ export default function PromoEvenement({
   const typeLabel = aBillets ? (unSeulJour ? 'SESSION' : 'CONGRÈS') : 'INFORMATIF'
 
   const paliersTries = [...paliers].sort((a, b) => a.ordre - b.ordre)
-  const maintenant = new Date()
+  const maintenant = maintenantQuebec()
   const indexTrouve = paliersTries.findIndex(p => new Date(p.date_fin) > maintenant)
   const indexActuel = paliersTries.length === 0 ? -1 : (indexTrouve === -1 ? paliersTries.length - 1 : indexTrouve)
 

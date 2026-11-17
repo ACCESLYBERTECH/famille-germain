@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@/utils/supabase/server'
 import { peutVoirEvenement } from '@/lib/leadership'
+import { maintenantQuebec } from '@/lib/heureQuebec'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ sans_frais: true })
     }
 
-    const maintenant = new Date()
+    const maintenant = maintenantQuebec()
     const paliers = (evenement.paliers ?? []).sort((a: { ordre: number }, b: { ordre: number }) => a.ordre - b.ordre)
     const palierActuel = paliers.find((p: { date_fin: string }) => new Date(p.date_fin) > maintenant)
     const prix = palierActuel ? palierActuel.prix : paliers[paliers.length - 1]?.prix ?? 0
