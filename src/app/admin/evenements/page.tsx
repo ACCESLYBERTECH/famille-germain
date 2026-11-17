@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { estAdminOuDeveloppeur } from '@/lib/acces'
 import GestionEvenements from './GestionEvenements'
+import { maintenantQuebec } from '@/lib/heureQuebec'
 
 export default async function AdminEvenementsPage() {
   const supabase = await createClient()
@@ -26,7 +27,15 @@ export default async function AdminEvenementsPage() {
       villes:evenement_villes(*),
       banquet:banquets(*)
     `)
-    .order('date_debut', { ascending: false })
+    .order('date_debut', { ascending: true })
+
+  // Ordre : le prochain événement à l'horaire en premier, puis les suivants ;
+  // les événements terminés vont à la fin (le plus récent d'abord)
+  const maintenant = maintenantQuebec()
+  const estTermine = (ev: { date_fin?: string | null; date_debut: string }) => new Date(ev.date_fin || ev.date_debut) < maintenant
+  const aVenir = (evenements ?? []).filter(ev => !estTermine(ev))
+  const termines = (evenements ?? []).filter(ev => estTermine(ev)).reverse()
+  const evenementsTries = [...aVenir, ...termines]
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F5F3EE' }}>
@@ -35,7 +44,7 @@ export default async function AdminEvenementsPage() {
         <h1 className="text-2xl font-bold mb-6" style={{ color: '#1A2535' }}>
           Gestion des événements
         </h1>
-        <GestionEvenements evenements={evenements ?? []} />
+        <GestionEvenements evenements={evenementsTries} />
       </div>
     </div>
   )
