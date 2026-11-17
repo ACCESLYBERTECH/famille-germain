@@ -126,10 +126,10 @@ export default function GestionEvenements({ evenements }: Props) {
                     style={{ backgroundColor: statutBadge(ev.statut).bg, color: statutBadge(ev.statut).color }}>
                     {ev.statut}
                   </span>
-                  {ev.acces === 'platine' && (
+                  {ev.acces === 'leadership' && (
                     <span className="px-2 py-0.5 rounded-full text-xs font-medium"
                       style={{ backgroundColor: '#FFF8E1', color: '#C9A84C' }}>
-                      Platine
+                      👑 Leadership
                     </span>
                   )}
                 </div>

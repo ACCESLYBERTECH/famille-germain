@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { envoyerPromoEvenement } from '@/lib/email'
 import { estAdminOuDeveloppeur } from '@/lib/acces'
+import { peutVoirEvenement } from '@/lib/leadership'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     const { data: destinatairesBruts, error: erreurDestinataires } = await supabaseAdmin
       .from('comptes')
-      .select('prenom_1, courriel')
+      .select('prenom_1, courriel, role, acces_leadership')
       .eq('statut', 'actif')
       .eq('consentement_communications', true)
       .in('role', ['pci', 'leader'])
@@ -44,8 +45,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: erreurDestinataires.message }, { status: 500 })
     }
 
+    // Conférence Leadership : seulement les leaders et les PCI qui ont l'accès
     const destinataires = (destinatairesBruts ?? [])
       .filter(d => !!d.courriel)
+      .filter(d => peutVoirEvenement(evenement.acces, d))
       .map(d => ({ prenom: d.prenom_1 ?? '', email: d.courriel as string }))
 
     if (destinataires.length === 0) {

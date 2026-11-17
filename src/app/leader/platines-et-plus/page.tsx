@@ -37,7 +37,7 @@ export default async function PlatinesEtPlusPage() {
   const { data: membres } = idsGroupe.length > 0
     ? await supabaseAdmin
         .from('comptes')
-        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, pays, numero_amway, periode_sf_fin, statut, role, leader_id, groupe')
+        .select('id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, ville, province, pays, numero_amway, periode_sf_fin, statut, role, leader_id, groupe, acces_leadership')
         .in('id', idsGroupe)
         .order('nom_1', { ascending: true })
     : { data: [] }

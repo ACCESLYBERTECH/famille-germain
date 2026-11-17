@@ -147,6 +147,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
       photo_url: (pci as any).photo_url ?? '',
       visible_inscription: (pci as any).visible_inscription !== false,
       statut: pci.statut ?? 'actif',
+      acces_leadership: (pci as any).acces_leadership === true,
     })
   }
 
@@ -187,6 +188,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
         groupe: form.groupe || null,
         photo_url: form.photo_url || null,
         visible_inscription: form.visible_inscription,
+        acces_leadership: form.acces_leadership === true,
       }),
     })
     if (!res.ok) {
@@ -344,6 +346,7 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
                         {pci.statut === 'inactif' && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#ECEFF1', color: '#757575' }}>⏸️ Inactif</span>}
                         {!pci.leader_id && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF3E0', color: '#E57373' }}>⚠️ Sans leader</span>}
                         {estInvisible && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#F3E5F5', color: '#9C27B0' }}>👁️ Invisible</span>}
+                        {pci.role === 'pci' && (pci as any).acces_leadership === true && <span className="px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#FFF8E1', color: '#A07D1C' }}>👑 Leadership</span>}
                       </div>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
@@ -618,6 +621,17 @@ export default function GestionPCI({ pciEnAttente, pciActifs, pciInactifs, leade
                   ))}
                 </select>
               </div>
+
+              {/* Accès Leadership — seulement pour un PCI (les leaders y ont toujours accès) */}
+              {form.role === 'pci' && (
+                <label className="flex items-start gap-3 p-3 rounded-xl cursor-pointer" style={{ backgroundColor: form.acces_leadership ? '#FFF8E1' : '#F8F7F4', border: `1px solid ${form.acces_leadership ? '#C9A84C' : '#E0E0E0'}` }}>
+                  <input type="checkbox" className="w-5 h-5 mt-0.5 accent-yellow-600" checked={form.acces_leadership === true} onChange={e => update('acces_leadership', e.target.checked)} />
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: '#1A2535' }}>👑 Accès aux conférences Leadership</p>
+                    <p className="text-xs" style={{ color: '#666666' }}>Ce PCI voit et peut acheter ses billets pour les conférences Leadership. Les leaders y ont toujours accès.</p>
+                  </div>
+                </label>
+              )}
 
               {/* Visibilité — seulement si rôle = leader */}
               {form.role === 'leader' && (

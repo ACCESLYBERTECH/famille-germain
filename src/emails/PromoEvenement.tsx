@@ -16,7 +16,7 @@ interface PromoEvenementProps {
   dateFin: string
   lieu: string
   villes: string[]
-  acces: 'public' | 'platine'
+  acces: 'public' | 'leadership'
   aBillets: boolean
   aBanquet: boolean
   banquetNom?: string | null
@@ -86,7 +86,7 @@ export default function PromoEvenement({
       {/* Badges */}
       <Text style={{ margin: '0 0 14px' }}>
         <span style={badge}>{typeLabel}</span>
-        {acces === 'platine' && <span style={{ ...badge, ...badgeOr }}>★ PLATINE</span>}
+        {acces === 'leadership' && <span style={{ ...badge, ...badgeOr }}>👑 LEADERSHIP</span>}
         {aBanquet && <span style={{ ...badge, ...badgeOr }}>🍽️ BANQUET</span>}
       </Text>
 

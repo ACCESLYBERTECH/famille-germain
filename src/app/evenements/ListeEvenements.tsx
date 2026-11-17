@@ -118,8 +118,8 @@ function CarteEvenement({ ev, compte, billetsPCI, banquetsAchetes, enAvant = fal
       <div className="px-4 sm:px-6 py-4 flex items-center justify-between gap-3" style={{ backgroundColor: '#1A2535' }}>
         <div className="flex items-center gap-3 flex-wrap">
           <h2 className="text-lg sm:text-xl font-bold text-white w-full sm:w-auto">{ev.nom}</h2>
-          {ev.acces === 'platine' && (
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>★ PLATINE</span>
+          {ev.acces === 'leadership' && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#C9A84C', color: '#1A2535' }}>👑 LEADERSHIP</span>
           )}
           {ev.a_billets && (
             <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ backgroundColor: 'rgba(255,255,255,0.15)', color: '#C9A84C' }}>

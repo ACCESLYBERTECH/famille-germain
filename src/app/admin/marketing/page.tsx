@@ -41,6 +41,14 @@ export default async function AdminMarketingPage() {
     .eq('consentement_communications', true)
     .in('role', ['pci', 'leader'])
 
+  // Pour une conférence Leadership : seulement les leaders + les PCI qui ont l'accès
+  const { count: nombreLeadership } = await supabaseAdmin
+    .from('comptes')
+    .select('id', { count: 'exact', head: true })
+    .eq('statut', 'actif')
+    .eq('consentement_communications', true)
+    .or('role.eq.leader,and(role.eq.pci,acces_leadership.eq.true)')
+
   const { data: campagnes } = await supabaseAdmin
     .from('campagnes_email')
     .select('*')
@@ -60,6 +68,7 @@ export default async function AdminMarketingPage() {
         <GestionMarketing
           evenements={evenements ?? []}
           nombreDestinataires={nombreDestinataires ?? 0}
+          nombreLeadership={nombreLeadership ?? 0}
           campagnes={campagnes ?? []}
         />
       </div>

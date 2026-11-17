@@ -23,6 +23,7 @@ interface PCI {
   role: string
   leader_id: string | null
   groupe: string | null
+  acces_leadership?: boolean | null
 }
 
 interface Billet {
@@ -109,6 +110,14 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
 
   // Un leader classe seulement SES PCI (ceux qui l'ont choisi comme leader)
   const peutClasser = (p: PCI) => estAdmin || p.leader_id === leaderConnecteId
+  // Accès Leadership : n'importe quel PCI de son organisation (tous les niveaux), jamais soi-même
+  const peutLeadership = (p: PCI) => p.role === 'pci' && p.id !== leaderConnecteId
+  const peutSelectionner = (p: PCI) => peutClasser(p) || peutLeadership(p)
+  const [leadershipChargement, setLeadershipChargement] = useState(false)
+  const [leadershipErreur, setLeadershipErreur] = useState<string | null>(null)
+  // Accès modifiés pendant la visite (affichage immédiat, avant le rafraîchissement)
+  const [accesModifies, setAccesModifies] = useState<Record<string, boolean>>({})
+  const aLeadership = (p: PCI) => (p.id in accesModifies ? accesModifies[p.id] : p.acces_leadership === true)
 
   // Groupes existants proposés pendant qu'on tape
   const elementsGroupes = useMemo(() => pcis.map(p => ({ groupe: p.groupe, leader_id: p.leader_id })), [pcis])
@@ -244,12 +253,19 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       setLotMessage({ type: 'erreur', texte: 'Choisissez ou écrivez un groupe.' })
       return
     }
+    // Le groupe ne s'applique qu'à SES propres PCI (ceux des autres leaders sont ignorés)
+    const idsGroupe = pcis.filter(p => selection.has(p.id) && peutClasser(p)).map(p => p.id)
+    const ignores = selection.size - idsGroupe.length
+    if (idsGroupe.length === 0) {
+      setLotMessage({ type: 'erreur', texte: '🔒 Les PCI cochés appartiennent à d\'autres leaders : seul leur leader peut changer leur groupe.' })
+      return
+    }
     setLotChargement(true)
     setLotMessage(null)
     const res = await fetch('/api/leader/modifier-groupe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: Array.from(selection), groupe: retirer ? '' : groupeLot }),
+      body: JSON.stringify({ ids: idsGroupe, groupe: retirer ? '' : groupeLot }),
     })
     const data = await res.json().catch(() => ({}))
     setLotChargement(false)
@@ -257,16 +273,69 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
       setLotMessage({ type: 'erreur', texte: data.error ?? 'Erreur lors de la sauvegarde' })
       return
     }
-    const nombre = selection.size
+    const nombre = idsGroupe.length
+    const note = ignores > 0 ? ` (${ignores} PCI d'un autre leader non touché${ignores > 1 ? 's' : ''} 🔒)` : ''
     setLotMessage({
       type: 'succes',
-      texte: retirer
+      texte: (retirer
         ? `✓ ${nombre} PCI retiré${nombre > 1 ? 's' : ''} de leur groupe`
-        : `✓ ${nombre} PCI placé${nombre > 1 ? 's' : ''} dans ${data.groupe}`,
+        : `✓ ${nombre} PCI placé${nombre > 1 ? 's' : ''} dans ${data.groupe}`) + note,
     })
     setSelection(new Set())
     setGroupeLot('')
     router.refresh()
+  }
+
+  // Donner ou retirer l'accès Leadership à un ou plusieurs PCI
+  async function changerLeadership(ids: string[], acces: boolean): Promise<string | null> {
+    const res = await fetch('/api/leader/acces-leadership', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, acces }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return data.error ?? 'Erreur lors de la sauvegarde'
+    const modifies: string[] = data.ids ?? ids
+    setAccesModifies(prev => {
+      const suivant = { ...prev }
+      modifies.forEach(i => { suivant[i] = acces })
+      return suivant
+    })
+    router.refresh()
+    return null
+  }
+
+  async function appliquerLeadershipLot(acces: boolean) {
+    const ids = pcis.filter(p => selection.has(p.id) && peutLeadership(p)).map(p => p.id)
+    if (ids.length === 0) {
+      setLotMessage({ type: 'erreur', texte: 'Les leaders ont déjà toujours accès aux conférences Leadership.' })
+      return
+    }
+    setLotChargement(true)
+    setLotMessage(null)
+    const erreur = await changerLeadership(ids, acces)
+    setLotChargement(false)
+    if (erreur) {
+      setLotMessage({ type: 'erreur', texte: erreur })
+      return
+    }
+    const n = ids.length
+    setLotMessage({
+      type: 'succes',
+      texte: acces
+        ? `👑 ${n} PCI ${n > 1 ? 'ont' : 'a'} maintenant accès aux conférences Leadership`
+        : `✓ Accès Leadership retiré à ${n} PCI`,
+    })
+    setSelection(new Set())
+  }
+
+  async function basculerLeadershipProfil(acces: boolean) {
+    if (!profilOuvert) return
+    setLeadershipChargement(true)
+    setLeadershipErreur(null)
+    const erreur = await changerLeadership([profilOuvert.id], acces)
+    setLeadershipChargement(false)
+    if (erreur) setLeadershipErreur(erreur)
   }
 
   function demandeRapport() {
@@ -366,6 +435,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
     setGroupeErreur(null)
     setStatutEdit(pci.statut)
     setStatutSauvegarde(false)
+    setLeadershipErreur(null)
   }
 
   async function sauvegarderStatut() {
@@ -593,9 +663,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
         {/* ONGLET PROFILS */}
         {(onglet === 'profils' || onglet === 'inactifs') && (
           <div>
-            {/* Classer plusieurs PCI d'un coup (seulement ses propres PCI) */}
+            {/* Plusieurs PCI d'un coup : groupe (ses propres PCI) ou accès Leadership (toute son organisation) */}
             {(() => {
-              const classables = pcisFiltres.filter(peutClasser)
+              const classables = pcisFiltres.filter(peutSelectionner)
               if (classables.length === 0) return null
               const tousCoches = classables.every(p => selection.has(p.id))
               return (
@@ -613,11 +683,18 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                       <button onClick={() => appliquerGroupeLot(true)} disabled={lotChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-white/10 hover:bg-white/20">
                         Retirer du groupe
                       </button>
+                      <span className="hidden sm:block w-px self-stretch bg-white/20 mx-1" />
+                      <button onClick={() => appliquerLeadershipLot(true)} disabled={lotChargement} className="px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-50" style={{ backgroundColor: '#FFF8E1', color: '#1A2535' }}>
+                        👑 Donner l&apos;accès Leadership
+                      </button>
+                      <button onClick={() => appliquerLeadershipLot(false)} disabled={lotChargement} className="px-3 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 bg-white/10 hover:bg-white/20">
+                        Retirer l&apos;accès Leadership
+                      </button>
                       <button onClick={() => { setSelection(new Set()); setLotMessage(null) }} className="px-2 py-2 text-sm text-white/70 hover:text-white">✕ Annuler</button>
                     </div>
                   ) : (
                     <div className="px-4 py-2.5 border-b text-sm bg-white" style={{ borderColor: '#E0E0E0', color: '#666666' }}>
-                      ☑️ Cochez des PCI pour les placer dans un groupe d&apos;un seul coup.
+                      ☑️ Cochez des PCI pour les placer dans un groupe ou leur donner l&apos;accès 👑 Leadership d&apos;un seul coup.
                     </div>
                   )}
                   <label className="px-4 py-2 border-b flex items-center gap-3 text-xs cursor-pointer bg-white" style={{ borderColor: '#E0E0E0', color: '#666666' }}>
@@ -629,7 +706,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                       })
                       setLotMessage(null)
                     }} />
-                    Tout sélectionner ({classables.length} {estAdmin ? 'PCI affichés' : 'de mes PCI affichés'})
+                    Tout sélectionner ({classables.length} PCI affichés)
                   </label>
                   {lotMessage && (
                     <div className="px-4 py-2 text-sm" style={lotMessage.type === 'succes' ? { backgroundColor: '#E8F5E9', color: '#2E7D32' } : { backgroundColor: '#FDECEA', color: '#C62828' }}>
@@ -647,7 +724,7 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                 return (
                   <div key={pci.id} className="p-4 border-b flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4" style={{ borderColor: '#E0E0E0', backgroundColor: selection.has(pci.id) ? '#FBF6E8' : undefined }}>
                     <div className="flex-1 flex gap-3 min-w-0">
-                    {peutClasser(pci) ? (
+                    {peutSelectionner(pci) ? (
                       <input type="checkbox" aria-label={`Sélectionner ${pci.prenom_1} ${pci.nom_1}`} className="w-5 h-5 mt-0.5 flex-shrink-0 accent-yellow-600 cursor-pointer" checked={selection.has(pci.id)} onChange={() => basculerSelection(pci.id)} />
                     ) : (
                       <span className="w-5 flex-shrink-0 text-center text-sm mt-0.5" title={leader ? `Groupe géré par ${leader}` : 'Groupe géré par son leader'}>🔒</span>
@@ -657,8 +734,9 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                         {pci.prenom_1} {pci.nom_1}
                         {pci.prenom_2 && <span className="text-sm font-normal ml-2" style={{ color: '#666666' }}>+ {pci.prenom_2} {pci.nom_2}</span>}
                         {pci.statut === 'inactif' && <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium" style={{ backgroundColor: '#ECEFF1', color: '#757575' }}>⏸️ Inactif</span>}
+                        {pci.role === 'pci' && aLeadership(pci) && <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap" style={{ backgroundColor: '#FFF8E1', color: '#A07D1C' }}>👑 Leadership</span>}
                       </p>
-                      {pci.groupe && <p className="text-xs font-medium mt-0.5" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}</p>}
+                      {pci.groupe && <p className="text-xs font-medium mt-0.5" style={{ color: '#C9A84C' }}>Groupe : {pci.groupe}{!peutClasser(pci) && <span title={leader ? `Groupe géré par ${leader}` : 'Groupe géré par son leader'}> 🔒</span>}</p>}
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.courriel}</p>
                       <p className="text-sm" style={{ color: '#666666' }}>{pci.ville}, {pci.province} · #{pci.numero_amway}</p>
                       {leader && <p className="text-xs mt-0.5" style={{ color: '#2E86C1' }}>Leader : {leader}</p>}
@@ -803,6 +881,21 @@ export default function PlatinesEtPlus({ pcis, billets, leadersGroupe, leaderCon
                   </p>
                 )}
               </div>
+
+              {/* Accès aux conférences Leadership — tout leader au-dessus du PCI peut le changer */}
+              {peutLeadership(profilOuvert) && (
+                <div className="border-t pt-3" style={{ borderColor: '#E0E0E0' }}>
+                  <label className="flex items-start gap-3 p-3 rounded-lg border cursor-pointer" style={{ borderColor: aLeadership(profilOuvert) ? '#C9A84C' : '#E0E0E0', backgroundColor: aLeadership(profilOuvert) ? '#FFF8E1' : undefined }}>
+                    <input type="checkbox" className="w-5 h-5 mt-0.5 accent-yellow-600 cursor-pointer" checked={aLeadership(profilOuvert)} disabled={leadershipChargement} onChange={e => basculerLeadershipProfil(e.target.checked)} />
+                    <span>
+                      <span className="block text-sm font-semibold" style={{ color: '#1A2535' }}>👑 Accès aux conférences Leadership</span>
+                      <span className="block text-xs mt-0.5" style={{ color: '#666666' }}>Ce PCI voit et peut acheter ses billets pour les conférences Leadership.</span>
+                    </span>
+                  </label>
+                  {leadershipChargement && <p className="text-xs mt-1" style={{ color: '#999999' }}>Enregistrement...</p>}
+                  {leadershipErreur && <p className="text-xs mt-1" style={{ color: '#C62828' }}>{leadershipErreur}</p>}
+                </div>
+              )}
 
               {/* Statut Actif / Inactif — pas pour soi-même ni pour une demande en attente */}
               {profilOuvert.id !== leaderConnecteId && (profilOuvert.statut === 'actif' || profilOuvert.statut === 'inactif') && (

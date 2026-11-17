@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@/utils/supabase/server'
+import { peutVoirEvenement } from '@/lib/leadership'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ erreur: 'Non autorisé' }, { status: 401 })
 
-    const { evenement_id, nom_pci, est_sans_frais, quantite = 1, allergies, modes_participation } = await request.json()
+    const { evenement_id, nom_pci, quantite = 1, allergies, modes_participation } = await request.json()
 
     const { data: evenement } = await supabase
       .from('evenements')
@@ -42,6 +43,17 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (!compte || compte.statut !== 'actif') return NextResponse.json({ erreur: 'Compte inactif' }, { status: 403 })
+
+    // L'événement doit être en vente, et une conférence Leadership n'est permise qu'aux leaders et aux PCI qui ont l'accès
+    if (evenement.statut !== 'actif') return NextResponse.json({ erreur: 'Cet événement n\'est pas en vente' }, { status: 403 })
+    if (!peutVoirEvenement(evenement.acces, compte)) {
+      return NextResponse.json({ erreur: 'Cette conférence Leadership est réservée aux PCI autorisés par leur leader' }, { status: 403 })
+    }
+
+    // Sans frais : toujours calculé ici, jamais pris tel quel du navigateur (même règle que la page d'achat)
+    const est_sans_frais = compte.periode_sf_fin
+      ? new Date(evenement.date_debut) <= new Date(compte.periode_sf_fin)
+      : false
 
     if (est_sans_frais) {
       const noms = nom_pci.includes(' & ') ? nom_pci.split(' & ') : [nom_pci]

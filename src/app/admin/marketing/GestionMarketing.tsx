@@ -15,6 +15,7 @@ interface Evenement {
   description: string | null
   date_debut: string
   lieu: string | null
+  acces?: string | null
   paliers: Palier[]
   villes: Ville[]
 }
@@ -30,10 +31,11 @@ interface Campagne {
 interface Props {
   evenements: Evenement[]
   nombreDestinataires: number
+  nombreLeadership: number
   campagnes: Campagne[]
 }
 
-export default function GestionMarketing({ evenements, nombreDestinataires, campagnes }: Props) {
+export default function GestionMarketing({ evenements, nombreDestinataires: nombreTous, nombreLeadership, campagnes }: Props) {
   const [evenementId, setEvenementId] = useState('')
   const [sujet, setSujet] = useState('')
   const [imageUrl, setImageUrl] = useState('')
@@ -44,6 +46,10 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
   const [message, setMessage] = useState<{ type: 'succes' | 'erreur'; texte: string } | null>(null)
 
   const evenement = useMemo(() => evenements.find(e => e.id === evenementId) ?? null, [evenements, evenementId])
+  // Conférence Leadership : la promo part seulement aux leaders et aux PCI qui ont l'accès
+  const estLeadership = evenement?.acces === 'leadership'
+  const nombreDestinataires = estLeadership ? nombreLeadership : nombreTous
+  const publicCible = estLeadership ? 'leaders et PCI ayant l\'accès Leadership' : 'PCI/leaders'
 
   const prixActuel = useMemo(() => {
     if (!evenement || evenement.paliers.length === 0) return null
@@ -124,7 +130,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
   async function envoyerATous() {
     if (!evenementId || !sujet) return
     const confirmation = window.confirm(
-      `Envoyer ce courriel à environ ${nombreDestinataires} PCI/leaders actifs ? Cette action est irréversible.`
+      `Envoyer ce courriel à environ ${nombreDestinataires} ${publicCible} actifs ? Cette action est irréversible.`
     )
     if (!confirmation) return
 
@@ -241,7 +247,7 @@ export default function GestionMarketing({ evenements, nombreDestinataires, camp
             className="px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: '#C9A84C' }}
           >
-            {chargementEnvoi ? 'Envoi en cours...' : `Envoyer à tous (~${nombreDestinataires} PCI/leaders)`}
+            {chargementEnvoi ? 'Envoi en cours...' : estLeadership ? `👑 Envoyer aux autorisés Leadership (~${nombreDestinataires})` : `Envoyer à tous (~${nombreDestinataires} PCI/leaders)`}
           </button>
         </div>
       </div>

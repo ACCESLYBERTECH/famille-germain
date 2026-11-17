@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import CompteNonActif from '@/components/CompteNonActif'
 import ListeEvenements from './ListeEvenements'
+import { peutVoirEvenement } from '@/lib/leadership'
 
 export default async function EvenementsPage() {
   const supabase = await createClient()
@@ -32,11 +33,8 @@ export default async function EvenementsPage() {
     .eq('statut', 'actif')
     .order('date_debut', { ascending: true })
 
-  // Filtrer selon le rôle
-  const evenementsFiltres = (evenements ?? []).filter(ev => {
-    if (ev.acces === 'platine' && compte?.role === 'pci') return false
-    return true
-  })
+  // Filtrer selon l'accès : une conférence Leadership n'est visible qu'aux leaders et aux PCI qui ont l'accès
+  const evenementsFiltres = (evenements ?? []).filter(ev => peutVoirEvenement(ev.acces, compte))
 
   // Billets déjà achetés par le PCI (pour savoir si banquet disponible)
   const { data: billetsPCI } = await supabase

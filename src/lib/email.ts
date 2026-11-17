@@ -115,7 +115,7 @@ export async function envoyerPromoEvenement(params: {
   dateFin: string
   lieu: string
   villes: string[]
-  acces: 'public' | 'platine'
+  acces: 'public' | 'leadership'
   aBillets: boolean
   aBanquet: boolean
   banquetNom: string | null

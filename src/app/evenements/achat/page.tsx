@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import FormulaireAchat from './FormulaireAchat'
+import { peutVoirEvenement } from '@/lib/leadership'
 
 interface Props {
   searchParams: Promise<{ evenement_id?: string }>
@@ -31,6 +32,8 @@ export default async function AchatPage({ searchParams }: Props) {
     .single()
 
   if (!evenement) redirect('/evenements')
+  // Conférence Leadership : seulement les leaders et les PCI qui ont l'accès (même avec le lien direct)
+  if (!peutVoirEvenement(evenement.acces, compte)) redirect('/evenements')
 
   // Billets déjà achetés pour cet événement par ce compte
   const { data: billetsExistants } = await supabase

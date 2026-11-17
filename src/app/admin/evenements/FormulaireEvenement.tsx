@@ -287,7 +287,7 @@ export default function FormulaireEvenement({ evenement, onFermer, onSauvegarder
               <label className={labelClass} style={{ color: '#1A2535' }}>Accès</label>
               <select className={inputClass} style={{ borderColor: '#E0E0E0' }} value={form.acces} onChange={e => update('acces', e.target.value)}>
                 <option value="public">Public (tous PCI)</option>
-                <option value="platine">Platine+ seulement</option>
+                <option value="leadership">👑 Leadership (leaders + PCI autorisés)</option>
               </select>
             </div>
             <div>

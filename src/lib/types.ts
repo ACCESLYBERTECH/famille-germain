@@ -2,7 +2,7 @@ export type Role = 'pci' | 'leader' | 'portier' | 'admin' | 'developpeur'
 export type Statut = 'en_attente' | 'actif' | 'inactif' | 'refuse'
 export type StatutBillet = 'vendu' | 'utilise' | 'rembourse'
 export type StatutEvenement = 'actif' | 'inactif' | 'archive'
-export type AccesEvenement = 'public' | 'platine'
+export type AccesEvenement = 'public' | 'leadership'
 export type StripeAccount = 'principal' | 'banquet'
 
 export interface Compte {
@@ -30,6 +30,7 @@ export interface Compte {
   groupe?: string | null
   photo_url?: string | null
   visible_inscription?: boolean | null
+  acces_leadership?: boolean | null
 }
 
 export interface Evenement {

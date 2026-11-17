@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     const { data: compte } = await supabase.from('comptes').select('role').eq('id', user.id).single()
     if (!estAdminOuDeveloppeur(compte?.role)) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, adresse, ville, code_postal, province, pays, numero_amway, date_inscription_amway, role, leader_id, periode_sf_debut, periode_sf_fin, groupe, photo_url, visible_inscription, statut } = await request.json()
+    const { id, prenom_1, nom_1, prenom_2, nom_2, courriel, telephone, adresse, ville, code_postal, province, pays, numero_amway, date_inscription_amway, role, leader_id, periode_sf_debut, periode_sf_fin, groupe, photo_url, visible_inscription, statut, acces_leadership } = await request.json()
 
     // Garde-fou : le développeur ne peut pas toucher aux comptes admin/développeur
     // ni donner ces rôles à quelqu'un
@@ -68,6 +68,8 @@ export async function POST(request: Request) {
         groupe: cleGroupe(groupe) || null,
         photo_url: photo_url || null,
         visible_inscription: visible_inscription !== undefined ? visible_inscription : true,
+        // Accès aux conférences Leadership (les leaders l'ont toujours, la case sert aux PCI)
+        ...(acces_leadership !== undefined ? { acces_leadership: acces_leadership === true } : {}),
         // Statut modifiable seulement entre actif et inactif (l'historique des billets n'est pas touché)
         ...(statutModifiable ? { statut } : {}),
       })
