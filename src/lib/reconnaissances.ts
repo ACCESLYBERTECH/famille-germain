@@ -35,6 +35,7 @@ export interface EntreeVirtuel {
   pays: string | null
   type_ids: string[]
   autre: string | null
+  entre_par?: string | null   // entrée d'un leader AU-DESSUS, pour un PCI de son équipe (lecture seule)
 }
 
 // Ordre des leaders en dessous, comme un arbre : CHAMARD, puis HEBERT (équipe de CHAMARD)...

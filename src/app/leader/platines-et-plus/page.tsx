@@ -6,6 +6,7 @@ import CompteNonActif from '@/components/CompteNonActif'
 import NonAccessibleDeveloppeur from '@/components/NonAccessibleDeveloppeur'
 import PlatinesEtPlus from './PlatinesEtPlus'
 import { ordonnerLeaders } from '@/lib/reconnaissances'
+import { entreesDesLeadersDuHaut } from '@/lib/reconnaissancesServeur'
 
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,6 +87,12 @@ export default async function PlatinesEtPlusPage() {
       : Promise.resolve({ data: [] as any[] }),
   ])
   if (erreurTypesReco) console.error('Reconnaissances — lecture des types :', erreurTypesReco)
+  // Entrées des leaders AU-DESSUS pour des gens de son équipe : visibles (lecture seule) pour éviter les doublons
+  const equipeReco = [
+    { id: user.id, numero_amway: compte?.numero_amway ?? null },
+    ...(membres ?? []).map((m: any) => ({ id: m.id, numero_amway: m.numero_amway })),
+  ]
+  const virtuelDuHaut = compte?.role === 'leader' ? await entreesDesLeadersDuHaut(user.id, idsEvReco, equipeReco) : []
   const ordreLeadersReco = ordonnerLeaders(user.id, leadersGroupe as any)
   const personnesReco = [
     { id: user.id, prenom_1: compte?.prenom_1, nom_1: compte?.nom_1, prenom_2: compte?.prenom_2, nom_2: compte?.nom_2, numero_amway: compte?.numero_amway, ville: compte?.ville, province: compte?.province, pays: compte?.pays },
@@ -110,7 +117,7 @@ export default async function PlatinesEtPlusPage() {
             types: typesReco ?? [],
             erreurTypes: erreurTypesReco?.message ?? null,
             ordreLeaders: ordreLeadersReco,
-            virtuel: (virtuelReco ?? []) as any,
+            virtuel: [...(virtuelReco ?? []), ...virtuelDuHaut] as any,
             surPlace: (surPlaceReco ?? []) as any,
             personnes: personnesReco as any,
           }}

@@ -19,6 +19,7 @@ export interface PersonneVirtuel {
   autre: string | null
   leader_id: string
   leader: string
+  leaders_fiche: string | null   // « LEADERS : MARIO HÉBERT ET NATHALIE CHARBONNEAU » (le leader programmé dans sa fiche)
 }
 
 export interface RapportReconnaissances {
@@ -62,6 +63,38 @@ export async function chargerRapport(evenementId: string): Promise<RapportReconn
     : { data: [] as { id: string; prenom_1: string; nom_1: string }[] }
   const nomLeader = (id: string) => { const l = (leaders ?? []).find(x => x.id === id); return l ? `${l.prenom_1} ${l.nom_1}` : '?' }
 
+  // Leaders de chaque personne en virtuel : le leader programmé dans SA fiche (trouvée par compte ou par numéro de PCI).
+  // Si la personne n'a pas de fiche (entrée à la main), on prend le leader qui l'a inscrite.
+  const idsComptes = Array.from(new Set((virtuelBrut ?? []).map(v => v.compte_id).filter(Boolean))) as string[]
+  const numerosBruts = Array.from(new Set((virtuelBrut ?? []).filter(v => !v.compte_id && v.numero_amway).map(v => v.numero_amway as string)))
+  const [{ data: parId }, { data: parNumeroPCI }] = await Promise.all([
+    idsComptes.length > 0 ? supabaseAdmin.from('comptes').select('id, numero_amway, leader_id').in('id', idsComptes) : Promise.resolve({ data: [] as any[] }),
+    numerosBruts.length > 0 ? supabaseAdmin.from('comptes').select('id, numero_amway, leader_id').in('numero_amway', numerosBruts) : Promise.resolve({ data: [] as any[] }),
+  ])
+  const fiches = [...(parId ?? []), ...(parNumeroPCI ?? [])] as { id: string; numero_amway: string | null; leader_id: string | null }[]
+  const ficheDe = (v: { compte_id: string | null; numero_amway: string | null }) =>
+    (v.compte_id ? fiches.find(f => f.id === v.compte_id) : undefined)
+    ?? (cleNumero(v.numero_amway) ? fiches.find(f => cleNumero(f.numero_amway) === cleNumero(v.numero_amway)) : undefined)
+  const idsLeadersFiche = Array.from(new Set([
+    ...fiches.map(f => f.leader_id).filter(Boolean) as string[],
+    ...(virtuelBrut ?? []).map(v => v.leader_id),
+  ]))
+  const { data: leadersFiche } = idsLeadersFiche.length > 0
+    ? await supabaseAdmin.from('comptes').select('id, prenom_1, nom_1, prenom_2, nom_2').in('id', idsLeadersFiche)
+    : { data: [] as any[] }
+  const texteLeaders = (id: string | null | undefined) => {
+    const l = (leadersFiche ?? []).find((x: any) => x.id === id)
+    if (!l) return null
+    const noms = [`${l.prenom_1 ?? ''} ${l.nom_1 ?? ''}`.trim(), l.prenom_2 ? `${l.prenom_2} ${l.nom_2 || l.nom_1 || ''}`.trim() : ''].filter(Boolean)
+    if (noms.length === 0) return null
+    return `${noms.length > 1 ? 'LEADERS' : 'LEADER'} : ${noms.join(' ET ')}`.toLocaleUpperCase('fr-CA')
+  }
+  const leadersDe = (v: { compte_id: string | null; numero_amway: string | null; leader_id: string }) => {
+    const fiche = ficheDe(v)
+    if (fiche) return fiche.leader_id && fiche.leader_id !== fiche.id ? texteLeaders(fiche.leader_id) : null
+    return texteLeaders(v.leader_id)
+  }
+
   const villes = ((evenement as any).villes ?? []) as VilleEvenement[]
   const salles = villes.length > 0
     ? [...villes].sort((a, b) => a.ordre - b.ordre).map(v => ({ cle: v.id, nom: v.nom_ville }))
@@ -83,6 +116,7 @@ export async function chargerRapport(evenementId: string): Promise<RapportReconn
     .map(v => ({
       id: v.id, nom: v.nom, nom_2: v.nom_2, numero_amway: v.numero_amway, ville: v.ville, province: v.province, pays: v.pays,
       type_ids: v.type_ids ?? [], autre: v.autre, leader_id: v.leader_id, leader: nomLeader(v.leader_id),
+      leaders_fiche: leadersDe(v),
     }))
     .sort((a, b) => a.nom.localeCompare(b.nom, 'fr-CA'))
 

@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { saisieOuverte } from '@/lib/reconnaissances'
+import { saisieOuverte, cleNumero } from '@/lib/reconnaissances'
 
 export const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,4 +35,44 @@ export async function verifierAcces(evenementId: unknown): Promise<
     return { ok: false, erreur: 'La date limite est passée : les reconnaissances de cet événement sont verrouillées.', statut: 403 }
   }
   return { ok: true, userId: user.id, estAdmin, evenement }
+}
+
+// Les leaders AU-DESSUS d'un leader (son leader, le leader de son leader, etc.)
+export async function leadersAuDessus(userId: string): Promise<{ id: string; nom: string }[]> {
+  const resultat: { id: string; nom: string }[] = []
+  const vus = new Set<string>([userId])
+  const { data: moi } = await supabaseAdmin.from('comptes').select('leader_id').eq('id', userId).single()
+  let suivant: string | null = moi?.leader_id ?? null
+  for (let i = 0; i < 20 && suivant && !vus.has(suivant); i++) {
+    vus.add(suivant)
+    const { data: c } = await supabaseAdmin.from('comptes').select('id, prenom_1, nom_1, role, leader_id').eq('id', suivant).single()
+    if (!c) break
+    if (c.role === 'leader') resultat.push({ id: c.id, nom: `${c.prenom_1 ?? ''} ${c.nom_1 ?? ''}`.trim() })
+    suivant = c.leader_id ?? null
+  }
+  return resultat
+}
+
+// Entrées virtuelles faites par un leader au-dessus, mais SEULEMENT pour des personnes de l'équipe
+// du leader (lui-même et tout son arbre), reconnues par compte ou par numéro de PCI.
+// Jamais les autres entrées du leader du haut.
+export async function entreesDesLeadersDuHaut(
+  userId: string,
+  evenementIds: string[],
+  equipe: { id: string; numero_amway: string | null }[],
+): Promise<any[]> {
+  if (evenementIds.length === 0) return []
+  const auDessus = await leadersAuDessus(userId)
+  if (auDessus.length === 0) return []
+  const { data } = await supabaseAdmin
+    .from('reconnaissances_virtuel')
+    .select('*')
+    .in('evenement_id', evenementIds)
+    .in('leader_id', auDessus.map(l => l.id))
+    .order('created_at', { ascending: true })
+  const idsEquipe = new Set(equipe.map(p => p.id))
+  const numerosEquipe = new Set(equipe.map(p => cleNumero(p.numero_amway)).filter(Boolean))
+  return (data ?? [])
+    .filter(e => (e.compte_id && idsEquipe.has(e.compte_id)) || (cleNumero(e.numero_amway) && numerosEquipe.has(cleNumero(e.numero_amway))))
+    .map(e => ({ ...e, entre_par: auDessus.find(l => l.id === e.leader_id)?.nom ?? 'votre leader' }))
 }

@@ -77,8 +77,9 @@ export default function FeuilleScene({ rapport, salle }: { rapport: RapportRecon
                       </div>
                       <div style={{ fontSize: 21, margin: '6px 0 2px' }}>💻 En virtuel :{noms.length === 0 && <b style={{ color: '#AAA', fontStyle: 'italic' }}> AUCUN</b>}</div>
                       {noms.map(p => (
-                        <div key={p.id} style={{ fontSize: 21, lineHeight: 1.5, marginLeft: 22 }}>
+                        <div key={p.id} style={{ fontSize: 21, lineHeight: 1.4, marginLeft: 22, marginBottom: 6 }}>
                           • {nomsPersonne(p)} <span style={{ color: '#666', fontSize: 16 }}>— {lieuPersonne(p)}</span>
+                          {p.leaders_fiche && <div style={{ fontSize: 15, color: '#444', marginLeft: 18, letterSpacing: '0.02em' }}>{p.leaders_fiche}</div>}
                         </div>
                       ))}
                     </>
@@ -92,8 +93,9 @@ export default function FeuilleScene({ rapport, salle }: { rapport: RapportRecon
               <div className="bloc" style={{ marginTop: 20 }}>
                 <div style={{ fontSize: 24, fontWeight: 'bold', borderBottom: '1px solid #DDD', paddingBottom: 3 }}>{types.length + 1}. Autres reconnaissances</div>
                 {autres.map(p => (
-                  <div key={p.id} style={{ fontSize: 21, lineHeight: 1.5, marginLeft: 22, marginTop: 4 }}>
+                  <div key={p.id} style={{ fontSize: 21, lineHeight: 1.4, marginLeft: 22, marginTop: 4, marginBottom: 6 }}>
                     • <b>{p.autre}</b> : {nomsPersonne(p)} <span style={{ color: '#666', fontSize: 16 }}>— {lieuPersonne(p)}</span>
+                    {p.leaders_fiche && <div style={{ fontSize: 15, color: '#444', marginLeft: 18, letterSpacing: '0.02em' }}>{p.leaders_fiche}</div>}
                   </div>
                 ))}
               </div>

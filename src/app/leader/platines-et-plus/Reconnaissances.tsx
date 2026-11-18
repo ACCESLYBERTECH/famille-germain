@@ -133,7 +133,9 @@ function SectionEvenement({ evenement, types, virtuelInitial, surPlace, personne
   const [ficheInfo, setFicheInfo] = useState<string | null>(null)
 
   const mesEntrees = entrees.filter(e => e.leader_id === moiId)
-  const autresEntrees = entrees.filter(e => e.leader_id !== moiId)
+  // Entrées d'un leader au-dessus pour des gens de mon équipe (lecture seule)
+  const entreesDuHaut = entrees.filter(e => e.leader_id !== moiId && e.entre_par)
+  const autresEntrees = entrees.filter(e => e.leader_id !== moiId && !e.entre_par)
   const autresParLeader = useMemo(() => {
     const m = new Map<string, EntreeVirtuel[]>()
     autresEntrees.forEach(e => { if (!m.has(e.leader_id)) m.set(e.leader_id, []); m.get(e.leader_id)!.push(e) })
@@ -153,6 +155,10 @@ function SectionEvenement({ evenement, types, virtuelInitial, surPlace, personne
     if (!fiche) return false
     const doublon = trouverDoublon(entrees, personne, fiche.id)
     if (!doublon) return false
+    if (doublon.entre_par) {
+      setFicheErreur(`${doublon.nom} est déjà inscrit(e) par votre leader ${doublon.entre_par} pour cette conférence.`)
+      return true
+    }
     if (doublon.leader_id === moiId) {
       modifier(doublon)
       setFicheInfo(`${doublon.nom} est déjà dans vos entrées : voici sa fiche. Ajoutez ou retirez des reconnaissances au besoin.`)
@@ -273,6 +279,7 @@ function SectionEvenement({ evenement, types, virtuelInitial, surPlace, personne
       <div className="min-w-0">
         <p className="font-semibold" style={{ color: '#1A2535' }}>
           {!modifiable && <span title="Entrée d'un autre leader">🔒 </span>}{e.nom}{e.nom_2 ? ` & ${e.nom_2}` : ''}
+          {e.entre_par && <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium align-middle" style={{ backgroundColor: '#FFF8E1', color: '#A07D1C' }}>👑 Entré par {e.entre_par}</span>}
         </p>
         <p className="text-xs" style={{ color: '#666666' }}>{e.numero_amway ? `#${e.numero_amway} · ` : ''}{[e.ville, e.province, e.pays].filter(Boolean).join(', ')}</p>
         <div className="flex flex-wrap gap-1 mt-1.5">
@@ -395,8 +402,15 @@ function SectionEvenement({ evenement, types, virtuelInitial, surPlace, personne
           </div>
         )}
 
-        {mesEntrees.length === 0 && autresEntrees.length === 0 && !fiche && (
+        {mesEntrees.length === 0 && autresEntrees.length === 0 && entreesDuHaut.length === 0 && !fiche && (
           <p className="p-6 text-center text-sm" style={{ color: '#999999' }}>Aucune personne en virtuel pour cette conférence.</p>
+        )}
+        {entreesDuHaut.length > 0 && (
+          <div style={{ backgroundColor: '#FFFDF7' }}>
+            <p className="px-4 pt-3 text-xs font-bold uppercase tracking-wide" style={{ color: '#A07D1C' }}>👑 Déjà entrées par votre leader pour votre équipe ({entreesDuHaut.length})</p>
+            <p className="px-4 text-xs" style={{ color: '#999999' }}>Ces personnes sont déjà inscrites : inutile de les entrer de nouveau.</p>
+            <div className="px-1" style={{ opacity: 0.9 }}>{entreesDuHaut.map(e => carteEntree(e, false))}</div>
+          </div>
         )}
         {mesEntrees.length > 0 && (
           <div>
@@ -416,7 +430,7 @@ function SectionEvenement({ evenement, types, virtuelInitial, surPlace, personne
       <section className="rounded-2xl border" style={{ borderColor: '#E0E0E0' }}>
         <div className="p-4 border-b" style={{ borderColor: '#E0E0E0' }}>
           <h3 className="font-bold" style={{ color: '#1A2535' }}>🏛️ Reconnaissances sur place</h3>
-          <p className="text-xs" style={{ color: '#666666' }}>Seulement le nombre de personnes de votre équipe, pour chaque reconnaissance et chaque salle.</p>
+          <p className="text-xs" style={{ color: '#666666' }}>Seulement le nombre de <strong>vos propres PCI</strong> (ceux dont vous êtes le leader immédiat), pour chaque reconnaissance et chaque salle. Vos leaders en dessous entrent les leurs.</p>
         </div>
 
         {listeVilles.length > 1 && (

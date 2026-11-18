@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabaseAdmin, verifierAcces } from '@/lib/reconnaissancesServeur'
+import { supabaseAdmin, verifierAcces, entreesDesLeadersDuHaut } from '@/lib/reconnaissancesServeur'
 import { LONGUEURS, trouverDoublon, cleNumero } from '@/lib/reconnaissances'
 
 const texte = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, max) : '')
@@ -59,6 +59,16 @@ export async function POST(request: Request) {
     }
     const { data: existantes } = await requete
     const doublon = trouverDoublon(existantes ?? [], { compte_id: compteId, numero_amway: numero }, typeof corps.id === 'string' ? corps.id : undefined)
+
+    // Un leader au-dessus l'a-t-il déjà inscrite ? (seulement pour une personne de son équipe)
+    if (!doublon && !acces.estAdmin) {
+      const { data: equipe } = await supabaseAdmin.from('comptes').select('id, numero_amway').in('id', Array.from(idsGroupe))
+      const duHaut = await entreesDesLeadersDuHaut(acces.userId, [acces.evenement.id], equipe ?? [])
+      const doublonHaut = trouverDoublon(duHaut, { compte_id: compteId, numero_amway: numero })
+      if (doublonHaut) {
+        return NextResponse.json({ error: `${doublonHaut.nom} (#${numero}) est déjà inscrit(e) par votre leader ${doublonHaut.entre_par} pour cette conférence.` }, { status: 409 })
+      }
+    }
     if (doublon) {
       if (doublon.leader_id === acces.userId) {
         return NextResponse.json({ error: `${doublon.nom} (#${numero}) est déjà dans vos entrées pour cette conférence.`, doublonId: doublon.id }, { status: 409 })
